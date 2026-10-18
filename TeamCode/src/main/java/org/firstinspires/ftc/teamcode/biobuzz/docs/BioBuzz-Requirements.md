@@ -131,7 +131,7 @@ biobuzz/                                  repo root = Quickstart root
       Tuning.java                         Quickstart stub; registers our tuners ONCE at tuning
       procedures/                         unchanged Pedro tuners and Tests
     biobuzz/                              ALL team code (see Code layout)
-  TeamCode/src/main/assets/biobuzz/       team: BioBuzz field image for the Dashboard field view
+  TeamCode/src/main/assets/images/        team: BioBuzz field image (the Dashboard serves /images/)
   build.dependencies.gradle               Quickstart-owned; team additions in ONE marked block
   tools/plot_match.py                     team, laptop only
   UPSTREAM.md                             team: every change to a Quickstart file + merge log
@@ -189,7 +189,7 @@ teamcode/biobuzz/
                           FieldCheckHelper, PoseMemory, InitMenu, FieldDrawing, LogSummary
   template/               TemplatePart.java, TemplateSubsystem.java to copy for a new mechanism
   docs/                   HLD.md, LLD.md, guides (see Documentation deliverables)
-TeamCode/src/main/assets/biobuzz/field-biobuzz.png   BioBuzz field image for the Dashboard field view
+TeamCode/src/main/assets/images/field-biobuzz.png    BioBuzz field image for the Dashboard field view
 tools/plot_match.py       laptop only, mentor-side (repo root, not built into the app)
 ```
 
@@ -359,7 +359,7 @@ Every OpMode MUST send the same telemetry to the Driver Station and FTC Dashboar
 
 - Every `*Config` class MUST be `@Config` with `public static` (not `final`) fields, so values can be changed live at `http://192.168.43.1:8080/dash`. Each config file's header MUST say that live edits are lost on restart and good values must be typed back into the file.
 - The Dashboard field view MUST draw the robot pose, and in auto the current path, through `helpers/FieldDrawing.java` (the Dashboard canvas). Pedro 3's tuning package has no drawing helper to reuse.
-- The field view SHOULD use the BioBuzz field as its background, from `TeamCode/src/main/assets/biobuzz/field-biobuzz.png`, so poses and paths can be checked against field elements. TODO(BioBuzz): the image comes from the game manual's field drawing. How Dashboard 0.6 loads a custom background is checked during implementation and written up in the LLD.
+- The field view SHOULD use the BioBuzz field as its background, from `TeamCode/src/main/assets/images/field-biobuzz.png` (the Dashboard serves that folder at `/images/`; it does not serve other asset folders), so poses and paths can be checked against field elements. TODO(BioBuzz): the image comes from the game manual's field drawing. How Dashboard 0.6 loads a custom background is checked during implementation and written up in the LLD.
 - The Dashboard graph SHOULD plot the key numbers: flywheel (or similar) target vs. actual velocity, loop time, and battery voltage. Add them with `TelemetryPacket.put(...)` in `helpers/` and in no other folder.
 
 **Performance:** telemetry MUST NOT push the loop time over its budget (see Troubleshooting). Driver Station telemetry SHOULD be sent no more than every 100 ms (`telemetry.setMsTransmissionInterval`).
