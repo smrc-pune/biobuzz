@@ -2,7 +2,7 @@
 
 Oct 18, 2026 · @Girish
 
-**Version 1.2**
+**Version 1.3**
 
 ## Contents
 
@@ -118,7 +118,7 @@ The BioBuzz code MUST start from the [Pedro Pathing Quickstart](https://github.c
    - `origin` points to the team's `biobuzz` repository.
    - `quickstart` points to `https://github.com/Pedro-Pathing/Quickstart.git`, and brings in Pedro updates.
    - `ftc` (`https://github.com/FIRST-Tech-Challenge/FtcRobotController.git`) is optional. Normally the FTC SDK arrives through the Quickstart. Add `ftc` only when an SDK release is needed before the Quickstart picks it up.
-3. The first commit after the clone adds `teamcode/biobuzz/`, `tools/` and `UPSTREAM.md`, and touches no Quickstart file except `pedro/Constants.java` values and the Gradle dependency block (both described below).
+3. The first commit after the clone adds `teamcode/biobuzz/`, `tools/` and `UPSTREAM.md`, and touches no Quickstart file except the Gradle dependency block (described below). `pedro/Constants.java` and `pedro/Tuning.java` stay as the Quickstart's stubs until drive tuning (see the rules below).
 
 **Where everything lives**
 
@@ -127,10 +127,11 @@ biobuzz/                                  repo root = Quickstart root
   FtcRobotController/                     FTC SDK (Quickstart-owned, never edited)
   TeamCode/src/main/java/org/firstinspires/ftc/teamcode/
     pedro/                                Quickstart-owned: DO NOT move, rename or add files
-      Constants.java                      edit VALUES only: our motors, localizer, tuned numbers
-      Tuning.java                         unchanged
+      Constants.java                      Quickstart stub; filled in ONCE at tuning, then VALUES only
+      Tuning.java                         Quickstart stub; registers our tuners ONCE at tuning
       procedures/                         unchanged Pedro tuners and Tests
     biobuzz/                              ALL team code (see Code layout)
+  TeamCode/src/main/assets/biobuzz/       team: BioBuzz field image for the Dashboard field view
   build.dependencies.gradle               Quickstart-owned; team additions in ONE marked block
   tools/plot_match.py                     team, laptop only
   UPSTREAM.md                             team: every change to a Quickstart file + merge log
@@ -140,8 +141,11 @@ biobuzz/                                  repo root = Quickstart root
 
 - No file or folder that comes from the Quickstart may be moved, renamed or deleted. This includes `teamcode/pedro/`, `pedro/procedures/`, the Gradle files and `FtcRobotController/`.
 - Team code MUST NOT go inside `teamcode/pedro/`. DecodeBot put its code there; BioBuzz does not.
-- `pedro/Constants.java` is the only Quickstart file whose contents are expected to change, and only its values change: motor names and directions, localizer setup, and tuned constants. Its structure stays as the Quickstart ships it, so a merge conflicts only on values.
-- Team code reaches Pedro only through the follower factory in `pedro/Constants.java` (DecodeBot: `Constants.create(hardwareMap)`). `biobuzz/parts/DriveBase.java` is the only team class that calls it.
+- `pedro/Constants.java` and `pedro/Tuning.java` ship from the Quickstart as empty stubs (`Constants.create()` returns `null`; `Tuning` registers no tuners). They stay that way until drive tuning.
+- **At tuning, once:** `Constants.java` gets its full structure, following DecodeBot: the follower factory `create(hardwareMap)` plus the drivetrain, localizer and Foresight configs. `Tuning.java` registers the tuners we use. This one-time structural change is recorded in `UPSTREAM.md`. After it, only values change in `Constants.java` (motor directions, pod offsets, tuned constants), so a merge conflicts only on values.
+- `Constants.java` reads device names from `biobuzz/configurations/HardwareNames.java` (an import), so each name is written in one place. This is the only place a Quickstart file depends on team code, and it is recorded in `UPSTREAM.md`.
+- Lambdas (`c -> ...`) in `Constants.java` and `Tuning.java` are Pedro's configuration style and are allowed there. The Coding style rules apply to `biobuzz/` only.
+- Team code reaches Pedro only through the follower factory in `pedro/Constants.java` (`Constants.create(hardwareMap)`). `biobuzz/parts/DriveBase.java` is the only team class that calls it. Pedro's `PinpointLocalizer` keeps its Pinpoint driver private, so the Pinpoint status, update rate and recalibration that Troubleshooting needs are not reachable through the follower. How `DriveBase` gets them is decided during implementation and written up in the LLD (Known implementation challenges).
 - Team Gradle additions go in one block at the end of `build.dependencies.gradle`, marked `// ---- BioBuzz additions ----`. Today that block holds FTC Dashboard (`com.acmerobotics.dashboard:dashboard` and the `https://maven.brott.dev/` repository). Pedro library versions (`com.pedropathing:revhub`, `com.pedropathing:tuning`) come from the Quickstart: on a merge, take its versions instead of editing them.
 - Local toolchain workarounds, such as DecodeBot's Android Gradle Plugin downgrade in `build.gradle`, MUST NOT be committed unless the whole team needs them. Committed workarounds are recorded in `UPSTREAM.md`.
 - `UPSTREAM.md` lists every change to a Quickstart-owned file: the file, what changed, and why.
@@ -150,7 +154,7 @@ biobuzz/                                  repo root = Quickstart root
 
 1. Check for Quickstart updates once a month in the off-season and before each competition. Never merge an update in the 7 days before an event.
 2. On a branch named `update-quickstart-<yyyy-mm-dd>`, run `git fetch quickstart`, then `git merge quickstart/master`.
-3. If `pedro/Constants.java` conflicts, keep our values and take the Quickstart's new structure.
+3. If `pedro/Constants.java` or `pedro/Tuning.java` conflicts, keep our values and tuner list, and take the Quickstart's new structure.
 4. Build. Run the Quickstart's `Tests` OpModes, then Field Checks 01 to 09 at home, and compare them with the baseline.
 5. Merge to `main` only if everything passes. Record the Quickstart commit and the test results in `UPSTREAM.md`.
 6. `docs/UPDATING_PEDRO.md` MUST walk a student through these steps, including how to resolve a `Constants.java` conflict.
@@ -176,23 +180,25 @@ teamcode/biobuzz/
     <Mechanism>Config.java  one per mechanism
   parts/                  hardware wrappers: one device group each, no decisions
   subsystems/             state machines ("brains"): Drive + one per mechanism
-  teleop/                 BioBuzzTeleOp.java: the ONLY file that reads gamepads
+  teleop/                 BioBuzzTeleOp.java: both match gamepad maps (driver + operator)
   auto/                   AutoPaths.java (all paths), BioBuzzAuto.java (step machine)
   testing/                one test OpMode per subsystem + RobotCheck + LogViewer (+ MatchSimulator, TODO)
   fieldchecks/            FieldCheck01_Hardware ... FieldCheck13_Summary: one OpMode per new-field test
   helpers/                StateTimer, StateLog, DashboardTelemetry, GamepadInput, HardwareLookup,
                           MatchLogger, MatchInfo, BatteryMonitor, LoopMonitor, HealthMonitor,
-                          FieldCheckHelper, PoseMemory
+                          FieldCheckHelper, PoseMemory, InitMenu, FieldDrawing, LogSummary
   template/               TemplatePart.java, TemplateSubsystem.java to copy for a new mechanism
   docs/                   HLD.md, LLD.md, guides (see Documentation deliverables)
+TeamCode/src/main/assets/biobuzz/field-biobuzz.png   BioBuzz field image for the Dashboard field view
 tools/plot_match.py       laptop only, mentor-side (repo root, not built into the app)
 ```
 
 **Layout rules**
 
-- Device names MUST appear only in `HardwareNames.java`. Robot passes the names to the parts.
+- Device names MUST appear only in `HardwareNames.java`. Robot passes the names to the parts, and `pedro/Constants.java` imports them.
 - Tunable numbers MUST appear only in `configurations/`. There are no magic numbers in parts, subsystems or OpModes.
-- The DecodeBot `GamepadConfig` wrapper moves to `helpers/GamepadInput.java`, because it is a tool, not a set of numbers. It keeps the edge-detected `isAPressed()` style.
+- The DecodeBot `GamepadConfig` wrapper moves to `helpers/GamepadInput.java`, because it is a tool, not a set of numbers. It keeps the edge-detected `isAPressed()` style and adds `isAHeld()` reads for hold-to-use controls. Back/Share is read from `gamepad.back` (in the SDK, `options` is the same button as Start).
+- `helpers/InitMenu.java` is the one pre-match menu (see Autonomous). `helpers/FieldDrawing.java` draws on the Dashboard field view (see Telemetry and dashboard). `helpers/LogSummary.java` reads log files for `LogViewer`, so file reading and its `try`/`catch` stay in `helpers/`.
 - Each subsystem MUST have a public static `Robot.buildX(hardwareMap)` method, so a test OpMode can build that one subsystem alone.
 - `template/` MUST compile. It MUST be annotated `@Disabled` where it is an OpMode.
 
@@ -257,8 +263,8 @@ The robot MUST always drive field-centric: pushing the stick away from the drive
 **Field-centric rules**
 
 - Field-centric MUST be the normal mode. DecodeBot's `DriveConfig.ROBOT_CENTRIC` switch is removed. Robot-centric is used only as a safeguard fallback (Pinpoint not `READY`, or a heading jump) or when the driver presses X, and every switch is written to the match log (see Troubleshooting C).
-- `DriveBase.driveManual(forward, right, turn)` MUST call Pedro's `ManualDrive.fieldCentric(powers, heading, offset)` every loop. The heading comes from the Pinpoint through the Pedro follower.
-- `offset` is the alliance's driver-facing angle. It comes from `DriveConfig.BLUE_DRIVER_HEADING_DEG` and `DriveConfig.RED_DRIVER_HEADING_DEG`, picked by `AutoConfig.ALLIANCE_RED`. This means "away from the drivers" is correct on both alliances without a heading reset. TODO(BioBuzz): confirm both angles on the BioBuzz field drawing.
+- In field-centric mode, `DriveBase.driveManual(forward, right, turn)` MUST call Pedro's `ManualDrive.fieldCentric(powers, heading, offset)` every loop. The heading comes from the Pinpoint through the Pedro follower. In robot-centric mode (the fallback, or X) the stick powers go to the follower without the rotation.
+- `offset` is the alliance's driver-facing angle. It comes from `DriveConfig.BLUE_DRIVER_HEADING_DEG` and `DriveConfig.RED_DRIVER_HEADING_DEG`, picked by the alliance chosen in the INIT menu (kept in `MatchInfo`; the default is `AutoConfig.ALLIANCE_RED`). This means "away from the drivers" is correct on both alliances without a heading reset. TODO(BioBuzz): confirm both angles on the BioBuzz field drawing.
 - **Pose hand-off:** at the end of autonomous, the final Pedro pose MUST be saved in `helpers/PoseMemory.java` as a plain `public static` field. Teleop `init()` MUST start from that pose. If no auto ran in this app session, teleop uses the alliance's default start pose and shows a telemetry warning: `"No auto pose: press Y facing away from drivers"`.
 - **Heading reset:** gamepad 1 **Y** sets "the way the robot faces now = away from the drivers". This fixes drift during a match and turns field-centric back on after a fallback. Each reset MUST be written to the match log.
 - Stick input passes through a deadband (`DriveConfig.STICK_DEADZONE`) and a speed multiplier. It is never sent raw.
@@ -274,7 +280,7 @@ The robot MUST always drive field-centric: pushing the stick away from the drive
 | Right stick button (robot against a wall) | Snap heading to the nearest 90° (see Troubleshooting C) |
 | Left stick button (hold 1 s, robot still) | Recalibrate the gyro, keeping the heading |
 | X | Switch field-centric / robot-centric by hand |
-| D-pad, bumpers, Start (INIT only) | Match id, battery label, logging on/off (see Troubleshooting E) |
+| D-pad (INIT only) | The INIT menu: up/down picks a row, left/right changes it (alliance, match id, battery label, logging; see Autonomous) |
 | Right bumper (hold) | Heading lock toward the scoring target, using Pedro's `ManualDrive.headingLock`. MAY be added after the game reveal; TODO(BioBuzz). |
 | Back / Share | Mark a moment in the match log (`"DRIVER MARK"`), for post-match analysis |
 
@@ -286,7 +292,8 @@ Gamepad 2 runs every mechanism, and only gamepad 2 does. The button map stays in
 
 **Rules**
 
-- `teleop/BioBuzzTeleOp.java` MUST be the only file that reads `gamepad1` or `gamepad2`. Autonomous reuses `Robot` unchanged because of this.
+- Only OpModes (teleop, auto, test and Field Check OpModes) read `gamepad1` or `gamepad2`, always through `helpers/GamepadInput`. `Robot`, subsystems, parts and the other helpers never read a gamepad; `InitMenu` is given the button presses by its OpMode. Autonomous reuses `Robot` unchanged because of this.
+- For matches, `teleop/BioBuzzTeleOp.java` holds both gamepad maps: gamepad 1 in `handleDriver()`, gamepad 2 in `handleOperator()`.
 - Each loop, a button is read once into a local `boolean` and then used. This is the DecodeBot `handleOperator()` pattern, and it exists because button reads are edge-detected.
 - Every button calls one subsystem command. Logic like "only fire when ready" lives in the subsystem, which calls `log.warn(...)` when it refuses a command.
 - One button MUST always be the **stop-all** button. It is D-pad down, as in DecodeBot, and it calls `robot.stopMechanisms()`.
@@ -325,9 +332,11 @@ Autonomous is a step machine that drives the same `Robot` as teleop. It uses the
 
 **Pre-match selection** (new compared with DecodeBot)
 
-- During INIT, gamepad 1 picks the alliance (X = blue, B = red), the start position, and the routine. A routine is one value of an `enum Routine`, for example a near-side or far-side start. The choices show on telemetry and are written to the match log header.
-- A start delay of 0 to 10 s MAY be set with the D-pad during INIT, for alliance partner coordination.
-- The `AutoConfig` values become the defaults, so the robot still works if nobody presses anything.
+- During INIT, gamepad 1 uses one menu, `helpers/InitMenu.java`, instead of a button per setting. D-pad up/down moves between rows; D-pad left/right changes the value in that row, wrapping round at the ends. The OpMode reads the D-pad and passes the presses to the menu.
+- Auto's INIT rows: **Alliance** (BLUE / RED), **Start** position, **Routine**, **Delay** (0 to 10 s, for alliance partner coordination), **Match type** (P / Q / E), **Match number**, **Battery** label (A to H) and **Logging** (on / off). A routine is one value of an `enum Routine`, for example a near-side or far-side start.
+- TeleOp's INIT shows the rows it needs (alliance, match type and number, battery, logging), starting from what was entered in Auto's INIT (`MatchInfo`).
+- The choices show on telemetry and are written to the match log header.
+- The `AutoConfig` and `LogConfig` values are the defaults, so the robot still works if nobody presses anything.
 
 **Vision** is optional. If the BioBuzz game needs it, `subsystems/Vision.java` reads AprilTags. It MAY correct the Pedro pose while the robot is stopped, following `docs/CAMERA_GUIDE.md`. Every correction MUST be logged with the old and new pose.
 
@@ -349,7 +358,8 @@ Every OpMode MUST send the same telemetry to the Driver Station and FTC Dashboar
 **Dashboard**
 
 - Every `*Config` class MUST be `@Config` with `public static` (not `final`) fields, so values can be changed live at `http://192.168.43.1:8080/dash`. Each config file's header MUST say that live edits are lost on restart and good values must be typed back into the file.
-- The Dashboard field view MUST draw the robot pose, and in auto the current path. Use `Drawing` helpers from the Pedro tuning package or a small `helpers/FieldDrawing.java`.
+- The Dashboard field view MUST draw the robot pose, and in auto the current path, through `helpers/FieldDrawing.java` (the Dashboard canvas). Pedro 3's tuning package has no drawing helper to reuse.
+- The field view SHOULD use the BioBuzz field as its background, from `TeamCode/src/main/assets/biobuzz/field-biobuzz.png`, so poses and paths can be checked against field elements. TODO(BioBuzz): the image comes from the game manual's field drawing. How Dashboard 0.6 loads a custom background is checked during implementation and written up in the LLD.
 - The Dashboard graph SHOULD plot the key numbers: flywheel (or similar) target vs. actual velocity, loop time, and battery voltage. Add them with `TelemetryPacket.put(...)` in `helpers/` and in no other folder.
 
 **Performance:** telemetry MUST NOT push the loop time over its budget (see Troubleshooting). Driver Station telemetry SHOULD be sent no more than every 100 ms (`telemetry.setMsTransmissionInterval`).
@@ -393,10 +403,10 @@ A new field is a new robot: tile grip, tile wear and walls differ from our pract
 **Rules**
 
 - Positions MUST be checked against **tile seams** (every 24 in) and walls, never tape: we may not mark event fields.
-- Test 07 MUST use the same method as Pedro's `ForwardDeceleration` and `StrafeDeceleration` tuners (power 1 until the target speed, then coast with `drivetrain.stop(false)`, average the slow-down until speed is under 1 in/s), so its numbers compare directly with `Constants`. On a WARN or FAIL the screen prints the measured value to use for this event.
+- Test 07 MUST use the same method as Pedro's `ForwardDeceleration` and `StrafeDeceleration` tuners (power 1 until the target speed, then coast with `drivetrain.stop(false)`, average the slow-down until speed is under 1 in/s), so its numbers compare directly with `Constants`. Those tuners are internal to the Quickstart's `procedures/ForesightTuner.java` and cannot be called from team code, so `FieldCheck07_Brake` carries its own copy of the method, with a comment naming the tuner it copies. It compares with `naturalForwardDeceleration` / `naturalStrafeDeceleration` in `Constants.foresightConfig`, which exists once Constants is filled in at tuning. On a WARN or FAIL the screen prints the measured value to use for this event.
 - Paths in 08 and 09 start from wherever the robot is placed, so they work anywhere on the field.
 - Results: **PASS** within tolerance, **WARN** between 1× and 2× tolerance (look at it), **FAIL** beyond 2× or an absolute limit broken (fix before matches). Each result is kept in a `static` field of `FieldCheckHelper` for the Summary, and logged as a `FIELDCHECK_<nn>` event so nothing is lost if the app restarts.
-- The field name (`home`, `event-practice-1`, …) is chosen in the first check's INIT and offered again in the next ones. Every Field Check writes a match log with `FIELD` in place of the match id.
+- The field name (`home`, `event-practice-1`, …) is chosen in the first check's INIT menu and offered again in the next ones. Every Field Check writes a match log with `FIELD` in place of the match id.
 - **Baseline:** the same tests run at home, and the values printed by the Summary are copied into `FieldCheckConfig` with the date. They MUST be re-recorded after any re-tune or hardware change.
 - A FAIL tells the student which tuning procedure to run next. That procedure lives in the Quickstart's `pedro/procedures/` and is written up in `docs/TUNING.md`. The first time the robot runs on a field, it MUST pass every test.
 
@@ -497,7 +507,7 @@ Every battery MUST carry a label (A to H). The label is chosen in INIT and writt
 - Header block (`#` lines): OpMode, alliance, routine, match id, battery label, field name, battery resting voltage at INIT, `started_epoch_ms` (Control Hub clock at PLAY, to the millisecond), and a snapshot of every `*Config` value in use.
 - Footer: `# END rows=… dropped=… min_battery_v=… worst_loop_ms=…`, written only by a clean stop. **A file without `# END` means the OpMode crashed or the robot lost power.**
 
-**Match id and battery label in INIT.** D-pad up/down changes the match number, d-pad left/right the type (P, Q, E), bumpers the battery label. Both are kept in `static` fields of `helpers/MatchInfo.java` (the same idea as `PoseMemory`), so TeleOp's INIT starts with what was entered in Auto's INIT. The drive team only confirms them during the transition.
+**Match id and battery label in INIT.** These are rows of the INIT menu (Match type, Match number, Battery; see Autonomous, Pre-match selection). They are kept in `static` fields of `helpers/MatchInfo.java` (the same idea as `PoseMemory`), so TeleOp's INIT starts with what was entered in Auto's INIT. The drive team only confirms them during the transition.
 
 **Match time.** Each OpMode's `t_s` restarts at 0 at PLAY, and Auto and TeleOp are separate files with a transition of varying length between them. The plot tool joins one match's files using `started_epoch_ms`: `match_s = t_s + (file start − Auto start) / 1000`, so `match_s` is 0 at Auto PLAY and TeleOp continues from the real moment it started. Only the difference between two clock readings on the same hub is used, so a wrong date on the hub does not matter.
 
@@ -527,7 +537,7 @@ Every battery MUST carry a label (A to H). The label is chosen in INIT and writt
 
 **On/off and retention**
 
-- `LogConfig.ENABLED` is the default and is what runs at competition. It can be changed in Dashboard during practice, and Start on gamepad 1 during INIT flips it for that run. The choice is read once, at PLAY, so a file is never half-written. When off, every logger call returns at once: no file, no thread.
+- `LogConfig.ENABLED` is the default and is what runs at competition. It can be changed in Dashboard during practice, and the INIT menu's Logging row changes it for that run. The choice is read once, at PLAY, so a file is never half-written. When off, every logger call returns at once: no file, no thread.
 - Keep the newest 100 files and delete older ones at INIT.
 
 ### F. After the match: analysis and debrief
@@ -625,11 +635,15 @@ The documents MUST be Markdown files in `docs/` in the repository, so they chang
 2. One section per part: devices, `HardwareNames` entries, directions, verbs and sensor getters.
 3. The `Robot.update()` order, and each subsystem link with the reason for it.
 4. Autonomous: a table of each step with its command, its finish condition and its timeout. Lists every `AutoConfig` pose.
-5. Helpers: the public methods of `MatchLogger`, `MatchInfo`, `BatteryMonitor`, `LoopMonitor`, `HealthMonitor`, `FieldCheckHelper`, `StateLog`, `StateTimer` and `GamepadInput`.
+5. Helpers: the public methods of `MatchLogger`, `MatchInfo`, `BatteryMonitor`, `LoopMonitor`, `HealthMonitor`, `FieldCheckHelper`, `StateLog`, `StateTimer`, `GamepadInput`, `InitMenu`, `PoseMemory`, `FieldDrawing` and `LogSummary`.
 6. Match log format: every column with its unit, and every EVENT type.
 7. The ALERT list, with each threshold and config name.
 8. The heading safeguards and recovery buttons: each check, its threshold, and what the drive does.
 9. Field Checks: each test, what it measures, its baseline value and tolerance, and the action for WARN and FAIL.
+10. **Known implementation challenges**: each problem found while building, the options considered, what was chosen and why. It MUST cover at least:
+    - **Pinpoint access.** Pedro's `PinpointLocalizer` keeps its `GoBildaPinpointDriver` private, but the safeguards need `getDeviceStatus()`, `getFrequency()` and `recalibrateIMU()`. One option is a second handle to the same device from `hardwareMap` in `DriveBase`. The LLD records what was chosen and its risks: two objects talking to one device, recalibrating while the follower reads it, and resetting the pose after a Pinpoint restart.
+    - **Dashboard field background.** How the BioBuzz field image is loaded by the Dashboard canvas (from the app's assets or a URL), and its scale and origin in inches.
+    - **Constants depends on team code.** `pedro/Constants.java` imports `HardwareNames`, and what that means for Quickstart merges.
 
 ### Student guides
 
@@ -663,6 +677,7 @@ The team MUST give the AI the facts below before it writes BioBuzz-specific code
 - [ ] Field drawing: start positions, scoring poses, mirror axis between alliances, driver-facing heading per alliance
 - [ ] Odometry: Pinpoint or other localizer, pod type and offsets (DecodeBot uses Pinpoint with goBILDA 4-bar pods)
 - [ ] Whether Vision (AprilTags) is needed, and for what
+- [ ] BioBuzz field image for the Dashboard background (`field-biobuzz.png`), from the game manual's field drawing
 - [ ] Gamepad 2 button map, once the mechanisms are known
 - [ ] Autonomous routines wanted for the first competition
 
@@ -671,9 +686,9 @@ The team MUST give the AI the facts below before it writes BioBuzz-specific code
 - [ ] The project builds with no warnings in the `biobuzz` package. DecodeBot code is unchanged.
 - [ ] No forbidden Java constructs appear in `biobuzz/` outside `helpers/` (see Coding style rules).
 - [ ] Driving is field-centric, robot-centric is used only by the safeguard fallback or X, and the pose is handed from auto to teleop.
-- [ ] Only `BioBuzzTeleOp` reads gamepads. Gamepad 1 only drives, and gamepad 2 only runs mechanisms.
+- [ ] Only OpModes read gamepads, through `GamepadInput`. In a match, gamepad 1 only drives and gamepad 2 only runs mechanisms.
 - [ ] Every subsystem follows the four-section layout, has timeouts on its waiting states, and has a test OpMode.
-- [ ] Telemetry shows on both the Driver Station and the Dashboard, with the match header line and per-subsystem switches.
+- [ ] Telemetry shows on both the Driver Station and the Dashboard, with the match header line and per-subsystem switches. The Dashboard field view shows the robot pose on the BioBuzz field.
 - [ ] Every Field Check OpMode runs and writes its log, and `Field Check 13: Summary` shows all results against the home baseline. `Robot Check` ends with READY FOR MATCH.
 - [ ] Pulling a motor cable during teleop raises an ALERT, puts that subsystem in `FAULT`, and does not crash the OpMode.
 - [ ] A full teleop run writes a match log with DATA and EVENT rows. `Log Viewer` summarizes it.
@@ -687,6 +702,7 @@ The team MUST give the AI the facts below before it writes BioBuzz-specific code
 
 | Version | Date | Changes |
 | --- | --- | --- |
+| 1.3 | 2026-10-18 | Renamed the file to `BioBuzz-Requirements.md`; the version lives in the document only. `Constants.java` and `Tuning.java` stay as Quickstart stubs until tuning, then get a one-time structural fill-in recorded in `UPSTREAM.md`; `Constants` imports `HardwareNames`. Only OpModes read gamepads (through `GamepadInput`). One INIT menu (`InitMenu`, D-pad rows) replaces the separate INIT buttons. Field drawing goes through `helpers/FieldDrawing.java` with a BioBuzz field image asset. Field Check 07 carries its own copy of Pedro's deceleration method. Added `LogSummary`, `GamepadInput` held reads, the field-centric wording fix, and the LLD's Known implementation challenges (Pinpoint access first). |
 | 1.2 | 2026-10-18 | Added R11 and R12 and a new section, Base project and repository. The base is the Pedro Pathing Quickstart for Pedro 3.x, in a new `biobuzz` repository that stays up to date with the public Quickstart. Quickstart files are never moved, and team code goes in `teamcode/biobuzz/` next to `teamcode/pedro/`. Updated the code layout, testing and tuning, deliverables and acceptance sections to match. |
 | 1.1 | 2026-10-18 | Confirmed the change to R1: field-centric is the normal mode, and robot-centric is a safeguard fallback or a manual switch on gamepad 1 X. Added the table of contents and this revision history. |
 | 1.0 | 2026-10-18 | First version: the confirmed requirements, coding style, code layout, architecture, driving, operator controls, autonomous, telemetry, troubleshooting (sections A to G), testing, documentation deliverables, open items and acceptance. |
