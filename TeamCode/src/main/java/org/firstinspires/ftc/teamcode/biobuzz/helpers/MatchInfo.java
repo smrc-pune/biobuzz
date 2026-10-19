@@ -16,14 +16,14 @@ package org.firstinspires.ftc.teamcode.biobuzz.helpers;
  * other alliance's side? Check the Alliance row in the INIT menu.
  */
 public class MatchInfo {
-    public static Alliance alliance = Alliance.RED;   // RED until someone picks BLUE
-    public static String fieldName = "home";          // which field we are on; set by the Field Checks
+    public static AllianceColor alliance = AllianceColor.RED;   // RED until someone picks BLUE
+    public static String fieldName = "home";                  // which field we are on; set by the Field Checks
 
-    public static boolean isRed() { return alliance == Alliance.RED; }
+    public static boolean isRed() { return alliance == AllianceColor.RED; }
 
     /** RED becomes BLUE, BLUE becomes RED (used by test OpModes' B button). */
     public static void switchAlliance() {
-        if (alliance == Alliance.RED) alliance = Alliance.BLUE;
-        else alliance = Alliance.RED;
+        if (alliance == AllianceColor.RED) alliance = AllianceColor.BLUE;
+        else alliance = AllianceColor.RED;
     }
 }

@@ -10,7 +10,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.biobuzz.Robot;
 import org.firstinspires.ftc.teamcode.biobuzz.configurations.ControlsConfig;
 import org.firstinspires.ftc.teamcode.biobuzz.configurations.TelemetryConfig;
-import org.firstinspires.ftc.teamcode.biobuzz.helpers.Alliance;
+import org.firstinspires.ftc.teamcode.biobuzz.helpers.AllianceColor;
 import org.firstinspires.ftc.teamcode.biobuzz.helpers.DashboardTelemetry;
 import org.firstinspires.ftc.teamcode.biobuzz.helpers.GamepadInput;
 import org.firstinspires.ftc.teamcode.biobuzz.helpers.InitMenu;
@@ -98,8 +98,8 @@ public class BioBuzzTeleOp extends OpMode {
 
         // The menu starts from what was picked in Auto's INIT (MatchInfo keeps it), so the
         // drive team only has to check it during the 8-second transition.
-        // Alliance.values() is the whole list { RED, BLUE }; MatchInfo.alliance is shown first.
-        allianceRow = menu.addChoiceRow("Alliance", Alliance.values(), MatchInfo.alliance);
+        // AllianceColor.values() is the whole list { RED, BLUE }; MatchInfo.alliance is shown first.
+        allianceRow = menu.addChoiceRow("Alliance", AllianceColor.values(), MatchInfo.alliance);
         // TODO(BioBuzz) step 4: a "Logging" row.
 
         // Did Autonomous save where the robot ended up? If yes, the assists (S2) can work.
@@ -128,8 +128,8 @@ public class BioBuzzTeleOp extends OpMode {
     @Override
     public void start() {
         // Copy the menu choice into MatchInfo, where every other file can read it.
-        // "(Alliance)" tells Java the menu's answer IS an Alliance (RED or BLUE).
-        MatchInfo.alliance = (Alliance) menu.getChoice(allianceRow);
+        // "(AllianceColor)" tells Java the menu's answer IS an AllianceColor (RED or BLUE).
+        MatchInfo.alliance = (AllianceColor) menu.getChoice(allianceRow);
 
         // Tell Drive our alliance: it decides which way is "away from the drivers".
         robot.drive.setAlliance(MatchInfo.isRed());

@@ -20,15 +20,15 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
  *                              Delay (s)    0
  *
  * HOW AN OPMODE USES IT:
- *   int allianceRow = menu.addChoiceRow("Alliance", Alliance.values(), MatchInfo.alliance);
+ *   int allianceRow = menu.addChoiceRow("Alliance", AllianceColor.values(), MatchInfo.alliance);
  *   int delayRow    = menu.addNumberRow("Delay (s)", 0, 10, 0);
- *   // Alliance.values() is the enum's whole list: { RED, BLUE }. The last value is the start choice.
+ *   // AllianceColor.values() is the enum's whole list: { RED, BLUE }. The last value is the start choice.
  *   // in init_loop(): read the D-pad ONCE, then pass the presses in
  *   menu.update(driver.isDpadUpPressed(), driver.isDpadDownPressed(),
  *               driver.isDpadLeftPressed(), driver.isDpadRightPressed());
  *   menu.addTo(t);
  *   // in start(): read the answers
- *   MatchInfo.alliance = (Alliance) menu.getChoice(allianceRow);   // "(Alliance)": it IS an Alliance
+ *   MatchInfo.alliance = (AllianceColor) menu.getChoice(allianceRow);   // "(AllianceColor)": it IS an AllianceColor
  *   int delaySeconds   = menu.getNumber(delayRow);
  *
  * The menu never reads a gamepad itself: only OpModes read gamepads.
@@ -91,7 +91,7 @@ public class InitMenu {
         if (values[cursor] > maximums[cursor]) values[cursor] = minimums[cursor];
     }
 
-    /** @return the chosen value of a choice row. Put the type in front: (Alliance) menu.getChoice(row). */
+    /** @return the chosen value of a choice row. Put the type in front: (AllianceColor) menu.getChoice(row). */
     public Object getChoice(int row) { return choices[row][values[row]]; }
 
     /** @return the chosen number of a number row. */
