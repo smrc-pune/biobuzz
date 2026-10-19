@@ -4,7 +4,7 @@ Oct 19, 2026 · for mentor review before any code changes
 
 This review compares three things: the requirements (v1.4), the new design the team agreed on in discussion, and the BIOBUZZ Competition Manual (TU05). It lists every conflict, misalignment and gap found, with the fix applied in Requirements v2.0, `HLD.md` and `LLD.md`, and the questions that only the team can answer.
 
-**How to read it.** Section 1 is the design in one page, as it stands now (Requirements v2.2). Section 2 lists problems inside the old requirements. Section 3 lists what the game adds. Section 4 lists the design patterns used. Section 5 lists the questions and the team's answers. Section 6 lists the changes from the second review round; where a fix in sections 2–3 names `game/`, BLUE poses or NEAR/FAR, section 6 replaces it. Nothing in the code has changed yet.
+**How to read it.** Section 1 is the design in one page, as it stands now (Requirements v2.3). Section 2 lists problems inside the old requirements. Section 3 lists what the game adds. Section 4 lists the design patterns used. Section 5 lists the questions and the team's answers. Sections 6 and 7 list the changes from the second and third review rounds; where a fix in sections 2–3 names `game/`, BLUE poses or NEAR/FAR, sections 6 and 7 replace it. Nothing in the code has changed yet.
 
 ---
 
@@ -17,11 +17,12 @@ OpModes        TeleOp: buttons -> Robot methods     Auto: list of steps -> Robot
 Robot          the robot's "menu": one method per action. Builds everything.
    |           update(): 1. state machines  2. mechanisms  3. Drive (Pedro)  4. always-on rules
    v
-statemachines/ tasks that take time and use several mechanisms (Collect, Launch). Standalone classes.
+statemachines/ tasks that take time and use several mechanisms (Launch). Standalone classes.
    |
    v
 drive/         Drive (sticks, paths, pose) + FieldPaths (every path)      -> Pedro Pathing (off the shelf)
-mechanisms/    Intake, Storage, Launcher, HiveCamera, FrontCamera: operations only, no states.
+mechanisms/    Intake, Feeder, Launcher, HiveCamera, FrontCamera: operations only, no states.
+               Robot updates every mechanism once per loop; state machines only command them.
                Every mechanism extends one plain base class, Mechanism.     -> FTC SDK (off the shelf)
 ```
 
@@ -170,3 +171,13 @@ Team decisions were entered in the shared review doc on Oct 19, 2026 and applied
 | R2-5 | Rookie 7th graders with no Java will own the code | Requirements Audience and R3 rewritten around them; student zone and mentor zone, named in each file's first line; plain-English names; the HLD rewritten in simpler words with the patterns moved to a "for mentors" section; a student-level Intake sketch in the LLD |
 | R2-6 | No near or far zones: launch from anywhere | Routines renamed `LAUNCH_PARK` and `LAUNCH_COLLECT_PARK`; Auto launches its preloads right after LEAVE; one favourite `LAUNCH_SPOT` (was one per CELL) for the assist; the launcher speed follows the distance to the upward CELL |
 | R2-7 | Default poses for RED | All poses are written for RED, the default alliance (`MatchInfo` starts as RED); BLUE poses are turned 180° by `FieldPaths.forAlliance` |
+
+---
+
+## 7. Review round 3 (Oct 19, 2026)
+
+| # | Team input | Change in v2.3 |
+| --- | --- | --- |
+| R3-1 | What is `Element.java` for? Rename to `GameElement` if really needed | Not needed: it told the launcher which ball was next and spotted opponent NECTAR, and both need Storage sensors we don't have. Removed; the front camera uses plain questions (`seesPollen()`, `seesRedNectar()`, `seesBlueNectar()`) |
+| R3-2 | Should Robot call the mechanisms' `update()` when state machines sit between them in the diagram? | Yes. A layer may call any layer below it. Every mechanism needs its `update()` once per loop even when no state machine uses it (cameras, launcher speed), and a shared mechanism must be updated exactly once. State machines only command mechanisms. The diagrams now show the Robot → mechanisms arrow and say why |
+| R3-3 | No sensors to count balls: keep Storage for the future | No Storage mechanism now (future improvement, with `CollectStateMachine`). A separate `Feeder` mechanism pushes balls into the launcher. The intake is manual (gamepad 2 A on/off, B hold reverse). G407 is met by the hopper holding 4; G408 is the drive team's job. `LaunchStateMachine` feeds `count` times; launcher speed by distance only |

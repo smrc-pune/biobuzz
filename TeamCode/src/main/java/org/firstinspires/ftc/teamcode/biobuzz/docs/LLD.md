@@ -1,6 +1,6 @@
 # BioBuzz Software – Low-Level Design (LLD)
 
-Oct 19, 2026 · **Draft for review** · goes with Requirements v2.2 and `HLD.md`
+Oct 19, 2026 · **Draft for review** · goes with Requirements v2.3 and `HLD.md`
 
 This document describes each class: its job, its public methods, its config values and how it fits with the others. Code sketches show the **shape** of each class for review. They are not final code: names may change while building, and this document is then updated in the same commit.
 
@@ -14,10 +14,10 @@ This document describes each class: its job, its public methods, its config valu
 2. Packages and files
 3. Robot
 4. The `Mechanism` base class
-5. Mechanisms: Intake, Storage, Launcher, HiveCamera, FrontCamera
+5. Mechanisms: Intake, Feeder, Launcher, HiveCamera, FrontCamera
 6. Drive
-7. State machines: Collect, Launch
-8. Paths and game state: FieldPaths, Element, the HIVE in MatchInfo
+7. State machines: Launch
+8. Paths and game state: FieldPaths, the HIVE in MatchInfo
 9. OpModes: TeleOp, Auto, tests
 10. Helpers and configurations
 11. How to extend: checklists
@@ -49,21 +49,19 @@ teamcode/biobuzz/
     ControlsConfig.java          trigger threshold, rumble lengths, button list (comments)
     FieldConfig.java             every field pose (RED), LAUNCH_SPOT, HIVE keep-out, start positions
     AutoConfig.java              step timeouts, PARK_BY_S, default routine and delay
-    IntakeConfig.java  StorageConfig.java  LauncherConfig.java  CameraConfig.java
+    IntakeConfig.java  FeederConfig.java  LauncherConfig.java  CameraConfig.java
     TelemetryConfig.java  LogConfig.java  HealthConfig.java  FieldCheckConfig.java
   drive/
     Drive.java                   MENTORS: driving over Pedro (replaces parts/DriveBase + subsystems/Drive)
     FieldPaths.java              STUDENTS: every Pedro path; alliance turn; own-side and HIVE checks
   mechanisms/
     Mechanism.java               MENTORS: the one base class (Template Method)
-    Intake.java  Storage.java  Launcher.java  HiveCamera.java  FrontCamera.java     STUDENTS
-    Element.java                 enum: NONE, POLLEN, RED_NECTAR, BLUE_NECTAR
+    Intake.java  Feeder.java  Launcher.java  HiveCamera.java  FrontCamera.java      STUDENTS
   statemachines/                 STUDENTS
-    CollectStateMachine.java     Intake + Storage
-    LaunchStateMachine.java      Storage + Launcher + Drive (where we are); the HIVE from MatchInfo
+    LaunchStateMachine.java      Feeder + Launcher + Drive (where we are); the HIVE from MatchInfo
   teleop/BioBuzzTeleOp.java
   auto/BioBuzzAuto.java
-  testing/   DriveTest, IntakeTest, StorageTest, LauncherTest, CameraTest, CollectTest, LaunchTest,
+  testing/   DriveTest, IntakeTest, FeederTest, LauncherTest, CameraTest, LaunchTest,
              PartsTest, RobotCheck, LogViewer
   fieldchecks/  FieldCheck01_Hardware ... FieldCheck13_Summary
   helpers/   StateTimer, StateLog, GamepadInput, InitMenu, MatchInfo, PoseMemory, MatchClock,
@@ -73,7 +71,7 @@ teamcode/biobuzz/
   docs/
 ```
 
-**Removed from today's code:** `parts/` and `subsystems/` (merged into `drive/` and `mechanisms/`), `Robot.buildDrive`, `Drive`'s states, `Drive.setDriverInput` (now `driveWithSticks`), the stick deadzone in Drive (now in `GamepadInput`). There is no `game/` folder: paths live with Drive, `Element` with the mechanisms, and the HIVE with the other match facts in `MatchInfo`.
+**Removed from today's code:** `parts/` and `subsystems/` (merged into `drive/` and `mechanisms/`), `Robot.buildDrive`, `Drive`'s states, `Drive.setDriverInput` (now `driveWithSticks`), the stick deadzone in Drive (now in `GamepadInput`). There is no `game/` folder: paths live with Drive, and the HIVE with the other match facts in `MatchInfo`. There is no Storage mechanism and no `CollectStateMachine` yet: the robot has no sensors to count balls (see Future improvements).
 
 ---
 
@@ -90,26 +88,25 @@ teamcode/biobuzz/
 public class Robot {
     public final Drive drive;                 // OpModes drive through this directly
     private final Intake intake;              // mechanisms: only through Robot methods
-    private final Storage storage;
+    private final Feeder feeder;
     private final Launcher launcher;
     private final HiveCamera hiveCamera;      // HuskyLens, looks up at the CELL tags
     private final FrontCamera frontCamera;    // Logitech webcam: field tags, POLLEN, NECTAR
     private final Mechanism[] mechanisms;     // every mechanism, by name: update, stop, telemetry, log
 
-    private final CollectStateMachine collect;
     private final LaunchStateMachine launch;
 
     public Robot(HardwareMap hardwareMap) {
         drive = new Drive(hardwareMap);
         intake = new Intake(hardwareMap);
-        storage = new Storage(hardwareMap);
+        feeder = new Feeder(hardwareMap);
         launcher = new Launcher(hardwareMap);
         hiveCamera = new HiveCamera(hardwareMap);
         frontCamera = new FrontCamera(hardwareMap);
-        mechanisms = new Mechanism[] { intake, storage, launcher, hiveCamera, frontCamera };   // ADD A MECHANISM HERE
+        mechanisms = new Mechanism[] { intake, feeder, launcher, hiveCamera, frontCamera };    // ADD A MECHANISM HERE
 
-        collect = new CollectStateMachine(intake, storage);                    // given what it uses
-        launch = new LaunchStateMachine(storage, launcher, drive);             // ADD A STATE MACHINE HERE
+        launch = new LaunchStateMachine(feeder, launcher, drive);              // given what it uses
+        // ADD A STATE MACHINE HERE
     }
 ```
 
@@ -117,18 +114,17 @@ public class Robot {
 
 | Method | Does | Cancels first |
 | --- | --- | --- |
-| `startCollecting()` | `collect.start()` | `launch` (both use Storage) |
-| `reverseIntake()` / `stopIntake()` | Manual spit-out (operator holds B) | `collect` |
-| `startLaunching(count)` | `launch.start(count)` | `collect` |
-| `spinUpLauncher()` | Pre-spin for the next element and the current distance | – |
+| `toggleIntake()`, `startIntake()`, `stopIntake()` | Intake on / off (operator A; Auto's COLLECT step) | – |
+| `reverseIntake()` | Spit out while the operator holds B; `stopIntake()` on release | – |
+| `startLaunching(count)` | `launch.start(count)`; feeding an empty slot does no harm | any other state machine that uses the Feeder or Launcher (none yet) |
+| `spinUpLauncher()` | Pre-spin for the current distance to the upward CELL | – |
 | `markHiveTipped()` | `MatchInfo.markHiveTipped()` | – |
 | `holdPreloads()` | Auto INIT only: grip the 4 POLLEN (G304) | – |
 | `stopMechanisms()` | Cancel every state machine, then `runStop()` on every mechanism | everything |
 | `driveToLaunchSpot()` / `driveToLoadingZone()` | S2 assists: refused with a warning if `!drive.isPoseKnown()`; else `drive.followPath(FieldPaths.toLaunchSpot(drive.getPose(), MatchInfo.isRed()))` | – |
 | `setPoseAtLoadingCorner()` | "Set pose here" (Q4) | – |
 | `getAimHeadingDeg()` | Heading that faces the upward CELL from the current pose (for the aim button) | – |
-| `isCollecting()`, `isLaunching()` | `collect.isBusy()`, `launch.isBusy()` | – |
-| `getHeldCount()` | Questions for OpModes | – |
+| `isIntakeOn()`, `isLaunching()` | Questions for OpModes (`isLaunching()` = `launch.isBusy()`) | – |
 | `hasNewUrgentAlert()` | True once per new urgent ALERT; the OpMode rumbles | – |
 | `update()` | See below | – |
 | `addTelemetry(t)`, `addLogData()` | Header, then each part, honoring `TelemetryConfig` | – |
@@ -137,11 +133,10 @@ public class Robot {
 
 ```java
 public void update() {
-    // 1. STATE MACHINES: they decide and command mechanisms
-    collect.update();                       // ADD A STATE MACHINE HERE
-    launch.update();
+    // 1. STATE MACHINES: they decide and give mechanisms commands
+    launch.update();                        // ADD A STATE MACHINE HERE
 
-    // 2. MECHANISMS: their own control loops and sensor reads
+    // 2. MECHANISMS: every one, once, whether or not a state machine is using it
     for (Mechanism mechanism : mechanisms) {           // "for each mechanism in the list"
         mechanism.runUpdate();
     }
@@ -156,6 +151,8 @@ public void update() {
 ```
 
 Why this order: state machines command first, so mechanisms act on this loop's commands; Drive comes after the mechanisms, so the pose is the newest when the rules run.
+
+**Why Robot, and not the state machines, updates the mechanisms.** A layer may call any layer below it. Every mechanism needs its `update()` once per loop even when no state machine is using it (the cameras read every loop; the launcher holds its speed), and a mechanism shared by two state machines must still be updated exactly once. So Robot owns "update every mechanism", and state machines only call mechanism verbs (`feeder.feedOne()`), never `update()`.
 
 **Why a list and not a key-value map.** A `Map<String, Mechanism>` would let code look a mechanism up by a word, but it adds Java generics, string keys that can be mistyped (and only fail while the robot runs), and a harder loop. Robot never needs to look a mechanism up: each one has its own field name (`intake`), and the list is only for "do this to every mechanism". The list is written by name and walked with "for each", so there are no index numbers to remember.
 
@@ -227,7 +224,7 @@ public class Mechanism {
 **Rules for every mechanism**
 
 - The constructor gets its devices with `hardwareMap.get(...)` and `HardwareNames`, sets directions and modes, and **never moves an actuator** (G304.H, G403).
-- Public methods are verbs (`collect()`, `feedOne()`) and questions (`isUpToSpeed()`, `getHeldCount()`). No states, no timers, no knowledge of other mechanisms.
+- Public methods are verbs (`collect()`, `feedOne()`) and questions (`isUpToSpeed()`, `isOn()`). No states, no timers, no knowledge of other mechanisms.
 - Every number comes from its `*Config`.
 - A faulted mechanism ignores its verbs (each verb starts with `if (isFaulted()) return;`).
 
@@ -261,6 +258,7 @@ public class Intake extends Mechanism {
     // ---- What the intake can do ----
     public void collect() { roller.setPower(IntakeConfig.COLLECT_POWER); }
     public void reverse() { roller.setPower(IntakeConfig.REVERSE_POWER); }
+    public boolean isOn()  { return roller.getPower() != 0; }
 
     // ---- Filled in for Mechanism ----
     @Override
@@ -277,30 +275,32 @@ public class Intake extends Mechanism {
 | --- | --- |
 | Devices | `MOTOR_INTAKE` (roller) |
 | Verbs | `collect()` (power `IntakeConfig.COLLECT_POWER`), `reverse()` (`REVERSE_POWER`), `stop()` |
-| Questions | `getPower()` |
+| Questions | `isOn()`, `getPower()` |
 | `update()` | Stall check (step 4): power above `STALL_POWER` while current above `STALL_CURRENT_A` for `STALL_MS` → `markFaulted("stalled")` |
 | Log | `intake_power`, `intake_current_a` |
 
-### 5.2 Storage (with feeder)
+### 5.2 Feeder
 
 | | |
 | --- | --- |
-| Devices | `MOTOR_FEEDER` or `SERVO_FEEDER`; `COLOR_INTAKE` (colour sensor at the mouth); TODO(BioBuzz): slot sensors (Q5) |
-| Verbs | `feedOne()` (push the next element into the launcher), `holdFeeder()`, `stop()` |
-| Questions | `getHeldCount()` (0–5), `getNextElement()` (`Element`), `getNewestElement()`, `isOpponentNectar(isRed)` |
-| `update()` | Read the colour sensor every `StorageConfig.SENSE_MS`; count an element in when one passes the mouth; count one out when `feedOne()` finishes |
-| Config | `MAX_HELD = 4` (G407), colour thresholds for POLLEN / red / blue, `FEED_POWER`, `SENSE_MS` |
-| Log | `held_count`, `newest_element` (code) |
+| Devices | `MOTOR_FEEDER` or `SERVO_FEEDER` (TODO(BioBuzz): which, once the launcher is built) |
+| Verbs | `feedOne()` (push the next ball from the hopper into the launcher), `hold()` (keep the next ball back), `stop()` |
+| Questions | `isFeeding()` |
+| `update()` | Nothing (the timing of a feed is the state machine's job) |
+| Config | `FeederConfig.FEED_POWER` or `FEED_POSITION`, `HOLD_POSITION` |
+| Log | `feeder_power` |
+
+There is no Storage mechanism: the hopper has no sensors, so the robot does not know how many balls it holds or their colours. Storage sensing is a future improvement (section 14).
 
 ### 5.3 Launcher
 
 | | |
 | --- | --- |
 | Devices | `MOTOR_LAUNCHER` (flywheel with encoder; TODO(BioBuzz): a second motor?) |
-| Verbs | `spinUpFor(element, distanceIn)`, `idle()` (`IDLE_RPM`), `stop()` |
+| Verbs | `spinUpFor(distanceIn)`, `idle()` (`IDLE_RPM`), `stop()` |
 | Questions | `isUpToSpeed()` (within `SPEED_TOLERANCE_RPM`), `getRpm()`, `getTargetRpm()` |
 | `update()` | Motor velocity control is in the motor (`setVelocity`, PIDF from `LauncherConfig`); `update()` only re-applies a changed PIDF value from the Dashboard |
-| Speed table | `LauncherConfig.DISTANCE_IN = {36, 48, 60, 72, 84}`, `POLLEN_RPM = {...}`, `NECTAR_RPM = {...}`; straight-line interpolation between neighbours, clamped at the ends (a counted `for` loop) |
+| Speed table | `LauncherConfig.DISTANCE_IN = {36, 48, 60, 72, 84}`, `RPM = {...}`: one table for both POLLEN and NECTAR, because the robot does not know which ball is next; straight-line interpolation between neighbours, clamped at the ends (a counted `for` loop, mentor-written) |
 | Log | `launcher_rpm`, `launcher_target_rpm` (also on the Dashboard graph) |
 
 ### 5.4 HiveCamera (HuskyLens, looks up)
@@ -321,11 +321,11 @@ public class Intake extends Mechanism {
 | --- | --- |
 | Devices | `WEBCAM_FRONT` (USB, UVC). A `VisionPortal` built in the constructor with two processors: `AprilTagProcessor` and a colour-blob processor for POLLEN, red NECTAR and blue NECTAR. Live preview off unless `CameraConfig.PREVIEW` |
 | Verbs | `pause()` / `resume()` (stop or restart streaming to save CPU when not needed), `stop()` closes the portal |
-| Questions | `seesTag(id)` (real AprilTag IDs), `getTagPose(id)` (range in, bearing deg, yaw deg, from the SDK), `seesElement(element)`, `getElementBearingDeg(element)`, `getElementSizePx(element)`, `getAgeMs()` |
+| Questions | `seesTag(id)` (real AprilTag IDs), `getTagPose(id)` (range in, bearing deg, yaw deg, from the SDK), `seesPollen()`, `seesRedNectar()`, `seesBlueNectar()`, `getPollenBearingDeg()`, `getAgeMs()` |
 | `update()` | Copy the processors' newest results once per loop (cheap: vision runs on the SDK's own thread) |
-| Config | Resolution, exposure and gain, decimation, colour ranges for each element, camera position and angle on the robot (for the tag pose), `PREVIEW` |
-| Log | `front_cam_tag_id`, `front_cam_tag_range_in`, `front_cam_element` (code), `front_cam_element_bearing_deg`, `front_cam_fps` |
-| Used by | Collect aim (S2 or auto), opponent NECTAR warning before the intake (G408), Field Check 12 |
+| Config | Resolution, exposure and gain, decimation, colour ranges for POLLEN, red NECTAR and blue NECTAR, camera position and angle on the robot (for the tag pose), `PREVIEW` |
+| Log | `front_cam_tag_id`, `front_cam_tag_range_in`, `front_cam_sees` (what is in front), `front_cam_fps` |
+| Used by | Telemetry (what is in front of the intake), Field Check 12; later, aiming the intake |
 
 ---
 
@@ -354,27 +354,7 @@ public class Intake extends Mechanism {
 
 Every state machine has the same four sections (R3): **1. States** (the `enum`, one comment per value), **2. Commands** (`start(...)`, `cancel()`: they only call `goTo`), **3. `update()`** (one `case` per state, marked DO / CHECK / GO), **4. Bookkeeping** (`goTo(state, reason)`, `isBusy()`, `getState()`, `addTelemetry(t)`, `addLogData()`). Every waiting state has a timeout that goes to `IDLE` with a logged reason. They get their mechanisms in the constructor (dependency injection) and never call each other or Robot.
 
-### 7.1 CollectStateMachine (Intake + Storage)
-
-```
-            start()                       held >= MAX_HELD
-   IDLE  ------------>  INTAKING  ------------------------->  IDLE
-    ^                    |    ^
-    |   cancel()/timeout |    | REJECT_MS passed
-    +--------------------+    |
-                         v    |
-                       REJECTING   (opponent NECTAR seen, or a 5th element)
-```
-
-| State | DO | CHECK → GO | Timeout |
-| --- | --- | --- | --- |
-| `IDLE` | `intake.stop()` (once, on entry) | – | – |
-| `INTAKING` | `intake.collect()` | held ≥ `MAX_HELD` → `IDLE` "full"; opponent NECTAR or held > `MAX_HELD` → `REJECTING` | `IntakeConfig.COLLECT_TIMEOUT_MS` → `IDLE` "collect timeout" |
-| `REJECTING` | `intake.reverse()` | timer ≥ `REJECT_MS` → `INTAKING` | (the timer itself) |
-
-Commands: `start()` (refused with a warning if Storage is full), `cancel()` → `IDLE`. Telemetry: state, seconds in it, held count.
-
-### 7.2 LaunchStateMachine (Storage + Launcher + Drive)
+### 7.1 LaunchStateMachine (Feeder + Launcher + Drive)
 
 ```
           start(count)          up to speed            FEED_MS passed
@@ -382,15 +362,17 @@ Commands: `start()` (refused with a warning if Storage is full), `cancel()` → 
     ^                    |   ^                                            |
     |  timeout/cancel    |   +----- more to launch, RECOVER_MS passed ----+
     +--------------------+                                                |
-    +--------------------- nothing left, or count reached ----------------+
+    +--------------------------- count reached ---------------------------+
 ```
 
 | State | DO | CHECK → GO | Timeout |
 | --- | --- | --- | --- |
-| `IDLE` | `storage.holdFeeder()`, `launcher.idle()` (once, on entry) | – | – |
-| `SPINNING_UP` | `launcher.spinUpFor(storage.getNextElement(), distance to the upward CELL)` | up to speed and no TIP pause → `FEEDING` | `LauncherConfig.SPIN_UP_TIMEOUT_MS` → `IDLE` "spin-up timeout" (warn) |
-| `FEEDING` | `storage.feedOne()` | timer ≥ `FEED_MS` → `RECOVERING` | (the timer itself) |
-| `RECOVERING` | `storage.holdFeeder()` | timer ≥ `RECOVER_MS`: launched < count and held > 0 → `SPINNING_UP`; else → `IDLE` "done" | (the timer itself) |
+| `IDLE` | `feeder.hold()`, `launcher.idle()` (once, on entry) | – | – |
+| `SPINNING_UP` | `launcher.spinUpFor(distance to the upward CELL)` | up to speed and no TIP pause → `FEEDING` | `LauncherConfig.SPIN_UP_TIMEOUT_MS` → `IDLE` "spin-up timeout" (warn) |
+| `FEEDING` | `feeder.feedOne()` | timer ≥ `FEED_MS` → `RECOVERING` | (the timer itself) |
+| `RECOVERING` | `feeder.hold()` | timer ≥ `RECOVER_MS`: launched < count → `SPINNING_UP`; else → `IDLE` "done" | (the timer itself) |
+
+The robot cannot see how many balls it holds, so `start(count)` feeds `count` times (4 for "launch everything"); feeding an empty slot does no harm.
 
 The robot may launch from anywhere (no launch zones). The distance comes from `drive.getPose()` and `FieldPaths.upCellPose(MatchInfo.isRed())`. After the operator presses "TIPPED", `MatchInfo.secondsSinceTip()` holds the next feed for `LauncherConfig.TIP_PAUSE_MS` (manual 10.5.1).
 
@@ -398,11 +380,7 @@ The robot may launch from anywhere (no launch zones). The distance comes from `d
 
 ## 8. Paths and game state
 
-### 8.1 Element (enum, `mechanisms/Element.java`)
-
-`NONE, POLLEN, RED_NECTAR, BLUE_NECTAR`. `Storage` returns it; `Launcher` picks a speed table from it. In the log it is a code (0–3).
-
-### 8.2 The HIVE, in `MatchInfo`
+### 8.1 The HIVE, in `MatchInfo`
 
 Which of our two CELLS faces up, and how many TIPS we have, are match facts like the alliance and the match number, so they live in `helpers/MatchInfo.java`. Its fields are `static`, so they survive from Auto to TeleOp.
 
@@ -414,7 +392,7 @@ Which of our two CELLS faces up, and how many TIPS we have, are match facts like
 | `getTipCount()`, `getNectarAllowed()` | For the header: the human player may enter one NECTAR per TIP (G426) until 60 s left |
 | `secondsSinceTip()` | For the launch pause after a TIP |
 
-### 8.3 FieldPaths (`drive/FieldPaths.java`)
+### 8.2 FieldPaths (`drive/FieldPaths.java`)
 
 **Zone:** students. **Job:** build every Pedro path, in one file. **Pattern:** Factory method. Pedro's path API (`Paths.line`, `Paths.curve`, `PoseFactory`) appears only here and in `Drive`.
 
@@ -469,7 +447,7 @@ private void handleDriver() {
 }
 
 private void handleOperator() {
-    boolean collect = operator.isAPressed();
+    boolean intakeOnOff = operator.isAPressed();
     boolean spitOut = operator.isBHeld();
     boolean spitOutReleased = operator.wasBReleased();
     boolean launchAll = operator.isRightTriggerPressed();
@@ -477,10 +455,10 @@ private void handleOperator() {
     boolean spinUp = operator.isYPressed();
     boolean stopAll = operator.isDpadDownPressed();
 
-    if (collect) robot.startCollecting();
-    if (spitOut) robot.reverseIntake();
+    if (intakeOnOff) robot.toggleIntake();
+    if (spitOut) robot.reverseIntake();        // also how opponent NECTAR goes back out (G408)
     if (spitOutReleased) robot.stopIntake();
-    if (launchAll) robot.startLaunching(StorageConfig.MAX_HELD);   // works from anywhere
+    if (launchAll) robot.startLaunching(4);    // works from anywhere
     if (tipped) robot.markHiveTipped();
     if (spinUp) robot.spinUpLauncher();
     if (stopAll) robot.stopMechanisms();
@@ -503,7 +481,7 @@ INIT menu rows: Alliance, Start, Routine, Delay (0–10 s), Match type, Match nu
 | `WAIT_DELAY` | – | delay from the menu passed | – |
 | `LEAVE` | `drive.followPath(FieldPaths.leaveWall(...))` | `drive.isPathDone()` | `DRIVE_TIMEOUT_MS` → `holdHere()`, go on |
 | `LAUNCH_PRELOADS` | `robot.startLaunching(4)` (from where the robot is: no launch zones) | `!robot.isLaunching()` | `LAUNCH_TIMEOUT_MS` → cancel, go on |
-| `COLLECT_GARDEN` (`LAUNCH_COLLECT_PARK` only) | `robot.startCollecting()`, `followPath(throughGarden)` | path done | `COLLECT_TIMEOUT_MS` |
+| `COLLECT_GARDEN` (`LAUNCH_COLLECT_PARK` only) | `robot.startIntake()`, `followPath(throughGarden)` | path done → `robot.stopIntake()` | `COLLECT_TIMEOUT_MS` |
 | `LAUNCH_AGAIN` (`LAUNCH_COLLECT_PARK` only) | `robot.startLaunching(4)` from the end of the GARDEN path | `!robot.isLaunching()` | `LAUNCH_TIMEOUT_MS` |
 | `PARK` | `robot.stopMechanisms()`, `followPath(toLoadingZone)` | path done | `PARK_TIMEOUT_MS` |
 | `DONE` | – | – | – |
@@ -515,9 +493,9 @@ Park-by guard: `if (MatchClock.autoSeconds() > AutoConfig.PARK_BY_S && step is b
 | OpMode | Builds | Buttons |
 | --- | --- | --- |
 | `Test: Drive` | `new Drive(hardwareMap)` | sticks, Y, X, A/B assists (pose set to the field centre at start) |
-| `Test: Intake`, `Test: Storage`, `Test: Launcher` | that mechanism only | one button per verb; telemetry shows every question's answer |
+| `Test: Intake`, `Test: Feeder`, `Test: Launcher` | that mechanism only | one button per verb; telemetry shows every question's answer |
 | `Test: Camera` | both cameras | shows what each camera sees, the webcam's frame rate and tag poses; X toggles the webcam preview |
-| `Test: Collect`, `Test: Launch` | `Robot` | start / cancel, shows state and history |
+| `Test: Launch` | `Robot` | start / cancel, shows state and history |
 | `Test: Parts` | nothing but `hardwareMap` | D-pad picks a motor or servo from `HardwareNames.ALL_DEVICES`, sticks move it |
 
 ---
@@ -548,10 +526,10 @@ Park-by guard: `if (MatchClock.autoSeconds() > AutoConfig.PARK_BY_S && step is b
 | `HardwareNames` | device names with hub and port; `ALL_DEVICES` array; motor and servo count (≤ 8 each) |
 | `DriveConfig` | `STICK_DEADZONE`, `BLUE_DRIVER_HEADING_DEG`, `RED_DRIVER_HEADING_DEG`, `ASSIST_TIMEOUT_MS`, `STILL_IN_PER_S` |
 | `FieldConfig` | `START_*` poses, `LAUNCH_SPOT`, `CELL_A`, `CELL_B`, `START_CELL_A_UP`, `LOADING_APPROACH`, `LOADING_PARK`, `LOADING_CORNER`, `GARDEN_*`, `HIVE_KEEP_OUT_*` (all RED, inches/degrees) |
-| `AutoConfig` | step timeouts, `PARK_BY_S` (start at 26), default routine (`LAUNCH_PARK`) and delay |
-| `IntakeConfig` | `COLLECT_POWER`, `REVERSE_POWER`, `COLLECT_TIMEOUT_MS`, `REJECT_MS`, stall values |
-| `StorageConfig` | `MAX_HELD = 4`, colour thresholds, `FEED_POWER`, `SENSE_MS` |
-| `LauncherConfig` | PIDF, `IDLE_RPM`, `SPEED_TOLERANCE_RPM`, speed tables, `SPIN_UP_TIMEOUT_MS`, `FEED_MS`, `RECOVER_MS`, `TIP_PAUSE_MS` |
+| `AutoConfig` | step timeouts (including `COLLECT_TIMEOUT_MS`), `PARK_BY_S` (start at 26), default routine (`LAUNCH_PARK`) and delay |
+| `IntakeConfig` | `COLLECT_POWER`, `REVERSE_POWER`, stall values |
+| `FeederConfig` | `FEED_POWER` or `FEED_POSITION`, `HOLD_POSITION` |
+| `LauncherConfig` | PIDF, `IDLE_RPM`, `SPEED_TOLERANCE_RPM`, the speed table, `SPIN_UP_TIMEOUT_MS`, `FEED_MS`, `RECOVER_MS`, `TIP_PAUSE_MS` |
 | `CameraConfig` | `HIVE_SAMPLE_MS`, HuskyLens learned tag IDs; webcam resolution, exposure, decimation, colour ranges, position and angle, `PREVIEW` |
 | `ControlsConfig` | `TRIGGER_THRESHOLD`, rumble lengths, the button list as comments |
 
@@ -574,7 +552,7 @@ Park-by guard: `if (MatchClock.autoSeconds() > AutoConfig.PARK_BY_S && step is b
 **Add a state machine**
 
 1. Copy `template/TemplateStateMachine.java` to `statemachines/<Task>StateMachine.java`; list its states; give every waiting state a timeout in a `*Config`.
-2. In `Robot`: one field, build it with the mechanisms it uses; one line each in `update()` (section 1), `stopMechanisms()` and telemetry.
+2. In `Robot`: one field, build it with the mechanisms it uses; one line each in `update()` (section 1, before the mechanisms), `stopMechanisms()` and telemetry. It never calls a mechanism's `update()`: Robot already does.
 3. Add a Robot start method; it cancels every state machine that shares a mechanism with this one.
 4. Add a test OpMode (start / cancel) and the buttons or auto steps that start it.
 5. Update `HLD.md`, `LLD.md` (section 7, with the state table) and `README.md`.
@@ -587,13 +565,13 @@ Park-by guard: `if (MatchClock.autoSeconds() > AutoConfig.PARK_BY_S && step is b
 
 ## 12. Telemetry, match log and ALERTs (game additions)
 
-**Header line:** `RED Q12 | 1:42 left | 18 ms | 12.6 V | FIELD 3° | held 3 P P B | up CELL A | tips 2 | ALERT ...`
+**Header line:** `RED Q12 | 1:42 left | 18 ms | 12.6 V | FIELD 3° | intake ON | launcher READY | up CELL A | tips 2 | ALERT ...`
 
-**New DATA columns:** `held_count`, `next_element`, `launcher_rpm`, `launcher_target_rpm`, `up_cell`, `tip_count`, `collect_state`, `launch_state`, `<mechanism>_faulted`, `pose_known`, `match_s_left`.
+**New DATA columns:** `intake_power`, `feeder_power`, `launcher_rpm`, `launcher_target_rpm`, `up_cell`, `tip_count`, `launch_state`, `<mechanism>_faulted`, `pose_known`, `match_s_left`.
 
-**New EVENTS:** `HIVE_TIP:<n>`, `REJECT_OPPONENT_NECTAR`, `OVER_LIMIT:<count>`, `FAULT:<mechanism>:<reason>`, `ASSIST:<name>`, `ASSIST_REFUSED:pose unknown`, `ASSIST_CANCELLED:stick`, `POSE_SET:<how>:<old>-><new>`, `AUTO_PATH_OFFSIDE:<path>`, `PARK_BY`.
+**New EVENTS:** `HIVE_TIP:<n>`, `INTAKE_ON`, `INTAKE_OFF`, `INTAKE_REVERSE`, `FAULT:<mechanism>:<reason>`, `ASSIST:<name>`, `ASSIST_REFUSED:pose unknown`, `ASSIST_CANCELLED:stick`, `POSE_SET:<how>:<old>-><new>`, `AUTO_PATH_OFFSIDE:<path>`, `PARK_BY`.
 
-**New ALERTs:** mechanism FAULTED (urgent), over 4 elements (urgent), opponent NECTAR rejected, auto path off our side (INIT, red), launcher can't reach speed (spin-up timeout).
+**New ALERTs:** mechanism FAULTED (urgent), auto path off our side (INIT, red), launcher can't reach speed (spin-up timeout).
 
 ---
 
@@ -604,9 +582,8 @@ Park-by guard: `if (MatchClock.autoSeconds() > AutoConfig.PARK_BY_S && step is b
 | **Pinpoint access.** Pedro's `PinpointLocalizer` keeps its driver private; safeguards need status, rate and `recalibrateIMU()` | A second handle from `hardwareMap` in `Drive`; reflection (forbidden); a team localizer class | Second handle, read-only except a recalibrate when the robot is still; record the risks (two objects on one device, reset during a path) |
 | **Dashboard field background** | `TelemetryPacket(false)` + `drawImage("/images/field-biobuzz.png", 0, 0, 144, 144)`; flicker between packets | Already in `FieldDrawing`; the image is at `TeamCode/src/main/assets/images/field-biobuzz.png`; check flicker on the robot |
 | **Constants depends on team code** | `pedro/Constants.java` imports `HardwareNames` | Keep; record in `UPSTREAM.md` |
-| **HuskyLens is 2D** | Box size → rough distance; tag learned IDs must be trained on each unit; one algorithm at a time; I2C read takes a few ms | Read every 100 ms; use for "which CELL", aim offsets and element colour only; document training in `CAMERA_GUIDE.md` |
+| **HuskyLens is 2D** | Box size → rough distance; tag learned IDs must be trained on each unit; one algorithm at a time; I2C read takes a few ms | Read every 100 ms; use for "which CELL" and aim offsets only; document training in `CAMERA_GUIDE.md` |
 | **Webcam CPU load** | `VisionPortal` runs on its own thread, but AprilTag and colour processing at full resolution can slow the whole Control Hub, and so the loop | Low resolution (for example 640 × 480), AprilTag decimation, preview off in matches, `pause()` when not needed; measure the loop time with the webcam streaming |
-| **Counting held elements** | One colour sensor at the mouth (count in/out); a sensor per slot; flywheel speed dip to count shots | Wait for the Storage design (Q5); the count must never be above the real number by more than one |
 | **Which CELL is up** | Operator button; camera; counting launched elements | Operator button first (Q2) |
 | **Detecting a disconnected device** | The SDK seldom throws; a motor on an unplugged hub keeps "working" | Watch `LynxModule` health and motor current; mark FAULTED; acceptance test: pull a cable |
 | **Arrays in `@Config`** (launcher speed tables) | FTC Dashboard may not edit arrays live | If not, use named fields (`POLLEN_RPM_36_IN`, …) |
@@ -620,6 +597,7 @@ Park-by guard: `if (MatchClock.autoSeconds() > AutoConfig.PARK_BY_S && step is b
 | Improvement | Gains | Costs | When |
 | --- | --- | --- | --- |
 | **Bulk reads** (`LynxModule` caching, AUTO or MANUAL) | 1–2 ms per sensor read saved | MANUAL: a missed clear freezes sensor values; needs a stored hub list in a helper | When `LoopMonitor` shows loops near the slow-loop limit; record loop time before and after |
+| **Storage sensing** (a Storage mechanism) | Knowing how many balls are held and their colours: stop the intake at 4 (G407), push opponent NECTAR out automatically (G408), launch exactly what is held, pick a speed table per ball type | Sensors in the hopper (a colour sensor at the mouth, or one per slot); a `Storage` mechanism and a `CollectStateMachine` (intake until 4, reject opponent NECTAR) | When the robot's hopper gets sensors |
 | Camera pose fix (front webcam tag pose) | x/y recovery without the LOADING ZONE corner | Camera position calibration; the CELL tags face down, so they are seen at a steep angle; wrong fixes are worse than none | After Field Check 12 passes reliably |
 | Launch while moving | Faster cycles | Needs velocity-aware aiming | After consistent stationary launching |
 | FLOWER placer | Bottom NECTAR Bonus, FLOWER ownership | A new mechanism (checklist in section 11) | If the team builds one |

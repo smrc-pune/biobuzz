@@ -1,6 +1,6 @@
 # BioBuzz Software – High-Level Design (HLD)
 
-Oct 19, 2026 · **Draft for review** · goes with Requirements v2.2 and `LLD.md`
+Oct 19, 2026 · **Draft for review** · goes with Requirements v2.3 and `LLD.md`
 
 This document explains how the BioBuzz robot software fits together. It is written for our team: 7th graders who are new to Java. Read it once from top to bottom. Use `LLD.md` when you need the details of one file.
 
@@ -41,8 +41,8 @@ Words in CAPITALS (POLLEN, CELL, …) are game words from the BIOBUZZ Competitio
 | Rule | Software must |
 | --- | --- |
 | G304.H, G403: no movement after INIT, nor between AUTO and TELEOP | Never move anything in TeleOp INIT; in Auto INIT only grip the preloads |
-| G407: control at most 4 balls | Count what Storage holds; stop the intake at 4 |
-| G408: never control opponent NECTAR | Check colour at the intake; push opponent NECTAR straight back out |
+| G407: control at most 4 balls | Nothing in software: the hopper physically holds at most 4 |
+| G408: never control opponent NECTAR | Nothing in software: the drive team avoids it, and reverses the intake if one gets in |
 | G402: stay on your own side in AUTO | Check every auto path at INIT |
 | G409, G417: don't touch the HIVE or catch what it drops | Keep paths away from the HIVE |
 
@@ -54,10 +54,12 @@ Words in CAPITALS (POLLEN, CELL, …) are game words from the BIOBUZZ Competitio
 | --- | --- | --- |
 | **Drive** | Mecanum drivetrain; field-centric driving; Pedro Pathing paths | 4 drive motors (Control Hub), goBILDA Pinpoint odometry |
 | **Intake** | Picks up POLLEN from the tiles and the FLOWER Retrieval Opening, and NECTAR from the LOADING ZONE | TODO(BioBuzz): roller motor |
-| **Storage** (with feeder) | Holds up to 4 balls, counts them, knows their colour, feeds one at a time to the launcher | TODO(BioBuzz): decided later (Q5) |
+| **Feeder** | Pushes one ball at a time from the hopper into the launcher | TODO(BioBuzz): motor or servo |
 | **Launcher** | Flywheel that launches POLLEN or NECTAR into the upward CELL | TODO(BioBuzz): flywheel motor(s) with encoder |
 | **HIVE camera** | Looks up at the AprilTags under the CELLS: which CELL is up, and where to aim | DFRobot HuskyLens, I2C |
 | **Front camera** | Sees field AprilTags, POLLEN and NECTAR in front of the robot | Logitech USB webcam |
+
+The hopper (where up to 4 balls wait) has no sensors, so the robot does not know how many balls it holds or their colours. A Storage mechanism with sensors is a future improvement.
 
 Limits (R503, R701): at most 8 motors and 8 servos, a Control Hub and at most one Expansion Hub. The drive uses 4 motors.
 
@@ -74,24 +76,24 @@ Limits (R503, R701): at most 8 motors and 8 servos, a Control Hub and at most on
                    |      call Robot methods              |
                    v                                      v
   +--------------------------------------------------------------------------+
-  | Robot   the robot's "menu": startCollecting(), startLaunching(), ...     |
+  | Robot   the robot's "menu": toggleIntake(), startLaunching(), ...        |
   |         builds everything; update() once per loop:                       |
   |         1. state machines  2. mechanisms  3. Drive  4. always-on rules   |
-  +------+---------------------------------+---------------------------------+
-         |                                 |
-         v                                 v
-  statemachines/                     drive/
-   CollectStateMachine                Drive       (sticks, paths, pose)
-   LaunchStateMachine                 FieldPaths  (every path on the field)
-         | use                             |
-         v                                 v
-  mechanisms/                        ..........................................
-   Intake  Storage  Launcher         : Pedro Pathing   (off the shelf)        :
-   HiveCamera  FrontCamera           : follows paths, holds the robot still,  :
-   (each extends Mechanism)          : knows where the robot is. Set up in    :
-         |                           : the Quickstart's pedro/Constants.java  :
-         |                           :........................................:
-         v                                 v
+  +------+-------------------+------------------------------+----------------+
+         | starts, updates   | updates every mechanism      | drives
+         v                   | once per loop                v
+  statemachines/             |                        drive/
+   LaunchStateMachine        |                         Drive       (sticks, paths, pose)
+         | commands          |                         FieldPaths  (every path on the field)
+         v                   v                              |
+  mechanisms/ <--------------+                              v
+   Intake  Feeder  Launcher                  ..........................................
+   HiveCamera  FrontCamera                   : Pedro Pathing   (off the shelf)        :
+   (each extends Mechanism)                  : follows paths, holds the robot still,  :
+         |                                   : knows where the robot is. Set up in    :
+         |                                   : the Quickstart's pedro/Constants.java  :
+         |                                   :........................................:
+         v                                                  v
   ..........................................................................
   : FTC SDK + FTC Dashboard   (off the shelf)                               :
   : hardwareMap, motors, servos, sensors, cameras, gamepads, telemetry      :
@@ -104,13 +106,15 @@ Limits (R503, R701): at most 8 motors and 8 servos, a Control Hub and at most on
                     helpers/         (tools: timers, gamepad reading, match info, logging)
 ```
 
+**Why Robot updates the mechanisms itself, not the state machines.** A part may call any part below it, never one above. Every mechanism needs its `update()` once per loop even when no state machine is using it: the cameras read every loop, and the launcher holds its speed. A mechanism used by two state machines must still be updated exactly once. So Robot updates every mechanism, and state machines only give mechanisms commands (`feeder.feedOne()`).
+
 **What each part does, and must never do**
 
 | Part | Does | Must never |
 | --- | --- | --- |
 | OpMode (`teleop/`, `auto/`, `testing/`) | Reads the gamepads (only OpModes do). Calls Robot methods. Calls `robot.update()` and telemetry once per loop. Auto keeps its list of steps | Touch a motor or servo |
 | `Robot` | Builds everything. One method for each thing the robot can do. Runs `update()` in a fixed order. Stops two state machines from fighting over one mechanism | Read gamepads. Set a motor power itself |
-| State machine (`statemachines/`) | One job that takes time, maybe using several mechanisms (for example "launch every ball we hold") | Call another state machine. Read gamepads |
+| State machine (`statemachines/`) | One job that takes time, maybe using several mechanisms (for example "launch 4 balls": spin up, feed, wait, repeat). It gives mechanisms commands | Call another state machine, or a mechanism's `update()`. Read gamepads |
 | `Drive` and `FieldPaths` (`drive/`) | Driving: sticks, paths, where the robot is. The only code that talks to Pedro | Decide when to drive a path (the OpMode decides) |
 | Mechanism (`mechanisms/`) | One group of devices, with action words (`collect()`, `stop()`) and questions (`isUpToSpeed()`) | Remember states or wait. Know about other mechanisms |
 | Libraries (Pedro, FTC SDK, Dashboard) | Do the hard work: path following, talking to hardware, the Dashboard | Get edited by us (Pedro only gets tuned numbers in `pedro/Constants.java`) |
@@ -135,7 +139,7 @@ Limits (R503, R701): at most 8 motors and 8 servos, a Control Hub and at most on
 **Robot** builds everything when the OpMode starts: Drive, the mechanisms, then the state machines (each is handed the mechanisms it uses). Robot keeps the mechanisms in one list, written by name:
 
 ```java
-mechanisms = new Mechanism[] { intake, storage, launcher, hiveCamera, frontCamera };
+mechanisms = new Mechanism[] { intake, feeder, launcher, hiveCamera, frontCamera };
 ```
 
 and goes through it with a "for each" loop, so there are no index numbers to remember:
@@ -164,8 +168,9 @@ If something goes wrong inside a mechanism (for example a cable comes out), that
 
 | State machine | Uses | Job |
 | --- | --- | --- |
-| `CollectStateMachine` | Intake, Storage | Run the intake until Storage holds 4; push opponent NECTAR back out (G407, G408) |
-| `LaunchStateMachine` | Storage, Launcher, Drive (where are we?) | Spin up for the ball type and the distance to the upward CELL, feed one ball, wait, repeat; wait a moment after a TIP |
+| `LaunchStateMachine` | Feeder, Launcher, Drive (where are we?) | Spin up for the distance to the upward CELL, feed one ball, wait, repeat; wait a moment after a TIP |
+
+The intake needs no state machine: the operator turns it on and off.
 
 **Drive** is not a mechanism: stop-all never stops the wheels. It has driver actions (`driveWithSticks`, `resetHeading`, `switchDriveMode`) and path actions (`followPath`, `isDrivingItself`, `isPathDone`, `holdHere`, `stopDrivingItself`). **FieldPaths** builds every path, for Auto and for the TeleOp assist buttons. They are the only two files that use Pedro.
 
@@ -209,9 +214,9 @@ We build the stages in this order: S1 (works today), then S3 (Auto proves the pa
 
 | Control | Action |
 | --- | --- |
-| A | Start collecting (stops by itself at 4) |
-| B (hold) | Reverse the intake (spit out) |
-| Right trigger | Launch every ball we hold |
+| A | Intake on / off |
+| B (hold) | Reverse the intake (spit out, also for opponent NECTAR) |
+| Right trigger | Launch 4 balls |
 | Left bumper | "Our HIVE just TIPPED" |
 | Y | Spin the launcher up early |
 | D-pad down | **Stop all mechanisms** |
@@ -243,7 +248,7 @@ The AprilTags are stuck under the CELLS, facing down.
 | Camera | Device | Sees | Used for |
 | --- | --- | --- | --- |
 | HIVE camera (looks up) | HuskyLens | CELL tags | Checking which CELL is up (the operator's TIP button comes first); aiming at the upward CELL |
-| Front camera (looks ahead) | Logitech webcam | Field AprilTags, POLLEN and NECTAR, all at once | Aiming the intake; spotting opponent NECTAR before we pick it up (G408) |
+| Front camera (looks ahead) | Logitech webcam | Field AprilTags, POLLEN and NECTAR, all at once | Shows the drive team what is in front of the intake; later, aiming the intake |
 
 Each camera is a mechanism (`HiveCamera`, `FrontCamera`). Cameras only answer questions; Robot decides what to do with the answers. Setting the robot's position from a camera comes later, if at all; until then, "set pose here" fixes a lost position.
 
@@ -262,7 +267,7 @@ Each camera is a mechanism (`HiveCamera`, `FrontCamera`). Cameras only answer qu
  drive team (screen, rumble)      pits (Log Viewer)      laptop (plot tool)
 ```
 
-The first telemetry line always shows: alliance, time left, loop time, battery, FIELD or ROBOT driving, the balls held and their colours, the upward CELL, and any ALERT.
+The first telemetry line always shows: alliance, time left, loop time, battery, FIELD or ROBOT driving, intake on or off, launcher ready, the upward CELL, and any ALERT.
 
 ---
 
@@ -285,8 +290,7 @@ The first telemetry line always shows: alliance, time left, loop time, battery, 
 | Heading drifts | Y (facing away), snap to 90°, recalibrate (gamepad 1) |
 | Position lost after a restart | TeleOp starts as S1; "set pose here" in the LOADING ZONE corner brings S2 back |
 | A mechanism's cable comes out | That mechanism is FAULTED and stops; an ALERT names it; the rest keeps working |
-| Storage miscounts (holds 5) | Intake reverses briefly, ALERT, rumble (G407) |
-| Opponent NECTAR picked up | Pushed back out at once and logged (G408) |
+| Opponent NECTAR picked up | The operator holds B to push it back out (G408) |
 | Upward CELL wrong (TIP button missed) | The operator presses the TIP button again; the screen shows which CELL is up |
 | Auto runs late | The park-by guard: PARK always happens |
 | Loop gets slow | ALERT; first fix is bulk reads (LLD, Future improvements) |
@@ -306,8 +310,8 @@ Professional programmers have names for designs that work well. You don't need t
 | **Adapter** | `Intake`, `Launcher`, `HiveCamera`, `FrontCamera`, `GamepadInput` | Turns device calls into game words |
 | **Template Method** | `Mechanism.runUpdate()` calls your `update()` | The base class fixes the order and the safety; you fill in the steps |
 | **State pattern** (enum + switch) | `LaunchStateMachine`, Auto's steps | The object behaves differently depending on its current state |
-| **Mediator** | `Robot.startLaunching()` cancels collecting first | Parts that could clash don't talk to each other; one coordinator does |
-| **Dependency injection** | `new LaunchStateMachine(storage, launcher, drive)` | A class is given what it needs; it doesn't go and find it |
+| **Mediator** | Robot's start methods cancel any state machine that shares a mechanism | Parts that could clash don't talk to each other; one coordinator does |
+| **Dependency injection** | `new LaunchStateMachine(feeder, launcher, drive)` | A class is given what it needs; it doesn't go and find it |
 | **Factory method** | `FieldPaths.toLaunchSpot(from, isRed)` | One method makes every path of one kind, so everyone gets the same one |
 | **Third-party library** | Pedro Pathing, FTC SDK, FTC Dashboard | Use well-tested code as it comes, behind one or two of our own classes |
 
