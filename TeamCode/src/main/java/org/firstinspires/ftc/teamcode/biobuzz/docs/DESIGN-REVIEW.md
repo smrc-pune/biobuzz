@@ -4,7 +4,7 @@ Oct 19, 2026 · for mentor review before any code changes
 
 This review compares three things: the requirements (v1.4), the new design the team agreed on in discussion, and the BIOBUZZ Competition Manual (TU05). It lists every conflict, misalignment and gap found, with the fix applied in Requirements v2.0, `HLD.md` and `LLD.md`, and the questions that only the team can answer.
 
-**How to read it.** Section 1 is the design in one page. Section 2 lists problems inside the old requirements. Section 3 lists what the game adds. Section 4 lists the design patterns used. Section 5 lists the open questions. Nothing in the code has changed yet.
+**How to read it.** Section 1 is the design in one page, as it stands now (Requirements v2.2). Section 2 lists problems inside the old requirements. Section 3 lists what the game adds. Section 4 lists the design patterns used. Section 5 lists the questions and the team's answers. Section 6 lists the changes from the second review round; where a fix in sections 2–3 names `game/`, BLUE poses or NEAR/FAR, section 6 replaces it. Nothing in the code has changed yet.
 
 ---
 
@@ -20,10 +20,12 @@ Robot          the robot's "menu": one method per action. Builds everything.
 statemachines/ tasks that take time and use several mechanisms (Collect, Launch). Standalone classes.
    |
    v
-drive/Drive    + mechanisms/ (Intake, Storage, Launcher, HiveCamera, FrontCamera): operations only, no states.
-               Every mechanism extends one plain base class, Mechanism.
-game/          what is special about BIOBUZZ: FieldPaths (every path), HiveState (which CELL is up)
+drive/         Drive (sticks, paths, pose) + FieldPaths (every path)      -> Pedro Pathing (off the shelf)
+mechanisms/    Intake, Storage, Launcher, HiveCamera, FrontCamera: operations only, no states.
+               Every mechanism extends one plain base class, Mechanism.     -> FTC SDK (off the shelf)
 ```
+
+Owners: rookie 7th graders with no Java. Student zone: configurations, mechanisms, state machines, TeleOp, Auto, `FieldPaths`, Robot's marked spots, tests. Mentor zone: `Mechanism`, `Drive`, helpers, Field Checks, `pedro/`.
 
 **Where does my code go?**
 
@@ -33,7 +35,7 @@ game/          what is special about BIOBUZZ: FieldPaths (every path), HiveState
 | moves or reads one device group | that mechanism's class in `mechanisms/` |
 | takes several steps over time, or needs two mechanisms together | a class in `statemachines/`, started through a `Robot` method |
 | must always happen, in every OpMode | `Robot.update()` |
-| is a place or a path on the field | `configurations/FieldConfig.java` (poses) and `game/FieldPaths.java` (paths) |
+| is a place or a path on the field | `configurations/FieldConfig.java` (poses, RED side) and `drive/FieldPaths.java` (paths) |
 | is a number someone will tune | a `*Config` class in `configurations/` |
 
 **The three stages of driving.** The layers below the OpMode are the same in every stage.
@@ -41,7 +43,7 @@ game/          what is special about BIOBUZZ: FieldPaths (every path), HiveState
 | Stage | Who drives | Where |
 | --- | --- | --- |
 | S1 Manual | Driver only | TeleOp, sticks only |
-| S2 Assisted | Driver, plus a few buttons that drive a short fixed path (to the launch spot, to the LOADING ZONE). Any stick takes the robot back at once | Same TeleOp |
+| S2 Assisted | Driver, plus a few buttons that drive a short fixed path (to our favourite launch spot, to the LOADING ZONE). Any stick takes the robot back at once | Same TeleOp |
 | S3 Autonomous | Robot only | `auto/BioBuzzAuto.java` step list |
 
 Build order: S1 (exists) → S3 (autonomous, proves paths and pose) → S2 (reuses S3's paths).
@@ -154,3 +156,17 @@ Team decisions were entered in the shared review doc on Oct 19, 2026 and applied
 | Q10 | Which auto routines for the first event? For example "near: launch 4, collect GARDEN, launch, park" and "far: launch 4, park" | Start with these two | Agreed |
 
 **Follow-up from Q9.** A second HuskyLens would have shared the first one's fixed I2C address and had to switch between tag and colour mode. The team chose a Logitech USB webcam instead: the SDK's `VisionPortal` runs AprilTag and colour processing at the same time, with real AprilTag IDs and a tag pose. Its cost is Control Hub CPU, so the loop time is measured with the webcam streaming.
+
+---
+
+## 6. Review round 2 (Oct 19, 2026)
+
+| # | Team input | Change in v2.2 |
+| --- | --- | --- |
+| R2-1 | Show Pedro Pathing in the design diagram as off-the-shelf | Diagrams in the HLD, Requirements and the shared review doc show Pedro Pathing, the FTC SDK and FTC Dashboard as libraries we use as they come; only `Drive` and `FieldPaths` call Pedro |
+| R2-2 | Key-value pairs instead of an array, so students don't remember index numbers | The list stays, but it is written by name (`{ intake, storage, launcher, ... }`) and walked with a "for each" loop, so no index numbers appear anywhere; mechanisms are always used by their field name. A `Map<String, Mechanism>` was considered: it adds generics and string keys that fail only while the robot runs, and Robot never needs to look one up. R3 now allows "for each" loops |
+| R2-3 | Standardize on `isBusy` | State machines use `isBusy()` (Robot's `isCollecting()` / `isLaunching()` call it) |
+| R2-4 | Remove `game/` if it adds little | Removed: `FieldPaths` moved to `drive/`, `Element` to `mechanisms/`, the HIVE state (`HiveState`) folded into `MatchInfo` with the other match facts |
+| R2-5 | Rookie 7th graders with no Java will own the code | Requirements Audience and R3 rewritten around them; student zone and mentor zone, named in each file's first line; plain-English names; the HLD rewritten in simpler words with the patterns moved to a "for mentors" section; a student-level Intake sketch in the LLD |
+| R2-6 | No near or far zones: launch from anywhere | Routines renamed `LAUNCH_PARK` and `LAUNCH_COLLECT_PARK`; Auto launches its preloads right after LEAVE; one favourite `LAUNCH_SPOT` (was one per CELL) for the assist; the launcher speed follows the distance to the upward CELL |
+| R2-7 | Default poses for RED | All poses are written for RED, the default alliance (`MatchInfo` starts as RED); BLUE poses are turned 180° by `FieldPaths.forAlliance` |

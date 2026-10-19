@@ -2,7 +2,7 @@
 
 Oct 19, 2026 · @Girish
 
-**Version 2.1**
+**Version 2.2**
 
 ## Contents
 
@@ -34,7 +34,7 @@ Oct 19, 2026 · @Girish
 
 An AI assistant uses this document to produce the BioBuzz robot's software: the code, the design documents and the student guides. It turns the patterns proven in the DecodeBot `pedro` package into rules, so the new code reads like the old code.
 
-**Audience.** The AI writes the code. Mentors check the result against the acceptance checklist at the end. Students in grades 7 to 12 read and change the code. Many of them have no Java experience.
+**Audience.** The AI writes the code. Mentors check the result against the acceptance checklist at the end. **The code is owned and maintained during the season by a rookie team of 7th graders with no Java background.** Every rule in this document serves them: when two designs work, choose the one with fewer files, fewer Java keywords and plainer words. Less is better.
 
 **How the AI should use this document.**
 
@@ -76,7 +76,7 @@ The team has confirmed these twelve requirements. Each one has its own detailed 
 
 ## Coding style rules (R3)
 
-A student who has never used Java MUST be able to read any file and say what the robot does. When readability and cleverness conflict, readability wins. Some repetition is acceptable.
+A 7th grader who has never used Java MUST be able to read any file in the student zone (see Code layout) and say what the robot does. When readability and cleverness conflict, readability wins. Some repetition is acceptable. Names are plain English words a 7th grader would use; no abbreviations except the units (`_MS`, `_IN`, `_DEG`, `_RPM`).
 
 **Allowed Java**
 
@@ -86,10 +86,12 @@ A student who has never used Java MUST be able to read any file and say what the
 | `enum` for fixed lists: states, auto steps, routines, element types | `enum State { IDLE, INTAKING, FEEDING }` |
 | `extends Mechanism`: every mechanism extends the one team base class, and overrides its hook methods with `@Override` | `public class Intake extends Mechanism { ... }` |
 | `switch` on the state enum, with one `case` per state | `switch (state) { case IDLE: ... break; }` |
-| `if` / `else`, `for` over a counted range, and fixed-size arrays | `for (int i = 0; i < 5; i++)` |
+| `if` / `else`, and fixed-size arrays | `Mechanism[] mechanisms = { intake, storage, launcher };` |
+| A "for each" loop over an array, so no index numbers appear | `for (Mechanism mechanism : mechanisms) { mechanism.runUpdate(); }` |
+| `for` over a counted range, only where a count is the point (inside `helpers/`, or sampling 20 points of a path) | `for (int i = 0; i <= 20; i++)` |
 | `public static` fields in config classes, so FTC Dashboard can edit them live | `public static double ROW1_POWER = 0.8;` |
 | `final` fields for devices, mechanisms and helpers | `private final StateTimer timer = new StateTimer();` |
-| One-line methods | `public boolean isRunning() { return state != State.IDLE; }` |
+| One-line methods | `public boolean isBusy() { return state != State.IDLE; }` |
 
 **Forbidden Java** (the AI MUST NOT use these in student-facing code)
 
@@ -100,7 +102,7 @@ A student who has never used Java MUST be able to read any file and say what the
 - `Optional`, `var`, ternary chains, bit operations, reflection and annotations other than the FTC ones (`@TeleOp`, `@Autonomous`, `@Config`, `@Override`, `@Disabled`).
 - Threads, `sleep()` and busy-wait loops anywhere in team code. Waiting is done with `StateTimer`.
 - Exceptions used for control flow. `try`/`catch` is allowed only inside `helpers/` (for example around file writes) and in `Mechanism.runUpdate()` / `runStop()`, which turn an error in a mechanism into a FAULTED mechanism instead of a crash.
-- Command-based frameworks such as FTCLib commands or NextFTC. Pedro's own calls are allowed only in the Quickstart's `pedro/` folder, in `drive/Drive.java` (the follower) and in `game/FieldPaths.java` (paths and poses), which MUST explain them in comments.
+- Command-based frameworks such as FTCLib commands or NextFTC. Pedro's own calls are allowed only in the Quickstart's `pedro/` folder, in `drive/Drive.java` (the follower) and in `drive/FieldPaths.java` (paths and poses), which MUST explain them in comments.
 
 **Naming and comments**
 
@@ -175,17 +177,17 @@ teamcode/biobuzz/
     HardwareNames.java    every device name + hub and port + motor direction; ALL_DEVICES; motor/servo count
     DriveConfig.java      stick deadzone, driver headings, assist values
     ControlsConfig.java   trigger threshold, rumble lengths, which button does what (as comments)
-    FieldConfig.java      every field pose (inches, degrees, BLUE side), HIVE keep-out, start positions
+    FieldConfig.java      every field pose (inches, degrees, RED side), HIVE keep-out, start positions
     AutoConfig.java       step timeouts, park-by time, default routine and delay
     TelemetryConfig.java  on/off switches
     LogConfig.java        match-log switches and rate
     HealthConfig.java     alert, heading-safeguard and battery thresholds
     FieldCheckConfig.java Field Check home baseline + tolerances
     <Mechanism>Config.java  one per mechanism: IntakeConfig, StorageConfig, LauncherConfig, CameraConfig
-  drive/                  Drive.java: driving operations over Pedro (sticks, paths, pose)
-  mechanisms/             Mechanism.java (the one base class) + one class per mechanism: operations, no states
+  drive/                  Drive.java: driving over Pedro (sticks, paths, pose); FieldPaths.java: every path
+  mechanisms/             Mechanism.java (the one base class) + one class per mechanism: operations, no states;
+                          Element.java (NONE, POLLEN, RED_NECTAR, BLUE_NECTAR)
   statemachines/          <Task>StateMachine.java: tasks that take time and may use several mechanisms
-  game/                   BIOBUZZ-specific logic: Element, HiveState, FieldPaths (every path)
   teleop/                 BioBuzzTeleOp.java: both match gamepad maps (driver + operator), stages S1 and S2
   auto/                   BioBuzzAuto.java: the step list (stage S3)
   testing/                Test: Drive, one test per mechanism and per state machine, Parts, RobotCheck,
@@ -200,10 +202,22 @@ TeamCode/src/main/assets/images/field-biobuzz.png    BioBuzz field image for the
 tools/plot_match.py       laptop only, mentor-side (repo root, not built into the app)
 ```
 
+**Who owns which files.** Students change the student zone during the season. The mentor zone is written once, works quietly, and is changed by mentors only. Every file's header comment MUST start with its zone: `STUDENTS: you will change this file` or `MENTORS: you do not need to change this file`.
+
+| Student zone (change these) | Mentor zone (read, don't change) |
+| --- | --- |
+| `configurations/` (every tunable number and name) | `mechanisms/Mechanism.java` (the base class) |
+| `mechanisms/` (one file per mechanism) | `drive/Drive.java` (talks to Pedro) |
+| `statemachines/` | `helpers/` |
+| `teleop/`, `auto/` | `fieldchecks/`, `testing/RobotCheck.java`, `testing/LogViewer.java` |
+| `drive/FieldPaths.java` (paths) | `pedro/` (Quickstart; tuned values only, at drive tuning) |
+| `Robot.java` (the marked "ADD ... HERE" spots) | |
+| `testing/` mechanism and state machine tests, `template/` | |
+
 **Layout rules**
 
 - Device names MUST appear only in `HardwareNames.java`. Each mechanism gets its own devices in its constructor with `hardwareMap.get(...)` and those names; `pedro/Constants.java` imports them for the drivetrain and the Pinpoint.
-- Tunable numbers MUST appear only in `configurations/`. There are no magic numbers in mechanisms, state machines, Drive, `game/` or OpModes.
+- Tunable numbers MUST appear only in `configurations/`. There are no magic numbers in mechanisms, state machines, Drive, `FieldPaths` or OpModes.
 - The DecodeBot `GamepadConfig` wrapper moves to `helpers/GamepadInput.java`, because it is a tool, not a set of numbers. It keeps the edge-detected `isAPressed()` style, adds `isAHeld()` and `wasAReleased()` reads, applies the stick deadzone and answers `areSticksMoved()`. Back/Share is read from `gamepad.back` (in the SDK, `options` is the same button as Start).
 - `helpers/InitMenu.java` is the one pre-match menu (see Autonomous). `helpers/FieldDrawing.java` draws on the Dashboard field view (see Telemetry and dashboard). `helpers/LogSummary.java` reads log files for `LogViewer`, so file reading and its `try`/`catch` stay in `helpers/`. `helpers/MatchClock.java` keeps match time (see Game requirements).
 - A test OpMode builds just the mechanism it tests, with `new Intake(hardwareMap)`; there are no `Robot.buildX` methods.
@@ -221,15 +235,25 @@ The design is explained in `docs/HLD.md` (why) and `docs/LLD.md` (each class). T
   +--------------------------------------------------------------+
   | Robot   one method per robot action; builds everything        |
   |         update(): 1. state machines 2. mechanisms 3. Drive    |
-  |                   4. always-on rules (safeguards, camera)     |
+  |                   4. always-on rules (safeguards, cameras)    |
   +------+---------------------------+---------------------------+
          |                           |
-  statemachines/              drive/Drive (Pedro)          game/ FieldPaths, HiveState
-   Collect, Launch, ...
-         | use (given in the constructor)
-  mechanisms/ (each extends Mechanism): Intake, Storage, Launcher, HiveCamera, FrontCamera
-         |
-  Control Hub + Expansion Hub devices
+  statemachines/              drive/  Drive + FieldPaths
+   Collect, Launch, ...              |
+         | use                       v
+         v                   ..........................................
+  mechanisms/ (each extends  : Pedro Pathing library  (off the shelf: :
+  Mechanism): Intake,        : follower, paths; set up in the         :
+  Storage, Launcher,         : Quickstart's pedro/Constants.java)     :
+  HiveCamera, FrontCamera    :........................................:
+         |                           |
+         v                           v
+  ..................................................................
+  : FTC SDK (off the shelf): hardwareMap, motors, servos, sensors,  :
+  : VisionPortal, HuskyLens driver  ->  Control Hub + Expansion Hub :
+  :.................................................................:
+
+  ...... dotted boxes = libraries we use as they come; we never edit them
 ```
 
 | Layer | Does | MUST NOT |
@@ -239,7 +263,7 @@ The design is explained in `docs/HLD.md` (why) and `docs/LLD.md` (each class). T
 | State machine (`statemachines/`) | One task that takes time and may use several mechanisms, for example "launch everything held" | Call another state machine or Robot. Read gamepads |
 | `Drive` (`drive/`) | Driving operations over Pedro: sticks (field-centric), paths, pose. It is not a Mechanism: stop-all never stops it | Decide when to follow a path (the OpMode decides) |
 | Mechanism (`mechanisms/`) | Wraps one group of devices with verbs (`collect()`, `feedOne()`) and questions (`isUpToSpeed()`) | Keep states or timers. Know about other mechanisms. Move an actuator in its constructor |
-| `game/` | BIOBUZZ knowledge: every path (`FieldPaths`), which CELL is up (`HiveState`), element types | Touch hardware |
+| Off-the-shelf libraries: Pedro Pathing, FTC SDK, FTC Dashboard | Pedro follows paths and holds poses; the SDK talks to the hubs, cameras and gamepads; the Dashboard shows telemetry and the field | Be edited by the team. Pedro is set up only through tuned values in `pedro/Constants.java`, and only `Drive` and `FieldPaths` call it |
 
 **Where code goes:** a button → TeleOp; one device group → its mechanism; several steps over time or several mechanisms → a state machine started by a Robot method; something that must always happen → `Robot.update()`; a place or path → `FieldConfig` and `FieldPaths`; a tunable number → a `*Config`.
 
@@ -247,11 +271,11 @@ The design is explained in `docs/HLD.md` (why) and `docs/LLD.md` (each class). T
 
 - Every mechanism extends `mechanisms/Mechanism.java` and overrides only its hooks: `update()` (every loop; never waits), `stop()` (safe state), `addDetails(t)` (telemetry) and `addLogValues()` (up to 8 log values). Robot and tests call the fixed methods `runUpdate()`, `runStop()`, `addTelemetry(t)` and `addLogData()`.
 - An error inside a mechanism marks it FAULTED with a reason (shown on telemetry, logged, ALERT). A faulted mechanism ignores its verbs; the rest of the robot keeps running.
-- Robot keeps the mechanisms in one array (`Mechanism[]`), so update, stop-all, telemetry and logging are loops over it. Adding a mechanism is two edits in Robot: a field, and one entry in the array.
+- Robot keeps the mechanisms in one list written by name, `Mechanism[] mechanisms = { intake, storage, launcher, hiveCamera, frontCamera };`, and goes through it with a "for each" loop (`for (Mechanism mechanism : mechanisms)`), so no index numbers appear anywhere. Robot and OpModes use each mechanism by its own field name (`intake.collect()`), never by its place in the list. Adding a mechanism is two edits in Robot: a field, and its name in the list.
 
 **State machine rules**
 
-- Every state machine MUST use this section order: 1. **States** (the `enum`, one comment per value); 2. **Commands** (`start(...)`, `cancel()`: they only call `goTo(state, "reason")`; a command that cannot run calls `log.warn("...")` and returns); 3. **`update()`** (a `switch` with one `case` per state, marked DO, CHECK and GO); 4. **Bookkeeping** (`goTo()`, `isRunning()`, `getState()`, `addTelemetry()`, `addLogData()`).
+- Every state machine MUST use this section order: 1. **States** (the `enum`, one comment per value); 2. **Commands** (`start(...)`, `cancel()`: they only call `goTo(state, "reason")`; a command that cannot run calls `log.warn("...")` and returns); 3. **`update()`** (a `switch` with one `case` per state, marked DO, CHECK and GO); 4. **Bookkeeping** (`goTo()`, `isBusy()`, `getState()`, `addTelemetry()`, `addLogData()`).
 - Every state that waits MUST have a timeout that goes to a safe state, with the reason logged (for example `"spin-up timeout"`). `goTo()` with the current state does nothing, so repeated commands are safe.
 - A state machine gets the mechanisms it uses in its constructor. It never finds them itself, never calls another state machine and never calls Robot.
 - Robot lists each state machine by hand in `update()`, `stopMechanisms()` and telemetry (state machines have no base class).
@@ -277,11 +301,11 @@ These come from the BIOBUZZ Competition Manual TU05. Rule numbers (G…, R…) a
 | GR3 | Mechanism constructors MUST NOT move an actuator. TeleOp `init()` and `init_loop()` MUST NOT command an actuator: the first command is in `start()`. Auto `init()` MAY grip the preloads (`robot.holdPreloads()`), and nothing else | G304.H, G403 |
 | GR4 | Storage MUST count the elements held. `CollectStateMachine` MUST stop the intake at `StorageConfig.MAX_HELD = 4`; a 5th element makes the intake reverse for `REJECT_MS` with an urgent ALERT | G407 |
 | GR5 | The colour of each element MUST be checked at the intake. Opponent NECTAR (from the alliance in `MatchInfo`) MUST be pushed straight back out and logged as `REJECT_OPPONENT_NECTAR` | G408 |
-| GR6 | `game/HiveState` MUST know which of our two CELLS faces up: the setup position at Auto `init()`, flipped by each TIP. A TIP is entered by the operator (gamepad 2 left bumper); the HuskyLens MAY confirm it later. After a TIP, launching pauses for `LauncherConfig.TIP_PAUSE_MS` | 9.6, 10.5.1 |
-| GR7 | The launch spot (S2 assist) and the aim heading MUST follow the upward CELL. The launcher speed MUST depend on the element type (POLLEN 2.8 in, NECTAR 3.6 in) and the distance to the upward CELL, from tables in `LauncherConfig` | 9.6, 9.8 |
+| GR6 | `helpers/MatchInfo` MUST know which of our two CELLS faces up (`MatchInfo.isCellAUp()`): the setup position at Auto `init()`, flipped by each TIP (`MatchInfo.markHiveTipped()`), kept from Auto to TeleOp like the rest of `MatchInfo`. A TIP is entered by the operator (gamepad 2 left bumper); the HIVE camera MAY confirm it later. After a TIP, launching pauses for `LauncherConfig.TIP_PAUSE_MS` | 9.6, 10.5.1 |
+| GR7 | BIOBUZZ has no launch zones: the robot may launch from anywhere. The aim heading MUST follow the upward CELL, and the launcher speed MUST depend on the element type (POLLEN 2.8 in, NECTAR 3.6 in) and the distance to the upward CELL, from tables in `LauncherConfig` | 9.6, 9.8 |
 | GR8 | Every auto path MUST be checked at INIT: it stays on our side of the field (columns A–C red, D–F blue) and out of the HIVE footprint plus `FieldConfig` margin. A failing path shows a red warning on the INIT screen | G402, G409, G417 |
 | GR9 | Start positions MUST be a fixed list in `FieldConfig` (touching the wall, our side, not in the LOADING ZONE), picked in the INIT menu | G304 |
-| GR10 | Poses are written for BLUE. RED poses MUST be the BLUE pose turned 180° about the field centre (72, 72), because the field is rotationally symmetric (agreed, Q7). `FieldPaths.forAlliance` does it by chaining both reflections: `PoseFactory` `mirrorX(72.0).mirrorY(72.0)` | 9.3 |
+| GR10 | Poses are written for RED, the default alliance. BLUE poses MUST be the RED pose turned 180° about the field centre (72, 72), because the field is rotationally symmetric (agreed, Q7). `FieldPaths.forAlliance` does it by chaining both reflections: `PoseFactory` `mirrorX(72.0).mirrorY(72.0)` | 9.3 |
 | GR11 | TeleOp MUST rumble both gamepads at 1:00 left (NECTAR may be entered, FLOWERS open) and gamepad 1 at 0:20 left (time to PARK). The header shows how many NECTAR the human player may enter (one per TIP before 1:00 left) | G410, G426 |
 | GR12 | The robot MUST stay within 8 motors and 8 servos, one Control Hub and at most one Expansion Hub. `HardwareNames` keeps the count in its header | R503, R701 |
 | GR13 | Two cameras (Q9). The **HIVE camera** is a HuskyLens (I2C) looking up at the AprilTags under the CELLS: which CELL is up, and the aim offset. It is read no more often than `CameraConfig.HIVE_SAMPLE_MS`, and its learned IDs map to CELLS in `CameraConfig`. The **front camera** is a Logitech USB webcam with the SDK's `VisionPortal`, running an `AprilTagProcessor` (real AprilTag IDs and a tag pose) and a colour-blob processor for POLLEN and NECTAR at the same time. Vision runs on its own thread; the live preview is off in matches. Neither camera sets the Pedro pose in this version | 9.9, R707, R708 |
@@ -294,7 +318,7 @@ The robot MUST always drive field-centric: pushing the stick away from the drive
 
 - Field-centric MUST be the normal mode. DecodeBot's `DriveConfig.ROBOT_CENTRIC` switch is removed. Robot-centric is used only as a safeguard fallback (Pinpoint not `READY`, or a heading jump) or when the driver presses X, and every switch is written to the match log (see Troubleshooting C).
 - In field-centric mode, `Drive.driveWithSticks(forward, right, clockwise)` MUST call Pedro's `ManualDrive.fieldCentric(powers, heading, offset)` every loop. The heading comes from the Pinpoint through the Pedro follower. In robot-centric mode (the fallback, or X) the stick powers go to the follower without the rotation.
-- `offset` is the alliance's driver-facing angle. It comes from `DriveConfig.BLUE_DRIVER_HEADING_DEG` and `DriveConfig.RED_DRIVER_HEADING_DEG`, picked by the alliance chosen in the INIT menu (kept in `MatchInfo`; BLUE until chosen). This means "away from the drivers" is correct on both alliances without a heading reset. In our field frame (the field image as drawn, origin bottom-left, red ALLIANCE AREA on the left wall; agreed, Q8) red drivers face 0° and blue drivers face 180°, so today's `DriveConfig` values are swapped when the code is restructured.
+- `offset` is the alliance's driver-facing angle. It comes from `DriveConfig.BLUE_DRIVER_HEADING_DEG` and `DriveConfig.RED_DRIVER_HEADING_DEG`, picked by the alliance chosen in the INIT menu (kept in `MatchInfo`; RED until chosen). This means "away from the drivers" is correct on both alliances without a heading reset. In our field frame (the field image as drawn, origin bottom-left, red ALLIANCE AREA on the left wall; agreed, Q8) red drivers face 0° and blue drivers face 180°, so today's `DriveConfig` values are swapped when the code is restructured.
 - **Pose hand-off:** auto saves its Pedro pose in `helpers/PoseMemory.java` every loop and in `stop()`. TeleOp `start()` MUST start from that pose, and the pose is then **known**. If no auto ran in this app session, TeleOp starts as **S1**: it assumes the robot faces away from the drivers (heading only, pose **not** known) and shows `"No auto pose: S1 only. Press Y facing away from drivers"`.
 - **Heading reset:** gamepad 1 **Y** sets "the way the robot faces now = away from the drivers". This fixes drift during a match and turns field-centric back on after a fallback. Each reset MUST be written to the match log.
 - Stick input passes through a deadband (`DriveConfig.STICK_DEADZONE`, applied in `GamepadInput`), then goes to Pedro at full scale (no speed multiplier).
@@ -305,10 +329,10 @@ The robot MUST always drive field-centric: pushing the stick away from the drive
 | Stage | Who drives | Where | Needs |
 | --- | --- | --- | --- |
 | S1 Manual | The driver, field-centric | TeleOp | The heading only |
-| S2 Assisted | The driver, plus buttons that drive one short fixed path (to the launch spot for the upward CELL, to our LOADING ZONE), then hold | Same TeleOp | The full pose |
+| S2 Assisted | The driver, plus buttons that drive one short fixed path (to our favourite launch spot, to our LOADING ZONE), then hold | Same TeleOp | The full pose |
 | S3 Autonomous | The robot | `auto/BioBuzzAuto.java` | The start pose |
 
-- An assist is one button, one fixed destination in `FieldConfig`, and one straight line or curve from where the robot is now, built by `game/FieldPaths`. **Moving any stick takes the robot back in the same loop**, even in the middle of a path. No mode or toggle is needed.
+- An assist is one button, one fixed destination in `FieldConfig`, and one straight line or curve from where the robot is now, built by `drive/FieldPaths`. **Moving any stick takes the robot back in the same loop**, even in the middle of a path. No mode or toggle is needed.
 - An assist is refused with a warning (and the event `ASSIST_REFUSED`) while the pose is not known: no auto pose, or after a Pinpoint fault. "Set pose here" (D-pad left, held 1 s, robot backed into our LOADING ZONE corner) makes the pose known again (agreed, Q4).
 - `Drive` has no states. It has driver operations (`driveWithSticks`, `driveWithSticksAimedAt`, `resetHeading`, `switchDriveMode`) and path operations (`followPath`, `isDrivingItself`, `isPathDone`, `holdHere`, `stopDrivingItself`). The OpMode decides which to use.
 
@@ -320,7 +344,7 @@ The robot MUST always drive field-centric: pushing the stick away from the drive
 | Right stick X | Turn |
 | Y | Reset field heading ("facing away from the drivers"); field-centric back on |
 | X | Switch field-centric / robot-centric by hand |
-| A | S2: drive to the launch spot for the upward CELL |
+| A | S2: drive to our favourite launch spot (`FieldConfig.LAUNCH_SPOT`; launching works from anywhere, this is just a known good spot) |
 | B | S2: drive to our LOADING ZONE (park, or pick up NECTAR) |
 | Right bumper (hold) | Aim: keep facing the upward CELL while driving (Pedro `ManualDrive.headingLock`) |
 | Right stick button (robot against a wall) | Snap heading to the nearest 90° (see Troubleshooting C) |
@@ -339,7 +363,7 @@ Gamepad 2 runs every mechanism, and only gamepad 2 does. The button map stays in
 - For matches, `teleop/BioBuzzTeleOp.java` holds both gamepad maps: gamepad 1 in `handleDriver()`, gamepad 2 in `handleOperator()`.
 - Each loop, a button is read once into a local `boolean` and then used. This is the DecodeBot `handleOperator()` pattern, and it exists because button reads are edge-detected.
 - Every gamepad 2 button calls one `Robot` method. Logic like "only launch when up to speed" lives in the state machine, which calls `log.warn(...)` when it refuses a command.
-- No button may command both driving and mechanisms (R2). The driver drives to the launch spot; the operator launches.
+- No button may command both driving and mechanisms (R2). The driver drives and aims; the operator launches.
 - One button MUST always be the **stop-all** button. It is D-pad down, as in DecodeBot, and it calls `robot.stopMechanisms()`.
 - Analog controls (triggers, sticks) MAY be used for proportional mechanisms, through a deadband in `ControlsConfig`.
 - Rumble feedback SHOULD tell the drive team about events they can't see well: an urgent ALERT (Robot keeps it; the OpMode rumbles), "storage full", "launcher timed out", 1:00 and 0:20 left. Each rumble event MUST be named in `ControlsConfig`.
@@ -366,19 +390,19 @@ Autonomous (stage S3) is a step list that drives the same `Robot` as teleop. It 
 - `auto/BioBuzzAuto.java` holds `enum Step` and a `switch` in `runStep()`. Each step does three things: on its first loop it starts something (`robot.drive.followPath(...)`, `robot.startLaunching(4)`); then it checks whether that thing is done (`robot.drive.isPathDone()`, `!robot.isLaunching()`); then it checks its own timeout from `AutoConfig`.
 - Each loop does the park-by guard (GR2), `runStep()`, `robot.update()`, `PoseMemory.save(...)`, then telemetry and the match log.
 - A step that times out writes `"TIMEOUT <step>"` to the match log and moves on, so a jam does not waste the whole autonomous. A drive step that times out calls `drive.holdHere()` first.
-- Auto `init()` resets `HiveState` and `MatchInfo`'s per-match values and may grip the preloads (GR3). Nothing else moves before PLAY.
+- Auto `init()` resets `MatchInfo`'s per-match values (including the HIVE: which CELL is up, TIPS) and may grip the preloads (GR3). Nothing else moves before PLAY.
 
 **Paths and positions**
 
-- `game/FieldPaths.java` builds every path, for Auto and for the TeleOp assists. Pedro's path API (`Paths.line`, `Paths.curve`, `PoseFactory`) appears only in this file and in `drive/Drive.java`.
-- Positions live in `configurations/FieldConfig.java` in inches and degrees, written for the BLUE alliance. `FieldPaths.forAlliance(pose, isRed)` turns them for RED (GR10).
+- `drive/FieldPaths.java` builds every path, for Auto and for the TeleOp assists. Pedro's path API (`Paths.line`, `Paths.curve`, `PoseFactory`) appears only in this file and in `drive/Drive.java`.
+- Positions live in `configurations/FieldConfig.java` in inches and degrees, written for the RED alliance. `FieldPaths.forAlliance(pose, isRed)` turns them for BLUE (GR10).
 - The routine's paths are built in `init_loop()` whenever the menu changes, drawn on the Dashboard field, and checked against GR8.
 - `robot.drive.setStartingPose(...)` is called in `start()`, from the chosen alliance and start position. The start pose MUST match where the robot is physically placed, which is the main cause of autonomous errors.
 
 **Pre-match selection**
 
 - During INIT, gamepad 1 uses one menu, `helpers/InitMenu.java`, instead of a button per setting. D-pad up/down moves between rows; D-pad left/right changes the value in that row, wrapping round at the ends. The OpMode reads the D-pad and passes the presses to the menu.
-- Auto's INIT rows: **Alliance** (BLUE / RED), **Start** position, **Routine**, **Delay** (0 to 10 s, for alliance partner coordination), **Match type** (P / Q / E), **Match number**, **Battery** label (A to H) and **Logging** (on / off). A routine is one value of an `enum Routine`. The first routines (agreed, Q10): NEAR (launch 4, collect our GARDEN, launch, park) and FAR (launch 4, park).
+- Auto's INIT rows: **Alliance** (RED / BLUE), **Start** position, **Routine**, **Delay** (0 to 10 s, for alliance partner coordination), **Match type** (P / Q / E), **Match number**, **Battery** label (A to H) and **Logging** (on / off). A routine is one value of an `enum Routine`. BIOBUZZ has no launch zones, so routines are named by what they do. The first routines (Q10): `LAUNCH_PARK` (leave the wall, launch the 4 preloads, park) and `LAUNCH_COLLECT_PARK` (leave, launch 4, collect our GARDEN, launch, park).
 - TeleOp's INIT shows the rows it needs (alliance, match type and number, battery, logging), starting from what was entered in Auto's INIT (`MatchInfo`).
 - The choices show on telemetry and are written to the match log header.
 - The `AutoConfig` and `LogConfig` values are the defaults, so the robot still works if nobody presses anything.
@@ -675,7 +699,7 @@ The documents MUST be Markdown files in `docs/` in the repository, so they chang
 2. The robot: each mechanism, its job in the game, and its hardware.
 3. The software layers: the diagram, what each layer does and must never do, and "where does my code go".
 4. Design patterns, by name, and where each is used; patterns not used, and why.
-5. The building blocks: Robot, the `Mechanism` base class, the state machines, Drive, `game/`.
+5. The building blocks: Robot, the `Mechanism` base class, the state machines, Drive and `FieldPaths`, and the off-the-shelf libraries.
 6. The three driving stages (S1, S2, S3).
 7. Both gamepad maps.
 8. Autonomous plan: routines and step lists.
@@ -693,7 +717,7 @@ The documents MUST be Markdown files in `docs/` in the repository, so they chang
 5. One section per mechanism: devices, `HardwareNames` entries, verbs, questions, `update()`, config values, log values.
 6. Drive: driver and path operations, pose-known rules.
 7. One section per state machine: an ASCII state diagram; a table of each state with its DO, CHECK and GO and its timeout; commands; config values.
-8. `game/`: Element, HiveState, FieldPaths.
+8. Paths and game state: `FieldPaths`, `Element`, the HIVE in `MatchInfo`.
 9. OpModes: TeleOp structure, Auto step table (command, finish condition, timeout), test OpModes.
 10. Helpers (public methods) and configurations (values and starting values).
 11. How to extend: checklists to add a mechanism, a state machine, an assist and an auto step.
@@ -741,12 +765,12 @@ The team MUST give the AI the facts below before it writes BioBuzz-specific code
 - [ ] Mechanism hardware: Intake, Storage (with feeder) and Launcher are planned; their motors, servos and sensors, especially how Storage counts elements and reads colour (Q5: deferred until the robot design evolves)
 - [ ] Robot configuration names from the Control Hub, for `HardwareNames`
 - [x] Field frame, rotational symmetry and driver headings agreed (Q7, Q8)
-- [ ] Field poses: start positions, launch spots for each CELL, LOADING ZONE approach and park, GARDEN line, LOADING ZONE corner
+- [ ] Field poses (RED side): start positions, our launch spot, LOADING ZONE approach and park, GARDEN line, LOADING ZONE corner
 - [ ] Odometry: Pinpoint pod type and offsets (DecodeBot uses Pinpoint with goBILDA 4-bar pods)
 - [ ] Cameras (Q9): HuskyLens mounting and learned CELL tag IDs; Logitech webcam model, mounting position and angle (for the tag pose), resolution, and the POLLEN / NECTAR colour ranges
 - [x] Which CELL is up: operator button first, camera may confirm later (Q2)
 - [ ] Gamepad 2 map confirmed, once the mechanisms are built
-- [x] Autonomous routines for the first competition: NEAR and FAR (Q10)
+- [x] Autonomous routines for the first competition: `LAUNCH_PARK` and `LAUNCH_COLLECT_PARK` (Q10; no launch zones)
 - [x] FLOWER scoring: not planned (Q3)
 
 **Acceptance checklist** (mentor signs off)
@@ -773,6 +797,7 @@ The team MUST give the AI the facts below before it writes BioBuzz-specific code
 
 | Version | Date | Changes |
 | --- | --- | --- |
+| 2.2 | 2026-10-19 | Review round 2. The code's owners are rookie 7th graders with no Java: student zone and mentor zone, plainer rules. Pedro Pathing, the FTC SDK and FTC Dashboard shown as off-the-shelf libraries. Mechanisms listed by name and walked with a "for each" loop (no index numbers). State machines use `isBusy()`. `game/` removed: `FieldPaths` moves to `drive/`, `Element` to `mechanisms/`, the HIVE state into `MatchInfo`. No launch zones: launch from anywhere; routines `LAUNCH_PARK` and `LAUNCH_COLLECT_PARK`; one favourite `LAUNCH_SPOT`. Poses written for RED, the default alliance; BLUE is turned. |
 | 2.1 | 2026-10-19 | Team decisions from the design review: Q1–Q4, Q6–Q8 and Q10 agreed as recommended; Q5 (Storage sensing) deferred; Q9 changed to two cameras: a HuskyLens HIVE camera (CELL tags) and a Logitech USB webcam as the front camera (field AprilTags, POLLEN, NECTAR, through `VisionPortal`). RED poses via `mirrorX(72).mirrorY(72)`. |
 | 2.0 | 2026-10-19 | New architecture, and the BIOBUZZ game. Mechanisms are operation classes (no states) that extend one plain base class, `Mechanism` (Template Method; R3 amended); tasks that take time are standalone state machines in `statemachines/`; `parts/` and `subsystems/` are replaced by `drive/`, `mechanisms/`, `statemachines/` and `game/` (R10 amended). `Drive` has no states. Robot is the one menu of robot actions and cancels state machines that share a mechanism (Mediator). Driving grows in three stages (S1 manual, S2 assisted with fixed-path buttons, S3 autonomous); with no auto pose TeleOp runs as S1. New Game requirements section (GR1–GR13) from the Competition Manual TU05, including rotational symmetry for RED. Vision is a HuskyLens. Design patterns are named. HLD, LLD and DESIGN-REVIEW drafted. |
 | 1.4 | 2026-10-19 | Removed `HardwareLookup`: parts call `hardwareMap.get(...)` directly with `HardwareNames` constants, and a missing device stops at INIT with the SDK's message. `HardwareNames` records each device's hub and port (Control Hub and Expansion Hub). Bulk reads are off and moved to a new LLD section, Future improvements. Removed slow mode (gamepad 1 left trigger is free) and the stick speed multipliers: sticks drive at full scale after the deadzone. Speed limits come from Pedro's `ForesightConfig` (paths and holding only). |
