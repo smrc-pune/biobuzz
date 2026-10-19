@@ -516,7 +516,8 @@ Park-by guard: `if (MatchClock.autoSeconds() > AutoConfig.PARK_BY_S && step is b
 | `DashboardTelemetry` | `create(telemetry)` |
 | `FieldDrawing` | `drawRobot(x, y, headingDeg)`, `drawPath(xs, ys)`, `drawPoint(x, y)`, `send()` |
 | `MatchLogger` (step 4) | `start(opModeName)`, `value(column, number)`, `event(type, text)`, `endRow()`, `stop()` |
-| `BatteryMonitor`, `LoopMonitor`, `HealthMonitor` (step 4) | see Requirements, Troubleshooting C and D |
+| `BatteryMonitor` | `getVoltage()`: the lowest hub voltage, read at most every `HealthConfig.BATTERY_SAMPLE_MS`; shown on the header line and in TeleOp INIT. Step 4 adds resting voltage, lowest since PLAY and alerts |
+| `LoopMonitor`, `HealthMonitor` (step 4) | see Requirements, Troubleshooting C and D |
 | `FieldCheckHelper`, `LogSummary` | steps 5 and 6 |
 
 **Configurations** (`@Config`, `public static`, not `final`, except `HardwareNames`)

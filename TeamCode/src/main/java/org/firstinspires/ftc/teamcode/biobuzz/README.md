@@ -82,6 +82,7 @@ teamcode/
       DriveConfig.java        stick deadzone, "away from drivers" headings
       FieldConfig.java        every place we drive to (written for RED)
       ControlsConfig.java     trigger threshold, hold times, rumble lengths, button list
+      HealthConfig.java       how often the battery voltage is read (alerts come in step 4)
       TelemetryConfig.java    what shows on screen
     drive/
       Drive.java              the drivetrain: sticks, paths, pose (talks to Pedro)
@@ -248,6 +249,7 @@ for the `ADD A MECHANISM HERE` and `ADD A STATE MACHINE HERE` comments.
 | `PoseMemory` | Carries the robot's position from Autonomous into TeleOp |
 | `DashboardTelemetry` | One telemetry that shows on the Driver Station AND FTC Dashboard |
 | `FieldDrawing` | Draws the robot and its path on the Dashboard field |
+| `BatteryMonitor` | The battery's real voltage, measured by the hubs (the lowest of the two), read at most every 100 ms |
 
 **Edge detection (important!).** The loop is much faster than your finger. If the
 code asked "is A down?", one press would count dozens of times. `isAPressed()` is
@@ -278,8 +280,9 @@ true only on the one loop when the button goes from up to down. Read each button
 
 ## 10. When something goes wrong
 
-1. **Read the telemetry first.** The header line shows alliance, match, drive mode,
-   heading and "S1 only" or "S2 ready". The Drive lines show who is driving, the pose,
+1. **Read the telemetry first.** The header line shows alliance, battery voltage, drive
+   mode, heading and "S1 only" or "S2 ready". A full battery reads about 13 V at rest;
+   it drops while the motors work hard. The Drive lines show who is driving, the pose,
    any WARNING and the last change.
 2. **Follow the loop** (section 4): was the button read? Was the Robot method called?
    Was it refused (look for a WARNING)? What did Drive tell Pedro?

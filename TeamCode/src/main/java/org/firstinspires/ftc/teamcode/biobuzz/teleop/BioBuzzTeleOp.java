@@ -111,6 +111,8 @@ public class BioBuzzTeleOp extends OpMode {
         menu.update(driver.isDpadUpPressed(), driver.isDpadDownPressed(),
                 driver.isDpadLeftPressed(), driver.isDpadRightPressed());
         menu.addTo(t);
+        // The battery's real voltage, so the drive team can swap a weak battery before PLAY.
+        t.addData("Battery", String.format("%.1f V", robot.battery.getVoltage()));
         if (hasAutoPose) {
             t.addData("Pose from auto", String.format("saved %.0f s ago: assists (S2) ready",
                     PoseMemory.secondsSinceSaved()));

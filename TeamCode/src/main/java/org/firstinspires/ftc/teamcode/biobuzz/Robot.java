@@ -7,6 +7,7 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.biobuzz.configurations.TelemetryConfig;
 import org.firstinspires.ftc.teamcode.biobuzz.drive.Drive;
 import org.firstinspires.ftc.teamcode.biobuzz.drive.FieldPaths;
+import org.firstinspires.ftc.teamcode.biobuzz.helpers.BatteryMonitor;
 import org.firstinspires.ftc.teamcode.biobuzz.helpers.FieldDrawing;
 import org.firstinspires.ftc.teamcode.biobuzz.helpers.MatchInfo;
 import org.firstinspires.ftc.teamcode.biobuzz.mechanisms.Mechanism;
@@ -36,6 +37,7 @@ import org.firstinspires.ftc.teamcode.biobuzz.mechanisms.Mechanism;
 public class Robot {
 
     public final Drive drive;
+    public final BatteryMonitor battery;    // the battery's real voltage, read from the hubs
 
     // ---- MECHANISMS: one field each. ADD A MECHANISM HERE (for example: private final Intake intake;)
     private final Mechanism[] mechanisms;   // every mechanism, by name, for update / stop / telemetry
@@ -44,6 +46,7 @@ public class Robot {
 
     public Robot(HardwareMap hardwareMap) {
         drive = new Drive(hardwareMap);
+        battery = new BatteryMonitor(hardwareMap);
 
         // ADD A MECHANISM HERE: build it, for example  intake = new Intake(hardwareMap);
         mechanisms = new Mechanism[] { };   // ... and add its name to this list: { intake, feeder, launcher }
@@ -119,15 +122,17 @@ public class Robot {
 
     // ==================== TELEMETRY ====================
 
-    /** The first line, always shown: alliance, driving mode, heading and stage. */
+    /** The first line, always shown: alliance, battery voltage, driving mode, heading and stage. */
     public void addHeader(Telemetry t) {
         String driveMode = "FIELD";
         if (!drive.isFieldCentric()) driveMode = "ROBOT";
         String stage = "S2 ready";
         if (!drive.isPoseKnown()) stage = "S1 only";
-        t.addData("Match", MatchInfo.getAllianceName() + "  drive " + driveMode
+        t.addData("Match", MatchInfo.getAllianceName()
+                + String.format("  battery %.1f V", battery.getVoltage())
+                + "  drive " + driveMode
                 + String.format("  heading %.0f deg", drive.getHeadingDegrees()) + "  " + stage);
-        // TODO(BioBuzz) step 4: match time left, loop ms, battery volts (measured), ALERT.
+        // TODO(BioBuzz) step 4: match time left, loop ms, low-battery ALERT.
     }
 
     /** Header, then each part that is switched on in TelemetryConfig, then the field drawing. */
