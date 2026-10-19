@@ -1,6 +1,6 @@
 # BioBuzz Software – Low-Level Design (LLD)
 
-Oct 19, 2026 · **Draft for review** · goes with Requirements v2.3 and `HLD.md`
+Oct 19, 2026 · **Draft for review** · goes with Requirements v2.4 and `HLD.md`
 
 This document describes each class: its job, its public methods, its config values and how it fits with the others. Code sketches show the **shape** of each class for review. They are not final code: names may change while building, and this document is then updated in the same commit.
 
@@ -382,7 +382,7 @@ The robot may launch from anywhere (no launch zones). The distance comes from `d
 
 ### 8.1 The HIVE, in `MatchInfo`
 
-Which of our two CELLS faces up, and how many TIPS we have, are match facts like the alliance and the match number, so they live in `helpers/MatchInfo.java`. Its fields are `static`, so they survive from Auto to TeleOp.
+Which of our two CELLS faces up, and how many TIPS we have, are match facts like the alliance, so they live in `helpers/MatchInfo.java`. Its fields are `static`, so they survive from Auto to TeleOp.
 
 | Method | Does |
 | --- | --- |
@@ -474,7 +474,7 @@ private void signals() {
 
 ### 9.2 BioBuzzAuto
 
-INIT menu rows: Alliance, Start, Routine, Delay (0–10 s), Match type, Match number, Battery, Logging. `init()`: build Robot, `MatchInfo.resetForNewMatch()`, `robot.holdPreloads()` (the only actuator move in any INIT). `init_loop()`: menu, then build the routine's paths for the chosen alliance and start; show a red warning if any path fails `isOnOwnSide` or `avoidsHive`. `start()`: `MatchClock.startAuto()`, `drive.setStartingPose(...)`. `loop()`: park-by guard, `runStep()`, `robot.update()`, `PoseMemory.save(...)`, telemetry. `stop()`: `robot.stopMechanisms()`, save the pose.
+INIT menu rows: Alliance, Start, Routine, Delay (0–10 s), Logging. `init()`: build Robot, `MatchInfo.resetForNewMatch()`, `robot.holdPreloads()` (the only actuator move in any INIT). `init_loop()`: menu, then build the routine's paths for the chosen alliance and start; show a red warning if any path fails `isOnOwnSide` or `avoidsHive`. `start()`: `MatchClock.startAuto()`, `drive.setStartingPose(...)`. `loop()`: park-by guard, `runStep()`, `robot.update()`, `PoseMemory.save(...)`, telemetry. `stop()`: `robot.stopMechanisms()`, save the pose.
 
 | Step | First loop | Done when | Timeout (`AutoConfig`) |
 | --- | --- | --- | --- |
@@ -510,7 +510,7 @@ Park-by guard: `if (MatchClock.autoSeconds() > AutoConfig.PARK_BY_S && step is b
 | `StateLog` | `record(from, to, reason)`, `warn(msg)`, `getLastChange()`, `getWarning()`, `addTo(t, name, state, timer, busy)` |
 | `GamepadInput` | sticks with deadzone (`getLeftStickY()` …), `areSticksMoved()`, `isXPressed()` / `isXHeld()` / `wasXReleased()` per button, `rumble(ms)`, `setLedColor(r, g, b)`, `getLastUpdateMs()` |
 | `InitMenu` | `addChoiceRow`, `addNumberRow`, `update(up, down, left, right)`, `getIndex(row)`, `getText(row)`, `addTo(t)` |
-| `MatchInfo` | static `alliance` (RED until chosen), `matchType`, `matchNumber`, `batteryLabel`, `fieldName`; `getMatchId()`, `isRed()`, `getAllianceName()`; the HIVE: `resetForNewMatch()`, `markHiveTipped()`, `isCellAUp()`, `getTipCount()`, `getNectarAllowed()`, `secondsSinceTip()` |
+| `MatchInfo` | static `alliance` (RED until chosen), `fieldName`; `isRed()`, `getAllianceName()`; the HIVE: `resetForNewMatch()`, `markHiveTipped()`, `isCellAUp()`, `getTipCount()`, `getNectarAllowed()`, `secondsSinceTip()` |
 | `PoseMemory` | `save(pose)`, `hasPose()`, `getPose()`, `secondsSinceSaved()`, `clear()` |
 | `MatchClock` (new) | `startAuto()`, `startTeleOp()`, `autoSeconds()`, `teleOpSecondsLeft()`, `justReachedSecondsLeft(s)`, `getTimeLeftText()` |
 | `DashboardTelemetry` | `create(telemetry)` |
@@ -565,7 +565,7 @@ Park-by guard: `if (MatchClock.autoSeconds() > AutoConfig.PARK_BY_S && step is b
 
 ## 12. Telemetry, match log and ALERTs (game additions)
 
-**Header line:** `RED Q12 | 1:42 left | 18 ms | 12.6 V | FIELD 3° | intake ON | launcher READY | up CELL A | tips 2 | ALERT ...`
+**Header line:** `RED | 1:42 left | 18 ms | 12.6 V | FIELD 3° | intake ON | launcher READY | up CELL A | tips 2 | ALERT ...`
 
 **New DATA columns:** `intake_power`, `feeder_power`, `launcher_rpm`, `launcher_target_rpm`, `up_cell`, `tip_count`, `launch_state`, `<mechanism>_faulted`, `pose_known`, `match_s_left`.
 

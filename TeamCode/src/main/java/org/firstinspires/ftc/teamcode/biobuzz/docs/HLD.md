@@ -1,6 +1,6 @@
 # BioBuzz Software – High-Level Design (HLD)
 
-Oct 19, 2026 · **Draft for review** · goes with Requirements v2.3 and `LLD.md`
+Oct 19, 2026 · **Draft for review** · goes with Requirements v2.4 and `LLD.md`
 
 This document explains how the BioBuzz robot software fits together. It is written for our team: 7th graders who are new to Java. Read it once from top to bottom. Use `LLD.md` when you need the details of one file.
 
@@ -174,7 +174,7 @@ The intake needs no state machine: the operator turns it on and off.
 
 **Drive** is not a mechanism: stop-all never stops the wheels. It has driver actions (`driveWithSticks`, `resetHeading`, `switchDriveMode`) and path actions (`followPath`, `isDrivingItself`, `isPathDone`, `holdHere`, `stopDrivingItself`). **FieldPaths** builds every path, for Auto and for the TeleOp assist buttons. They are the only two files that use Pedro.
 
-**The HIVE.** Which of our two CELLS faces up, and how many TIPS we have, are kept in `MatchInfo` with the alliance and the match number, so TeleOp knows what happened in Auto. The operator presses a button at each TIP.
+**The HIVE.** Which of our two CELLS faces up, and how many TIPS we have, are kept in `MatchInfo` with the alliance, so TeleOp knows what happened in Auto. The operator presses a button at each TIP.
 
 ---
 

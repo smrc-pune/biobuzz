@@ -40,7 +40,6 @@ public class DriveTest extends OpMode {
         t = DashboardTelemetry.create(telemetry);
         pad = new GamepadInput(gamepad1);
         drive = new Drive(hardwareMap);   // ONLY the drivetrain
-        MatchInfo.matchIdOverride = "TEST";
     }
 
     @Override
@@ -73,11 +72,6 @@ public class DriveTest extends OpMode {
         drive.addDrawing();
         FieldDrawing.send();
         t.update();
-    }
-
-    @Override
-    public void stop() {
-        MatchInfo.matchIdOverride = "";   // back to normal match ids for the next OpMode
     }
 
     /** Which gamepad buttons this test uses. Shown before PLAY and every loop. */

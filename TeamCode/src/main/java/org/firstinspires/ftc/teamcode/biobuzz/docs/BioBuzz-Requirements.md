@@ -2,7 +2,7 @@
 
 Oct 19, 2026 · @Girish
 
-**Version 2.3**
+**Version 2.4**
 
 ## Contents
 
@@ -404,8 +404,8 @@ Autonomous (stage S3) is a step list that drives the same `Robot` as teleop. It 
 **Pre-match selection**
 
 - During INIT, gamepad 1 uses one menu, `helpers/InitMenu.java`, instead of a button per setting. D-pad up/down moves between rows; D-pad left/right changes the value in that row, wrapping round at the ends. The OpMode reads the D-pad and passes the presses to the menu.
-- Auto's INIT rows: **Alliance** (RED / BLUE), **Start** position, **Routine**, **Delay** (0 to 10 s, for alliance partner coordination), **Match type** (P / Q / E), **Match number**, **Battery** label (A to H) and **Logging** (on / off). A routine is one value of an `enum Routine`. BIOBUZZ has no launch zones, so routines are named by what they do. The first routines (Q10): `LAUNCH_PARK` (leave the wall, launch the 4 preloads, park) and `LAUNCH_COLLECT_PARK` (leave, launch 4, collect our GARDEN, launch, park).
-- TeleOp's INIT shows the rows it needs (alliance, match type and number, battery, logging), starting from what was entered in Auto's INIT (`MatchInfo`).
+- Auto's INIT rows: **Alliance** (RED / BLUE), **Start** position, **Routine**, **Delay** (0 to 10 s, for alliance partner coordination), and **Logging** (on / off). There are no match number or battery label rows: the team removed them to keep INIT short. A routine is one value of an `enum Routine`. BIOBUZZ has no launch zones, so routines are named by what they do. The first routines (Q10): `LAUNCH_PARK` (leave the wall, launch the 4 preloads, park) and `LAUNCH_COLLECT_PARK` (leave, launch 4, collect our GARDEN, launch, park).
+- TeleOp's INIT shows the rows it needs (alliance, logging), starting from what was picked in Auto's INIT (`MatchInfo`).
 - The choices show on telemetry and are written to the match log header.
 - The `AutoConfig` and `LogConfig` values are the defaults, so the robot still works if nobody presses anything.
 
@@ -478,7 +478,7 @@ A new field is a new robot: tile grip, tile wear and walls differ from our pract
 - Test 07 MUST use the same method as Pedro's `ForwardDeceleration` and `StrafeDeceleration` tuners (power 1 until the target speed, then coast with `drivetrain.stop(false)`, average the slow-down until speed is under 1 in/s), so its numbers compare directly with `Constants`. Those tuners are internal to the Quickstart's `procedures/ForesightTuner.java` and cannot be called from team code, so `FieldCheck07_Brake` carries its own copy of the method, with a comment naming the tuner it copies. It compares with `naturalForwardDeceleration` / `naturalStrafeDeceleration` in `Constants.foresightConfig`, which exists once Constants is filled in at tuning. On a WARN or FAIL the screen prints the measured value to use for this event.
 - Paths in 08 and 09 start from wherever the robot is placed, so they work anywhere on the field.
 - Results: **PASS** within tolerance, **WARN** between 1× and 2× tolerance (look at it), **FAIL** beyond 2× or an absolute limit broken (fix before matches). Each result is kept in a `static` field of `FieldCheckHelper` for the Summary, and logged as a `FIELDCHECK_<nn>` event so nothing is lost if the app restarts.
-- The field name (`home`, `event-practice-1`, …) is chosen in the first check's INIT menu and offered again in the next ones. Every Field Check writes a match log with `FIELD` in place of the match id.
+- The field name (`home`, `event-practice-1`, …) is chosen in the first check's INIT menu and offered again in the next ones. Every Field Check writes a match log; its OpMode name is in the file name.
 - **Baseline:** the same tests run at home, and the values printed by the Summary are copied into `FieldCheckConfig` with the date. They MUST be re-recorded after any re-tune or hardware change.
 - A FAIL tells the student which tuning procedure to run next. That procedure lives in the Quickstart's `pedro/procedures/` and is written up in `docs/TUNING.md`. The first time the robot runs on a field, it MUST pass every test.
 
@@ -503,7 +503,7 @@ A new field is a new robot: tile grip, tile wear and walls differ from our pract
 | 4. Drive motors | Clear around the robot | Each motor at 0.3 power for 0.5 s, one at a time, taken straight from `hardwareMap` (the Pedro follower is not built); the screen names the motor | Crew confirms each wheel turns the right way |
 | 5. Logger | – | `LogConfig.ENABLED`, free storage | On, and more than 50 MB free |
 
-Things code cannot see (connectors seated, Pinpoint mounted firmly, battery strapped down, battery label noted) stay on the paper checklist in `docs/MATCH_DAY.md`.
+Things code cannot see (connectors seated, Pinpoint mounted firmly, battery strapped down) stay on the paper checklist in `docs/MATCH_DAY.md`.
 
 ### C. Match-time issues: detect and recover (R8)
 
@@ -546,7 +546,7 @@ Two helpers watch the robot every loop. `helpers/LoopMonitor.java` tracks loop t
 - Mechanisms MUST get their devices in their constructor with the plain SDK call, `hardwareMap.get(DcMotorEx.class, HardwareNames.MOTOR_INTAKE)`, so a missing device crashes at INIT with the SDK's message (`Unable to find a hardware device with name "intake" and type DcMotorEx`) and problems are found before the match. There is no team wrapper around `hardwareMap.get`. After PLAY, nothing MUST throw: errors in a mechanism are caught by `Mechanism.runUpdate()` (FAULTED), and other faults are caught in `helpers/` and turned into ALERTs.
 - Every safeguard trip and every recovery press MUST be written to the match log as an EVENT.
 - Thresholds live in `configurations/HealthConfig.java`. The values above are starting values, to be set from our own logs.
-- `docs/MATCH_DAY.md` MUST give a one-page pre-match checklist (battery and its label, Pinpoint light, alliance and routine chosen, start pose placed, wires) and a between-match checklist, and MUST teach the drive team the recovery buttons.
+- `docs/MATCH_DAY.md` MUST give a one-page pre-match checklist (a charged battery, Pinpoint light, alliance and routine chosen, start pose placed, wires) and a between-match checklist, and MUST teach the drive team the recovery buttons.
 
 ### D. Battery voltage as a signal
 
@@ -562,11 +562,11 @@ Battery voltage is a likely hidden cause of match-only problems: a dip can reset
 | Question | What the log shows |
 | --- | --- |
 | Did the Pinpoint reset because of a voltage dip? | Pinpoint status change or heading jump at the same moment as a deep dip |
-| Is this battery worn out? | Large sag (resting minus lowest) for normal driving, compared across matches by battery label |
+| Is this battery worn out? | Large sag (resting minus lowest) for normal driving, compared across matches |
 | Why did the auto end short? | Lower voltage, so less motor power |
 | Does one action draw too much? | Dips line up with a mechanism event |
 
-Every battery MUST carry a label (A to H). The label is chosen in INIT and written in the log header, so battery health can be tracked across matches. The thresholds (12.5 V resting to start a match, 12.0 V INIT warning, 9.0 V play warning, sag limit) are starting values and MUST be set from about 10 logged runs.
+The battery's **voltage** is measured by the robot (above). Which physical battery pack was used is not entered in the software (team decision, Requirements v2.4); a team that wants to track packs writes it on the paper match sheet. The thresholds (12.5 V resting to start a match, 12.0 V INIT warning, 9.0 V play warning, sag limit) are starting values and MUST be set from about 10 logged runs.
 
 ### E. Match logs for post-match analysis (R9)
 
@@ -575,11 +575,11 @@ Every battery MUST carry a label (A to H). The label is chosen in INIT and writt
 **File**
 
 - Folder: `/sdcard/FIRST/data/biobuzz-logs/`. **Not** `/sdcard/FIRST/matchlogs/`: the SDK writes its own match logs there (`AppUtil.MATCH_LOG_FOLDER`), and ours must not mix with them.
-- Name: `<match>_<OpMode>_<ALLIANCE>_<yyyy-MM-dd_HH-mm-ss>.csv`, for example `Q12_BioBuzzAuto_RED_2026-10-18_14-32-05.csv`. The match id comes first so one match's Auto and TeleOp files sort together. `<match>` is `Q12`, `P03` (practice), `E2`, or `NA` if none was entered; Field Checks use `FIELD` and test OpModes `TEST`. Two files in the same second get `_2`, `_3`.
-- Header block (`#` lines): OpMode, alliance, routine, match id, battery label, field name, battery resting voltage at INIT, `started_epoch_ms` (Control Hub clock at PLAY, to the millisecond), and a snapshot of every `*Config` value in use.
+- Name: `<yyyy-MM-dd_HH-mm-ss>_<OpMode>_<ALLIANCE>.csv`, for example `2026-10-18_14-32-05_BioBuzzAuto_RED.csv`. The time comes first so files sort in the order they were run, and one match's Auto and TeleOp files sit next to each other. The OpMode name says whether it was a match, a test or a Field Check. Two files in the same second get `_2`, `_3`.
+- Header block (`#` lines): OpMode, alliance, routine, field name, battery resting voltage at INIT, `started_epoch_ms` (Control Hub clock at PLAY, to the millisecond), and a snapshot of every `*Config` value in use.
 - Footer: `# END rows=… dropped=… min_battery_v=… worst_loop_ms=…`, written only by a clean stop. **A file without `# END` means the OpMode crashed or the robot lost power.**
 
-**Match id and battery label in INIT.** These are rows of the INIT menu (Match type, Match number, Battery; see Autonomous, Pre-match selection). They are kept in `static` fields of `helpers/MatchInfo.java` (the same idea as `PoseMemory`), so TeleOp's INIT starts with what was entered in Auto's INIT. The drive team only confirms them during the transition.
+**Which files belong to one match.** There is no match number in the software. A TeleOp file belongs to the Auto file just before it when it started within `LogConfig.MATCH_JOIN_S` (180 s) of that Auto file, on the same alliance. The plot tool and `LogViewer` use this rule.
 
 **Match time.** Each OpMode's `t_s` restarts at 0 at PLAY, and Auto and TeleOp are separate files with a transition of varying length between them. The plot tool joins one match's files using `started_epoch_ms`: `match_s = t_s + (file start − Auto start) / 1000`, so `match_s` is 0 at Auto PLAY and TeleOp continues from the real moment it started. Only the difference between two clock readings on the same hub is used, so a wrong date on the hub does not matter.
 
@@ -616,23 +616,23 @@ Every battery MUST carry a label (A to H). The label is chosen in INIT and writt
 
 ### F. After the match: analysis and debrief
 
-**On the Driver Station.** `testing/LogViewer.java` lists the last 10 runs. Each shows its match id, duration, alert count, worst loop time, lowest battery, number of timeouts, and whether it ended cleanly (`# END`).
+**On the Driver Station.** `testing/LogViewer.java` lists the last 10 runs. Each shows its start time, OpMode, alliance, duration, alert count, worst loop time, lowest battery, number of timeouts, and whether it ended cleanly (`# END`).
 
 **On a laptop.** A mentor-side `tools/plot_match.py` (Python, pandas + matplotlib) MAY be used. It is not student code.
 
 - `plot_match.py <file>` draws stacked graphs on one shared time axis, with EVENTs as vertical lines through every graph: heading (shaded by field or robot-centric), **battery** (resting voltage and the warning level as lines), drive effort, loop time, Pinpoint status, state machine states and launcher speed, and a field view of the path coloured by battery voltage.
-- `--match Q12` joins that match's Auto and TeleOp files on match time and shades Auto, transition and TeleOp.
+- `--match <Auto file>` joins that Auto file with its TeleOp file (the rule above) on match time and shades Auto, transition and TeleOp.
 - `--at 2.0` (or `--at 1:45`) prints the rows and events from 1 s before to 1 s after that match time.
-- `--compare` overlays the battery voltage of several files, labelled by battery, to show which batteries sag most.
+- `--compare` overlays the battery voltage of several files, labelled by file, to show which runs sagged most.
 - `--fieldcheck` builds the Field Check table (one row per field, one column per test) from the `FIELDCHECK_*` events.
 - A printed summary gives duration, rows, dropped rows, clean end, resting and lowest voltage, worst loop time, and for every `SAFEGUARD_*` event the battery voltage at that moment and the lowest in the 2 s before it: the quickest test of "was it the battery?".
 
 **Debrief, about 5 minutes per match**
 
 1. Pull the files with `adb pull /sdcard/FIRST/data/biobuzz-logs/` or Android Studio's Device Explorer.
-2. Run `plot_match.py --match <id>`.
+2. Run `plot_match.py --match <Auto file>`.
 3. Ask the drive team what felt wrong, and when. Find it on the plot and in the summary.
-4. Fill one row of the match sheet: match, field, battery label, resting and lowest voltage, clean end, symptom (in the drive team's words), evidence (time, plot), cause, fix.
+4. Fill one row of the match sheet: match (from the event schedule), the log files, field, resting and lowest voltage, clean end, symptom (in the drive team's words), evidence (time, plot), cause, fix.
 5. Anything new goes into the symptom table in `docs/DEBUGGING.md`.
 
 `docs/MATCH_LOGS.md` explains how to copy logs (with `adb pull` or Android Studio), open them in a spreadsheet or the plot tool, and keep the match sheet. Match video from a phone or the event stream can be lined up with the log using the `PLAY` event time.
@@ -641,7 +641,7 @@ Every battery MUST carry a label (A to H). The label is chosen in INIT and writt
 | --- | --- | --- | --- |
 | Field-centric suddenly rotated | Pinpoint reset, accidental Y, heading jump | Heading jumps; Pinpoint status change; `RECOVER_*` event | Secure the Pinpoint cable; check for a voltage dip at the same moment; snap to 90° |
 | Field-centric slowly rotated | Bad gyro calibration at INIT, Pinpoint mounting | Heading creeps while still; worse after many turns | Hands off at INIT; recalibrate; remount |
-| Sluggish late in the match | Battery sag | Voltage trending down, deep dips under load | Fresh battery; retire that label |
+| Sluggish late in the match | Battery sag | Voltage trending down, deep dips under load | Fresh battery; retire a battery that sags every time |
 | Auto fine at home, off at the event | Different tile grip, so different braking | Field Check 07 to 09 vs baseline | Use the measured deceleration; adjust end poses |
 | Laggy or jerky drive | Slow loop | `worst_loop_ms` spikes; dropped rows | Remove slow code; fewer hardware reads; bulk reads (LLD, Future improvements) |
 | Launches fall short or long | Wrong upward CELL, wrong distance, low battery | `up_cell`, pose, `launcher_rpm` vs target, `battery_v` at each launch | Press TIP when the HIVE tips; retune the speed table; fresh battery |
@@ -651,7 +651,7 @@ Every battery MUST carry a label (A to H). The label is chosen in INIT and writt
 
 Not designed yet; recorded so it is not lost. A `testing/MatchSimulator.java` OpMode SHOULD keep the robot busy for a full match length (an auto-like part, the transition pause, then a teleop-like part) the way a real match would: Pedro paths to random safe positions, turns, sprints and stops, and the mechanisms' game actions through Robot methods, with the match logger on. It reuses `MatchLogger`, `BatteryMonitor`, `HealthMonitor` and the plot tool unchanged.
 
-What it is for: battery behaviour under a realistic load without a real match; comparing batteries by label; reproducing match-only problems at home (Pinpoint resets under deep dips, heading jumps after hard turns, slow loops, hot motors); setting real voltage thresholds from data; and soak tests after repairs.
+What it is for: battery behaviour under a realistic load without a real match; comparing batteries; reproducing match-only problems at home (Pinpoint resets under deep dips, heading jumps after hard turns, slow loops, hot motors); setting real voltage thresholds from data; and soak tests after repairs.
 
 Questions for its design:
 
@@ -682,7 +682,7 @@ Each mechanism and each state machine MUST have its own test OpMode, so a studen
 
 - Test OpModes use the same mechanism, state machine and Drive classes as teleop. They contain no copied logic.
 - Each test OpMode's header lists its buttons, and shows them on telemetry.
-- Test OpModes also write match logs, with `TEST` in the file name.
+- Test OpModes also write match logs; the OpMode name in the file name shows it was a test.
 
 **Tuning** (the Quickstart's `pedro/Tuning.java` and `pedro/procedures/`)
 
@@ -789,7 +789,7 @@ The team MUST give the AI the facts below before it writes BioBuzz-specific code
 - [ ] Pulling a motor cable during teleop raises an ALERT, marks that mechanism FAULTED, and does not crash the OpMode.
 - [ ] A full teleop run writes a match log with DATA and EVENT rows. `Log Viewer` summarizes it.
 - [ ] Unplugging the Pinpoint while driving switches to robot-centric with a rumble and an ALERT, and Y returns to field-centric.
-- [ ] A practice match's Auto and TeleOp logs are named with the same match id, and `plot_match.py --match <id> --at 2.0` shows what happened 2 s into the match, with battery voltage.
+- [ ] A practice match's Auto and TeleOp logs are joined by `plot_match.py --match <Auto file> --at 2.0`, which shows what happened 2 s into the match, with battery voltage.
 - [ ] The loop time averages under 25 ms with logging and telemetry on.
 - [ ] HLD, LLD, the design review and every guide in Documentation deliverables exist, and their file and method names match the code.
 - [ ] A student new to the code completes `FIRST_CHANGES.md` exercise 1 to 3 without help.
@@ -798,6 +798,7 @@ The team MUST give the AI the facts below before it writes BioBuzz-specific code
 
 | Version | Date | Changes |
 | --- | --- | --- |
+| 2.4 | 2026-10-19 | Removed the Match type, Match number and Battery label rows from the INIT menu and `MatchInfo` (only Alliance is picked). Match logs are named by start time, OpMode and alliance; an Auto file and the TeleOp file that starts within 180 s after it are one match. Battery voltage is still measured and logged. |
 | 2.3 | 2026-10-19 | Review round 3. No Storage sensing on the robot: the Storage mechanism (counting, colour) becomes a future improvement; a separate `Feeder` mechanism pushes balls into the launcher. `CollectStateMachine` removed: the intake is manual (A on/off, B hold reverse). G407 is met by the hopper holding 4; G408 is the drive team's job. `Element` removed; the front camera uses plain questions. Launcher speed by distance only. The diagrams show that Robot updates every mechanism directly, and why. |
 | 2.2 | 2026-10-19 | Review round 2. The code's owners are rookie 7th graders with no Java: student zone and mentor zone, plainer rules. Pedro Pathing, the FTC SDK and FTC Dashboard shown as off-the-shelf libraries. Mechanisms listed by name and walked with a "for each" loop (no index numbers). State machines use `isBusy()`. `game/` removed: `FieldPaths` moves to `drive/`, `Element` to `mechanisms/`, the HIVE state into `MatchInfo`. No launch zones: launch from anywhere; routines `LAUNCH_PARK` and `LAUNCH_COLLECT_PARK`; one favourite `LAUNCH_SPOT`. Poses written for RED, the default alliance; BLUE is turned. |
 | 2.1 | 2026-10-19 | Team decisions from the design review: Q1–Q4, Q6–Q8 and Q10 agreed as recommended; Q5 (Storage sensing) deferred; Q9 changed to two cameras: a HuskyLens HIVE camera (CELL tags) and a Logitech USB webcam as the front camera (field AprilTags, POLLEN, NECTAR, through `VisionPortal`). RED poses via `mirrorX(72).mirrorY(72)`. |

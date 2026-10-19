@@ -119,16 +119,15 @@ public class Robot {
 
     // ==================== TELEMETRY ====================
 
-    /** The first line, always shown: alliance, match, driving mode, heading and stage. */
+    /** The first line, always shown: alliance, driving mode, heading and stage. */
     public void addHeader(Telemetry t) {
         String driveMode = "FIELD";
         if (!drive.isFieldCentric()) driveMode = "ROBOT";
         String stage = "S2 ready";
         if (!drive.isPoseKnown()) stage = "S1 only";
-        t.addData("Match", MatchInfo.getAllianceName() + "  " + MatchInfo.getMatchId()
-                + "  battery " + MatchInfo.getBatteryLabel() + "  drive " + driveMode
+        t.addData("Match", MatchInfo.getAllianceName() + "  drive " + driveMode
                 + String.format("  heading %.0f deg", drive.getHeadingDegrees()) + "  " + stage);
-        // TODO(BioBuzz) step 4: match time left, loop ms, battery volts, ALERT.
+        // TODO(BioBuzz) step 4: match time left, loop ms, battery volts (measured), ALERT.
     }
 
     /** Header, then each part that is switched on in TelemetryConfig, then the field drawing. */

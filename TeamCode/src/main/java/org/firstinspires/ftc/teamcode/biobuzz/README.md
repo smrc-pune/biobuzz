@@ -171,7 +171,7 @@ methods for us, at these moments:
 
 | Step | What BioBuzzTeleOp does |
 | --- | --- |
-| `init()` | Builds the `Robot`. Adds the INIT menu rows: Alliance, Match type, Match number, Battery. |
+| `init()` | Builds the `Robot`. Adds the INIT menu row: Alliance. |
 | `init_loop()` | Gamepad 1 D-pad runs the menu. Shows whether there is a position from Autonomous. |
 | `start()` | Copies the menu into `MatchInfo`. With a position from Auto: S2 ready. Without: S1 only, and the robot is assumed to face away from the drivers. |
 | `loop()` | `handleDriver()`, `handleOperator()`, `robot.update()`, telemetry. |
@@ -244,7 +244,7 @@ for the `ADD A MECHANISM HERE` and `ADD A STATE MACHINE HERE` comments.
 | `StateLog` | Remembers changes and warnings; shows them on telemetry |
 | `GamepadInput` | Reads one gamepad. `isAPressed()` = once per press, `isAHeld()` = every loop while held, `isDpadLeftHeldFor(1000)` = once after holding 1 s. Sticks have the deadzone applied |
 | `InitMenu` | The INIT menu: D-pad up/down picks a row, left/right changes it |
-| `MatchInfo` | Alliance (RED until chosen), match id (`Q12`), battery label – kept from Auto INIT into TeleOp |
+| `MatchInfo` | Alliance (RED until chosen) – kept from Auto INIT into TeleOp |
 | `PoseMemory` | Carries the robot's position from Autonomous into TeleOp |
 | `DashboardTelemetry` | One telemetry that shows on the Driver Station AND FTC Dashboard |
 | `FieldDrawing` | Draws the robot and its path on the Dashboard field |

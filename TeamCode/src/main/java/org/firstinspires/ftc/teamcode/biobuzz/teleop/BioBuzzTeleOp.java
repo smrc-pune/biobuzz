@@ -36,7 +36,7 @@ import org.firstinspires.ftc.teamcode.biobuzz.helpers.PoseMemory;
  * EVERY LOOP: 1) read the gamepads and give commands  2) robot.update()  3) telemetry
  *
  * CONTROLS (keep the same as ControlsConfig's list, TelemetryConfig.GAMEPAD*_HELP and docs/CONTROLS.md)
- *   INIT:   gamepad 1 D-pad = INIT menu (alliance, match type and number, battery)
+ *   INIT:   gamepad 1 D-pad = INIT menu (alliance)
  *   GAMEPAD 1 (driver):    left stick = move (field-centric)     right stick X = turn
  *                          Y = "facing away from drivers now"     X = field / robot-centric
  *                          A = drive to our launch spot (S2)      B = drive to our LOADING ZONE (S2)
@@ -65,10 +65,10 @@ public class BioBuzzTeleOp extends OpMode {
     private GamepadInput operator;   // gamepad 2
     private Robot robot;             // the whole robot: drive, mechanisms, state machines
 
-    // The INIT menu (D-pad on gamepad 1 before PLAY). Each "Row" number says which line of
-    // the menu holds that setting, so we can read the choice back in start().
+    // The INIT menu (D-pad on gamepad 1 before PLAY). allianceRow says which line of the
+    // menu holds the alliance, so we can read the choice back in start().
     private final InitMenu menu = new InitMenu();
-    private int allianceRow, matchTypeRow, matchNumberRow, batteryRow;
+    private int allianceRow;
 
     private boolean hasAutoPose = false;        // true if Autonomous left us the robot's position
     private boolean headingConfirmed = false;   // false until the driver presses Y (when no auto pose)
@@ -95,12 +95,9 @@ public class BioBuzzTeleOp extends OpMode {
         operator = new GamepadInput(gamepad2);
         robot = new Robot(hardwareMap);   // finds every motor and sensor by name; moves nothing
 
-        // The menu starts from what was entered in Auto's INIT (MatchInfo keeps it), so the
-        // drive team only has to check the values during the 8-second transition.
+        // The menu starts from what was picked in Auto's INIT (MatchInfo keeps it), so the
+        // drive team only has to check it during the 8-second transition.
         allianceRow = menu.addChoiceRow("Alliance", MatchInfo.ALLIANCES, MatchInfo.alliance);
-        matchTypeRow = menu.addChoiceRow("Match type", MatchInfo.MATCH_TYPES, MatchInfo.matchType);
-        matchNumberRow = menu.addNumberRow("Match number", 0, MatchInfo.MAX_MATCH_NUMBER, MatchInfo.matchNumber);
-        batteryRow = menu.addChoiceRow("Battery", MatchInfo.BATTERY_LABELS, MatchInfo.batteryLabel);
         // TODO(BioBuzz) step 4: a "Logging" row.
 
         // Did Autonomous save where the robot ended up? If yes, the assists (S2) can work.
@@ -126,12 +123,8 @@ public class BioBuzzTeleOp extends OpMode {
     // ---------------- PLAY ----------------
     @Override
     public void start() {
-        // Copy the menu choices into MatchInfo, where every other file can read them.
+        // Copy the menu choice into MatchInfo, where every other file can read it.
         MatchInfo.alliance = menu.getIndex(allianceRow);
-        MatchInfo.allianceChosen = true;
-        MatchInfo.matchType = menu.getIndex(matchTypeRow);
-        MatchInfo.matchNumber = menu.getIndex(matchNumberRow);
-        MatchInfo.batteryLabel = menu.getIndex(batteryRow);
 
         // Tell Drive our alliance: it decides which way is "away from the drivers".
         robot.drive.setAlliance(MatchInfo.isRed());
