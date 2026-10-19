@@ -56,8 +56,8 @@ Words in CAPITALS (POLLEN, CELL, …) are game words from the BIOBUZZ Competitio
 | **Intake** | Picks up POLLEN from the tiles and the FLOWER Retrieval Opening, and NECTAR from the LOADING ZONE | TODO(BioBuzz): roller motor |
 | **Storage** (with feeder) | Holds up to 4 elements, counts them, knows their colour, feeds one at a time to the launcher | TODO(BioBuzz): feeder motor or servo; colour and distance sensors (Q5) |
 | **Launcher** | Flywheel that launches POLLEN or NECTAR into the upward CELL | TODO(BioBuzz): flywheel motor(s) with encoder |
-| **HIVE camera** | Looks up at the AprilTags under the CELLS: which CELL is up, and the aim offset | DFRobot HuskyLens, I2C (own bus) |
-| **Front camera** | Identifies field AprilTags, POLLEN and NECTAR ahead of the intake, so collecting can aim and opponent NECTAR can be avoided | DFRobot HuskyLens, I2C (own bus) |
+| **HIVE camera** | Looks up at the AprilTags under the CELLS: which CELL is up, and the aim offset | DFRobot HuskyLens, I2C |
+| **Front camera** | Identifies field AprilTags, POLLEN and NECTAR ahead of the intake, so collecting can aim and opponent NECTAR can be avoided | Logitech USB webcam (SDK `VisionPortal`) |
 
 Limits (R503, R701): at most 8 motors and 8 servos, a Control Hub and at most one Expansion Hub. The drive uses 4 motors.
 
@@ -86,7 +86,7 @@ Limits (R503, R701): at most 8 motors and 8 servos, a Control Hub and at most on
          | use
          v
   mechanisms/  (each extends Mechanism)
-   Intake    Storage    Launcher    Camera
+   Intake   Storage   Launcher   HiveCamera   FrontCamera
          |
          v
   Control Hub + Expansion Hub devices
@@ -129,7 +129,7 @@ Professional programmers use names for designs that work well. Our code uses the
 | **Layered architecture** | OpMode → Robot → state machines → mechanisms | Each layer only calls the layer below it |
 | **Game Loop** and **Update Method** | `loop()` → `robot.update()` → every `update()` | Every loop, everything takes one small step; nothing waits |
 | **Facade** | `Robot`, `Drive` | One simple front for many parts behind it |
-| **Adapter** | `Intake`, `Launcher`, `Camera`, `GamepadInput` | Turns device calls into game words |
+| **Adapter** | `Intake`, `Launcher`, `HiveCamera`, `FrontCamera`, `GamepadInput` | Turns device calls into game words |
 | **Template Method** | `Mechanism.runUpdate()` calls your `update()` | The base class fixes the order and safety; you fill in the steps |
 | **State pattern** (enum + switch) | `LaunchStateMachine`, Auto's steps | The object behaves differently depending on its current state |
 | **Mediator** | `Robot.startLaunching()` cancels collecting first | Objects that could clash don't talk to each other; one coordinator does |
@@ -235,18 +235,18 @@ Poses are written once for BLUE in `FieldConfig`; RED is the same pose turned 18
 
 ---
 
-## 9. Vision (two HuskyLens cameras)
+## 9. Vision (two cameras)
 
-Each HuskyLens gives boxes on its 320 × 240 image with IDs it learned itself; it does not give a 3D pose, and it runs one algorithm at a time. The AprilTags are under the CELLS, facing down.
+The AprilTags are under the CELLS, facing down.
 
-| Camera | Mode | Use |
-| --- | --- | --- |
-| HIVE camera (looks up) | Tags | Which CELL is up (the operator's TIP button stays the first source, the camera confirms); aim: is the upward CELL left or right of centre |
-| Front camera (looks ahead) | Colour while collecting, tags otherwise | POLLEN and NECTAR ahead: aim the collection and avoid opponent NECTAR before the intake takes it (G408); field AprilTags when in view |
+| Camera | Device | Sees | Use |
+| --- | --- | --- | --- |
+| HIVE camera (looks up) | HuskyLens, I2C | CELL tags as 2D boxes, with IDs it learned itself | Which CELL is up (the operator's TIP button stays the first source, the camera confirms); aim: is the upward CELL left or right of centre |
+| Front camera (looks ahead) | Logitech USB webcam, `VisionPortal` | Real AprilTag IDs with a tag pose, and POLLEN / NECTAR colour blobs, both at once | Aim the collection; see opponent NECTAR before the intake takes it (G408); field tags when in view |
 
-Fixing the robot's x/y from a camera is not planned at first: a 2D box gives a rough distance only. "Set pose here" is the recovery.
+Fixing the robot's x/y from a camera is not planned at first. The webcam's tag pose makes it possible later (LLD, Future improvements); until then "set pose here" is the recovery.
 
-Both cameras are the same class, `Camera extends Mechanism`, built twice with different device names. They only answer questions; Robot decides whether to use an answer and which mode the front camera is in. Both HuskyLens units have the same fixed I2C address, so each is on its own I2C bus.
+Each camera is a mechanism (`HiveCamera`, `FrontCamera`, both `extends Mechanism`). They only answer questions; Robot decides whether to use an answer. The webcam's vision runs on its own thread inside the SDK, so it never slows the loop directly, but it uses Control Hub CPU: the live preview is off in matches.
 
 ---
 

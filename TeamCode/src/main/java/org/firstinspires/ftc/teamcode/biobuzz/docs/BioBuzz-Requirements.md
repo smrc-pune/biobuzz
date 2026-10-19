@@ -227,7 +227,7 @@ The design is explained in `docs/HLD.md` (why) and `docs/LLD.md` (each class). T
   statemachines/              drive/Drive (Pedro)          game/ FieldPaths, HiveState
    Collect, Launch, ...
          | use (given in the constructor)
-  mechanisms/ (each extends Mechanism): Intake, Storage, Launcher, Camera
+  mechanisms/ (each extends Mechanism): Intake, Storage, Launcher, HiveCamera, FrontCamera
          |
   Control Hub + Expansion Hub devices
 ```
@@ -262,7 +262,7 @@ The design is explained in `docs/HLD.md` (why) and `docs/LLD.md` (each class). T
 - `Robot.stopMechanisms()` cancels every state machine, then puts every mechanism in its safe state. OpModes call it in `stop()`, and D-pad down on gamepad 2 calls it.
 - No button and no Robot method may command both driving and mechanisms (R2).
 
-**Design patterns.** The code uses these standard patterns, in their simplest form, and each file's header names the one it uses (details in `docs/HLD.md`): Layered architecture; Game Loop and Update Method; Facade (`Robot`, `Drive`); Adapter (mechanisms, `Camera`, `GamepadInput`); Template Method (`Mechanism`); State pattern in its enum-and-switch form (state machines, Auto); Mediator (Robot's start methods); Dependency injection through constructors, with Robot as the composition root; Factory method (`FieldPaths`). Command-pattern frameworks are not used (see Coding style rules).
+**Design patterns.** The code uses these standard patterns, in their simplest form, and each file's header names the one it uses (details in `docs/HLD.md`): Layered architecture; Game Loop and Update Method; Facade (`Robot`, `Drive`); Adapter (mechanisms, the two cameras, `GamepadInput`); Template Method (`Mechanism`); State pattern in its enum-and-switch form (state machines, Auto); Mediator (Robot's start methods); Dependency injection through constructors, with Robot as the composition root; Factory method (`FieldPaths`). Command-pattern frameworks are not used (see Coding style rules).
 
 ## Game requirements (BIOBUZZ)
 
@@ -284,7 +284,7 @@ These come from the BIOBUZZ Competition Manual TU05. Rule numbers (G…, R…) a
 | GR10 | Poses are written for BLUE. RED poses MUST be the BLUE pose turned 180° about the field centre (72, 72), because the field is rotationally symmetric (agreed, Q7). `FieldPaths.forAlliance` does it by chaining both reflections: `PoseFactory` `mirrorX(72.0).mirrorY(72.0)` | 9.3 |
 | GR11 | TeleOp MUST rumble both gamepads at 1:00 left (NECTAR may be entered, FLOWERS open) and gamepad 1 at 0:20 left (time to PARK). The header shows how many NECTAR the human player may enter (one per TIP before 1:00 left) | G410, G426 |
 | GR12 | The robot MUST stay within 8 motors and 8 servos, one Control Hub and at most one Expansion Hub. `HardwareNames` keeps the count in its header | R503, R701 |
-| GR13 | Two HuskyLens cameras (agreed, Q9). The **HIVE camera** looks up at the AprilTags under the CELLS (tag mode): which CELL is up, and the aim offset. The **front camera** identifies field AprilTags, POLLEN and NECTAR: it switches between tag and colour mode, because a HuskyLens runs one algorithm at a time. Both have the same fixed I2C address (0x32), so each MUST be on its own I2C bus. Each is read no more often than `CameraConfig.SAMPLE_MS`; learned IDs map to tags and colours in `CameraConfig`. Neither sets the pose | 9.9 |
+| GR13 | Two cameras (Q9). The **HIVE camera** is a HuskyLens (I2C) looking up at the AprilTags under the CELLS: which CELL is up, and the aim offset. It is read no more often than `CameraConfig.HIVE_SAMPLE_MS`, and its learned IDs map to CELLS in `CameraConfig`. The **front camera** is a Logitech USB webcam with the SDK's `VisionPortal`, running an `AprilTagProcessor` (real AprilTag IDs and a tag pose) and a colour-blob processor for POLLEN and NECTAR at the same time. Vision runs on its own thread; the live preview is off in matches. Neither camera sets the Pedro pose in this version | 9.9, R707, R708 |
 
 ## Driving (R1, R2)
 
@@ -383,7 +383,7 @@ Autonomous (stage S3) is a step list that drives the same `Robot` as teleop. It 
 - The choices show on telemetry and are written to the match log header.
 - The `AutoConfig` and `LogConfig` values are the defaults, so the robot still works if nobody presses anything.
 
-**Vision** (two HuskyLens cameras, GR13). `mechanisms/Camera.java` is built twice, once per camera, and answers questions only: is a learned tag or colour in view, how far it is from the image centre, its size. Robot decides whether to use an answer. The camera does not correct the Pedro pose in this version (see `docs/LLD.md`, Future improvements). `docs/CAMERA_GUIDE.md` explains mounting both cameras, their I2C buses, and training them on the tags and on POLLEN and NECTAR colours.
+**Vision** (two cameras, GR13). `mechanisms/HiveCamera.java` (HuskyLens) and `mechanisms/FrontCamera.java` (Logitech webcam, `VisionPortal`) answer questions only: which tags or elements are in view, where they are in the image, and for the webcam the tag's pose relative to the camera. Robot decides whether to use an answer. The camera does not correct the Pedro pose in this version (see `docs/LLD.md`, Future improvements). `docs/CAMERA_GUIDE.md` explains mounting both cameras, training the HuskyLens on the CELL tags, calibrating the webcam (resolution, exposure, lens) and tuning the POLLEN and NECTAR colour ranges.
 
 ## Telemetry and dashboard (R6)
 
@@ -724,7 +724,7 @@ The conflicts, misalignments and game gaps found when the design changed, how ea
 | `docs/TUNING.md` | What order do I tune in, and what does good look like? |
 | `docs/MATCH_DAY.md` | What do I check before and between matches, and what is the field check? |
 | `docs/MATCH_LOGS.md` | How do I get logs off the robot, read them, and find the cause of a bad match? |
-| `docs/CAMERA_GUIDE.md` | How do I mount the two HuskyLens cameras, put each on its own I2C bus, train them on the tags and the element colours, and check them with `Test: Camera`? |
+| `docs/CAMERA_GUIDE.md` | How do I mount the HuskyLens and the webcam, train the HuskyLens on the CELL tags, set up the webcam's AprilTag and colour processors, and check both with `Test: Camera`? |
 | `docs/GLOSSARY.md` | What do the words mean? Mechanism, state machine, state, hook, FAULTED, pose, pose known, field-centric, assist, S1/S2/S3, loop, deadband, PIDF, and each design pattern's name. The game words (POLLEN, NECTAR, CELL, TIP, …). |
 | `docs/UPDATING_PEDRO.md` | How do I merge a new Quickstart release, resolve a Constants.java conflict, test the result and record it in UPSTREAM.md? |
 
@@ -743,7 +743,7 @@ The team MUST give the AI the facts below before it writes BioBuzz-specific code
 - [x] Field frame, rotational symmetry and driver headings agreed (Q7, Q8)
 - [ ] Field poses: start positions, launch spots for each CELL, LOADING ZONE approach and park, GARDEN line, LOADING ZONE corner
 - [ ] Odometry: Pinpoint pod type and offsets (DecodeBot uses Pinpoint with goBILDA 4-bar pods)
-- [ ] Two HuskyLens cameras (Q9 agreed): mounting, I2C bus for each, learned tag IDs and element colours; when the front camera uses tag mode and when colour mode
+- [ ] Cameras (Q9): HuskyLens mounting and learned CELL tag IDs; Logitech webcam model, mounting position and angle (for the tag pose), resolution, and the POLLEN / NECTAR colour ranges
 - [x] Which CELL is up: operator button first, camera may confirm later (Q2)
 - [ ] Gamepad 2 map confirmed, once the mechanisms are built
 - [x] Autonomous routines for the first competition: NEAR and FAR (Q10)
@@ -773,7 +773,7 @@ The team MUST give the AI the facts below before it writes BioBuzz-specific code
 
 | Version | Date | Changes |
 | --- | --- | --- |
-| 2.1 | 2026-10-19 | Team decisions from the design review: Q1–Q4, Q6–Q8 and Q10 agreed as recommended; Q5 (Storage sensing) deferred; Q9 changed to two HuskyLens cameras (HIVE camera for the CELL tags, front camera for field tags, POLLEN and NECTAR). RED poses via `mirrorX(72).mirrorY(72)`. |
+| 2.1 | 2026-10-19 | Team decisions from the design review: Q1–Q4, Q6–Q8 and Q10 agreed as recommended; Q5 (Storage sensing) deferred; Q9 changed to two cameras: a HuskyLens HIVE camera (CELL tags) and a Logitech USB webcam as the front camera (field AprilTags, POLLEN, NECTAR, through `VisionPortal`). RED poses via `mirrorX(72).mirrorY(72)`. |
 | 2.0 | 2026-10-19 | New architecture, and the BIOBUZZ game. Mechanisms are operation classes (no states) that extend one plain base class, `Mechanism` (Template Method; R3 amended); tasks that take time are standalone state machines in `statemachines/`; `parts/` and `subsystems/` are replaced by `drive/`, `mechanisms/`, `statemachines/` and `game/` (R10 amended). `Drive` has no states. Robot is the one menu of robot actions and cancels state machines that share a mechanism (Mediator). Driving grows in three stages (S1 manual, S2 assisted with fixed-path buttons, S3 autonomous); with no auto pose TeleOp runs as S1. New Game requirements section (GR1–GR13) from the Competition Manual TU05, including rotational symmetry for RED. Vision is a HuskyLens. Design patterns are named. HLD, LLD and DESIGN-REVIEW drafted. |
 | 1.4 | 2026-10-19 | Removed `HardwareLookup`: parts call `hardwareMap.get(...)` directly with `HardwareNames` constants, and a missing device stops at INIT with the SDK's message. `HardwareNames` records each device's hub and port (Control Hub and Expansion Hub). Bulk reads are off and moved to a new LLD section, Future improvements. Removed slow mode (gamepad 1 left trigger is free) and the stick speed multipliers: sticks drive at full scale after the deadzone. Speed limits come from Pedro's `ForesightConfig` (paths and holding only). |
 | 1.3 | 2026-10-18 | Renamed the file to `BioBuzz-Requirements.md`; the version lives in the document only. `Constants.java` and `Tuning.java` stay as Quickstart stubs until tuning, then get a one-time structural fill-in recorded in `UPSTREAM.md`; `Constants` imports `HardwareNames`. Only OpModes read gamepads (through `GamepadInput`). One INIT menu (`InitMenu`, D-pad rows) replaces the separate INIT buttons. Field drawing goes through `helpers/FieldDrawing.java` with a BioBuzz field image asset. Field Check 07 carries its own copy of Pedro's deceleration method. Added `LogSummary`, `GamepadInput` held reads, the field-centric wording fix, and the LLD's Known implementation challenges (Pinpoint access first). |

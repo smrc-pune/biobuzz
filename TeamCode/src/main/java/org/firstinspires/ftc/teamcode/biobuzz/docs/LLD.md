@@ -12,7 +12,7 @@ This document describes each class: its job, its public methods, its config valu
 2. Packages and files
 3. Robot
 4. The `Mechanism` base class
-5. Mechanisms: Intake, Storage, Launcher, Camera
+5. Mechanisms: Intake, Storage, Launcher, HiveCamera, FrontCamera
 6. Drive
 7. State machines: Collect, Launch
 8. `game/`: Element, HiveState, FieldPaths
@@ -51,7 +51,7 @@ teamcode/biobuzz/
     Drive.java                   driving operations over Pedro (replaces parts/DriveBase + subsystems/Drive)
   mechanisms/
     Mechanism.java               the one base class (Template Method)
-    Intake.java  Storage.java  Launcher.java  Camera.java
+    Intake.java  Storage.java  Launcher.java  HiveCamera.java  FrontCamera.java
   statemachines/
     CollectStateMachine.java     Intake + Storage
     LaunchStateMachine.java      Storage + Launcher + HiveState + Drive (pose)
@@ -90,8 +90,8 @@ public class Robot {
     private final Intake intake;              // mechanisms: only through Robot methods
     private final Storage storage;
     private final Launcher launcher;
-    private final Camera hiveCamera;          // looks up at the CELL tags
-    private final Camera frontCamera;         // looks ahead: field tags, POLLEN, NECTAR
+    private final HiveCamera hiveCamera;      // HuskyLens, looks up at the CELL tags
+    private final FrontCamera frontCamera;    // Logitech webcam: field tags, POLLEN, NECTAR
     private final Mechanism[] mechanisms;     // update, stop, telemetry and log loop over this
 
     private final HiveState hive;
@@ -103,8 +103,8 @@ public class Robot {
         intake = new Intake(hardwareMap);
         storage = new Storage(hardwareMap);
         launcher = new Launcher(hardwareMap);
-        hiveCamera = new Camera(hardwareMap, HardwareNames.HUSKYLENS_HIVE, "hive_camera");
-        frontCamera = new Camera(hardwareMap, HardwareNames.HUSKYLENS_FRONT, "front_camera");
+        hiveCamera = new HiveCamera(hardwareMap);
+        frontCamera = new FrontCamera(hardwareMap);
         mechanisms = new Mechanism[] { intake, storage, launcher, hiveCamera, frontCamera };   // ADD A MECHANISM HERE
 
         hive = new HiveState();
@@ -150,7 +150,6 @@ public void update() {
 
     // 4. ALWAYS-ON RULES: see this loop's fresh pose and sensors
     // health.update(...)   step 4: battery, loop time, Pinpoint, heading jump -> ALERTs, robot-centric
-    // front camera mode: COLOUR while collecting, TAGS otherwise (frontCamera.useColourMode() / useTagMode())
     // hive confirm from the HIVE camera: optional, Q2
 }
 ```
@@ -267,23 +266,29 @@ TODO(BioBuzz): device lists depend on the built robot (review Q5). The shapes be
 | Speed table | `LauncherConfig.DISTANCE_IN = {36, 48, 60, 72, 84}`, `POLLEN_RPM = {...}`, `NECTAR_RPM = {...}`; straight-line interpolation between neighbours, clamped at the ends (a counted `for` loop) |
 | Log | `launcher_rpm`, `launcher_target_rpm` (also on the Dashboard graph) |
 
-### 5.4 Camera (two HuskyLens cameras, one class)
-
-One class, built twice: `new Camera(hardwareMap, deviceName, name)`. The device name still comes from `HardwareNames` (`HUSKYLENS_HIVE`, `HUSKYLENS_FRONT`); this is the one mechanism that is given its name, because there are two of it.
+### 5.4 HiveCamera (HuskyLens, looks up)
 
 | | |
 | --- | --- |
-| Devices | One HuskyLens (I2C). Each camera on **its own I2C bus**: both units have the fixed address 0x32 |
-| Verbs | `useTagMode()`, `useColourMode()` (`selectAlgorithm`; not an actuator, so allowed in INIT) |
-| Questions | `seesTag(learnedId)`, `getTagOffsetX(learnedId)` (pixels from the image centre, + = right), `getTagWidthPx(learnedId)`, `seesElement(element)`, `getElementOffsetX(element)`, `getMode()`, `getAgeMs()` |
-| `update()` | Every `CameraConfig.SAMPLE_MS` (default 100), read `blocks()` and keep them with their time; after a mode change, ignore results for `MODE_SETTLE_MS` |
-| Config | `SAMPLE_MS`, `MODE_SETTLE_MS`, learned IDs: each CELL's tags (`BLUE_CELL_A_ID`, …) and each colour (`POLLEN_COLOUR_ID`, `RED_NECTAR_COLOUR_ID`, `BLUE_NECTAR_COLOUR_ID`), mounting angles |
-| Log | `<name>_mode`, `<name>_seen_id`, `<name>_offset_px`, `<name>_age_ms` |
+| Devices | `HUSKYLENS_HIVE` (I2C), `selectAlgorithm(TAG_RECOGNITION)` in the constructor (not an actuator) |
+| Verbs | none |
+| Questions | `seesTag(learnedId)`, `getTagOffsetX(learnedId)` (pixels from the image centre, + = right), `getTagWidthPx(learnedId)`, `getAgeMs()` |
+| `update()` | Every `CameraConfig.HIVE_SAMPLE_MS` (default 100), read `blocks()` and keep them with their time |
+| Config | `HIVE_SAMPLE_MS`, the HuskyLens's learned ID for each CELL's tags (`BLUE_CELL_A_ID`, …), mounting angle |
+| Log | `hive_cam_tag_id`, `hive_cam_offset_px`, `hive_cam_age_ms` |
+| Used by | `HiveState` confirm (optional, Q2), `Robot.getAimHeadingDeg()` |
 
-| Camera | Mode | Used by |
-| --- | --- | --- |
-| HIVE camera (looks up) | Tags, always | `HiveState` confirm (optional, Q2), the aim heading |
-| Front camera (looks ahead) | Colour while `CollectStateMachine` runs, tags otherwise (Robot rule) | Collect aim; opponent NECTAR warning before the intake (G408); field tags when in view |
+### 5.5 FrontCamera (Logitech webcam, looks ahead)
+
+| | |
+| --- | --- |
+| Devices | `WEBCAM_FRONT` (USB, UVC). A `VisionPortal` built in the constructor with two processors: `AprilTagProcessor` and a colour-blob processor for POLLEN, red NECTAR and blue NECTAR. Live preview off unless `CameraConfig.PREVIEW` |
+| Verbs | `pause()` / `resume()` (stop or restart streaming to save CPU when not needed), `stop()` closes the portal |
+| Questions | `seesTag(id)` (real AprilTag IDs), `getTagPose(id)` (range in, bearing deg, yaw deg, from the SDK), `seesElement(element)`, `getElementBearingDeg(element)`, `getElementSizePx(element)`, `getAgeMs()` |
+| `update()` | Copy the processors' newest results once per loop (cheap: vision runs on the SDK's own thread) |
+| Config | Resolution, exposure and gain, decimation, colour ranges for each element, camera position and angle on the robot (for the tag pose), `PREVIEW` |
+| Log | `front_cam_tag_id`, `front_cam_tag_range_in`, `front_cam_element` (code), `front_cam_element_bearing_deg`, `front_cam_fps` |
+| Used by | Collect aim (S2 or auto), opponent NECTAR warning before the intake (G408), Field Check 12 |
 
 ---
 
@@ -474,7 +479,7 @@ Park-by guard: `if (MatchClock.autoSeconds() > AutoConfig.PARK_BY_S && step is b
 | --- | --- | --- |
 | `Test: Drive` | `new Drive(hardwareMap)` | sticks, Y, X, A/B assists (pose set to the field centre at start) |
 | `Test: Intake`, `Test: Storage`, `Test: Launcher` | that mechanism only | one button per verb; telemetry shows every question's answer |
-| `Test: Camera` | both cameras | X / Y switch the front camera's mode; shows what each camera sees |
+| `Test: Camera` | both cameras | shows what each camera sees, the webcam's frame rate and tag poses; X toggles the webcam preview |
 | `Test: Collect`, `Test: Launch` | `Robot` | start / cancel, shows state and history |
 | `Test: Parts` | nothing but `hardwareMap` | D-pad picks a motor or servo from `HardwareNames.ALL_DEVICES`, sticks move it |
 
@@ -510,7 +515,7 @@ Park-by guard: `if (MatchClock.autoSeconds() > AutoConfig.PARK_BY_S && step is b
 | `IntakeConfig` | `COLLECT_POWER`, `REVERSE_POWER`, `COLLECT_TIMEOUT_MS`, `REJECT_MS`, stall values |
 | `StorageConfig` | `MAX_HELD = 4`, colour thresholds, `FEED_POWER`, `SENSE_MS` |
 | `LauncherConfig` | PIDF, `IDLE_RPM`, `SPEED_TOLERANCE_RPM`, speed tables, `SPIN_UP_TIMEOUT_MS`, `FEED_MS`, `RECOVER_MS`, `TIP_PAUSE_MS` |
-| `CameraConfig` | `SAMPLE_MS`, `MODE_SETTLE_MS`, learned tag and colour IDs, mounting angles |
+| `CameraConfig` | `HIVE_SAMPLE_MS`, HuskyLens learned tag IDs; webcam resolution, exposure, decimation, colour ranges, position and angle, `PREVIEW` |
 | `ControlsConfig` | `TRIGGER_THRESHOLD`, rumble lengths, the button list as comments |
 
 ---
@@ -563,7 +568,7 @@ Park-by guard: `if (MatchClock.autoSeconds() > AutoConfig.PARK_BY_S && step is b
 | **Dashboard field background** | `TelemetryPacket(false)` + `drawImage("/images/field-biobuzz.png", 0, 0, 144, 144)`; flicker between packets | Already in `FieldDrawing`; the image is at `TeamCode/src/main/assets/images/field-biobuzz.png`; check flicker on the robot |
 | **Constants depends on team code** | `pedro/Constants.java` imports `HardwareNames` | Keep; record in `UPSTREAM.md` |
 | **HuskyLens is 2D** | Box size → rough distance; tag learned IDs must be trained on each unit; one algorithm at a time; I2C read takes a few ms | Read every 100 ms; use for "which CELL", aim offsets and element colour only; document training in `CAMERA_GUIDE.md` |
-| **Two HuskyLens units** | Same fixed I2C address (0x32), so they cannot share a bus; the front camera must switch algorithms, and a switch takes time; two I2C reads per sample | One I2C bus each (the Pinpoint is on a third); front camera mode set by one Robot rule, with `MODE_SETTLE_MS`; measure the loop time with both cameras on |
+| **Webcam CPU load** | `VisionPortal` runs on its own thread, but AprilTag and colour processing at full resolution can slow the whole Control Hub, and so the loop | Low resolution (for example 640 × 480), AprilTag decimation, preview off in matches, `pause()` when not needed; measure the loop time with the webcam streaming |
 | **Counting held elements** | One colour sensor at the mouth (count in/out); a sensor per slot; flywheel speed dip to count shots | Wait for the Storage design (Q5); the count must never be above the real number by more than one |
 | **Which CELL is up** | Operator button; camera; counting launched elements | Operator button first (Q2) |
 | **Detecting a disconnected device** | The SDK seldom throws; a motor on an unplugged hub keeps "working" | Watch `LynxModule` health and motor current; mark FAULTED; acceptance test: pull a cable |
@@ -578,7 +583,7 @@ Park-by guard: `if (MatchClock.autoSeconds() > AutoConfig.PARK_BY_S && step is b
 | Improvement | Gains | Costs | When |
 | --- | --- | --- | --- |
 | **Bulk reads** (`LynxModule` caching, AUTO or MANUAL) | 1–2 ms per sensor read saved | MANUAL: a missed clear freezes sensor values; needs a stored hub list in a helper | When `LoopMonitor` shows loops near the slow-loop limit; record loop time before and after |
-| Camera pose fix | x/y recovery without the LOADING ZONE corner | Calibration; wrong fixes are worse than none | After the camera is reliable for aiming |
+| Camera pose fix (front webcam tag pose) | x/y recovery without the LOADING ZONE corner | Camera position calibration; the CELL tags face down, so they are seen at a steep angle; wrong fixes are worse than none | After Field Check 12 passes reliably |
 | Launch while moving | Faster cycles | Needs velocity-aware aiming | After consistent stationary launching |
 | FLOWER placer | Bottom NECTAR Bonus, FLOWER ownership | A new mechanism (checklist in section 11) | If the team builds one |
 | Limelight 3A | Real 3D AprilTag pose | Cost, mounting | If HuskyLens is not good enough |

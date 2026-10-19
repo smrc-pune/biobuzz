@@ -20,7 +20,7 @@ Robot          the robot's "menu": one method per action. Builds everything.
 statemachines/ tasks that take time and use several mechanisms (Collect, Launch). Standalone classes.
    |
    v
-drive/Drive    + mechanisms/ (Intake, Storage, Launcher, Camera): operations only, no states.
+drive/Drive    + mechanisms/ (Intake, Storage, Launcher, HiveCamera, FrontCamera): operations only, no states.
                Every mechanism extends one plain base class, Mechanism.
 game/          what is special about BIOBUZZ: FieldPaths (every path), HiveState (which CELL is up)
 ```
@@ -124,7 +124,7 @@ Each pattern below is a standard one. The HLD names it where it is used, so stud
 | **Layered architecture** | OpMode → Robot → state machines → mechanisms/Drive | A bug can only be in one layer; each layer only calls the one below |
 | **Game Loop + Update Method** | Every OpMode's `loop()` calls `robot.update()` once; every mechanism and state machine has `update()` | Nothing waits or sleeps; everything moves one small step per loop |
 | **Facade** | `Robot` (one menu of robot actions); `Drive` (simple verbs over Pedro's follower) | OpModes never need to know how many parts are behind an action |
-| **Adapter** (wrapper) | Each mechanism wraps SDK devices with game verbs (`intake.collect()`); `Camera` wraps the HuskyLens; `GamepadInput` wraps `Gamepad` and adds edge detection | Game words in OpModes, device details in one file |
+| **Adapter** (wrapper) | Each mechanism wraps SDK devices with game verbs (`intake.collect()`); `HiveCamera` wraps the HuskyLens, `FrontCamera` the webcam's `VisionPortal`; `GamepadInput` wraps `Gamepad` and adds edge detection | Game words in OpModes, device details in one file |
 | **Template Method** | `Mechanism.runUpdate()` (fixed: skip if faulted, catch errors) calls the hook `update()` that each mechanism overrides; the same for `stop()`, `addTelemetry()`, `addLogData()` | Students write only the hooks; safety is built in once |
 | **State pattern (enum + switch form)** | Each class in `statemachines/` and Auto's step list | The classic "class per state" State pattern is replaced by its simplest form, an `enum` and a `switch`, because R3 forbids interfaces |
 | **Mediator** | `Robot.startLaunching()` cancels `CollectStateMachine` first, because both use Storage | State machines never call each other; the one place that knows about conflicts is Robot |
@@ -150,7 +150,7 @@ Team decisions were entered in the shared review doc on Oct 19, 2026 and applied
 | Q6 | Confirm: no button may command both driving and mechanisms (section 2.3) | Yes | Agreed: gamepad 1 for drive, gamepad 2 for operator |
 | Q7 | Confirm the field is rotationally symmetric (red = blue turned 180° about the centre), from Figure 9-2 or the CAD | Our field image shows rotation, not a mirror | Agreed: chain both reflections, `mirrorX(72.0).mirrorY(72.0)` |
 | Q8 | Confirm the field frame: the field image as drawn, origin at the bottom-left corner (red GARDEN corner), x to the right, y up, audience at the bottom. Then red drivers face 0° and blue drivers face 180° | Yes | Agreed |
-| Q9 | HuskyLens: one unit looking up at the HIVE (tags), or also one looking forward for element colour? It runs one algorithm at a time | One, looking up, tag mode only | **Changed:** add a 2nd camera for field AprilTags, POLLEN and NECTAR |
+| Q9 | HuskyLens: one unit looking up at the HIVE (tags), or also one looking forward for element colour? It runs one algorithm at a time | One, looking up, tag mode only | **Changed:** add a 2nd camera for field AprilTags, POLLEN and NECTAR; it is a Logitech USB webcam |
 | Q10 | Which auto routines for the first event? For example "near: launch 4, collect GARDEN, launch, park" and "far: launch 4, park" | Start with these two | Agreed |
 
-**Follow-ups from Q9.** Both HuskyLens units have the same fixed I2C address (0x32), so each needs its own I2C bus on the Control Hub (the Pinpoint is on a third). The front camera must switch between tag and colour mode, because a HuskyLens runs one algorithm at a time; v2.1 proposes colour while collecting and tags otherwise. Two cameras add I2C reads each loop, so the loop time is measured with both on.
+**Follow-up from Q9.** A second HuskyLens would have shared the first one's fixed I2C address and had to switch between tag and colour mode. The team chose a Logitech USB webcam instead: the SDK's `VisionPortal` runs AprilTag and colour processing at the same time, with real AprilTag IDs and a tag pose. Its cost is Control Hub CPU, so the loop time is measured with the webcam streaming.
