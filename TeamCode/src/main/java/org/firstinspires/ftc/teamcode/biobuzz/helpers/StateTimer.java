@@ -3,6 +3,8 @@ package org.firstinspires.ftc.teamcode.biobuzz.helpers;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 /**
+ * MENTORS: you do not need to change this file.
+ *
  * StateTimer.java  -  a stopwatch for state machines.          ROLE: helper
  *
  * Every state machine restarts this timer each time it changes state (inside goTo()),

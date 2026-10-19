@@ -14,33 +14,37 @@ import org.firstinspires.ftc.teamcode.biobuzz.helpers.MatchInfo;
 import org.firstinspires.ftc.teamcode.biobuzz.helpers.PoseMemory;
 
 /**
- * BioBuzzTeleOp.java  -  the ONE match teleop. It turns gamepad buttons into COMMANDS.  ROLE: OpMode
+ * STUDENTS: you will change this file.
  *
- * THE BIG IDEA:
- *   Gamepad button  --->  command on a brain  --->  brain's update() does the work
+ * BioBuzzTeleOp.java  -  the ONE match TeleOp. It turns gamepad buttons into commands.  ROLE: OpMode
  *
  * Gamepad 1 ONLY drives. Gamepad 2 ONLY runs mechanisms. Both maps are in this file:
- * handleDriver() and handleOperator(). Robot and the brains never read a gamepad,
- * which is why Autonomous can reuse everything unchanged.
+ * handleDriver() and handleOperator(). Robot never reads a gamepad, which is why
+ * Autonomous can use the same Robot.
  *
- * EVERY LOOP: 1) READ the gamepads  2) COMMAND the robot  3) robot.update()  4) telemetry
+ * TWO STAGES OF DRIVING, both in this one TeleOp:
+ *   S1 MANUAL    the driver drives with the sticks (field-centric).
+ *   S2 ASSISTED  A or B makes the robot drive a short path by itself (to our launch spot,
+ *                to our LOADING ZONE). Moving ANY stick takes the robot back at once.
+ * Assists need to know where the robot is. After Auto they work straight away. If Auto
+ * did not run (or the robot restarted), TeleOp starts as S1: drive into our reset corner
+ * and hold D-pad left for 1 second ("set pose here") to turn the assists on.
  *
- * CONTROLS (keep the same as TelemetryConfig.GAMEPAD*_HELP and docs/CONTROLS.md)
+ * EVERY LOOP: 1) read the gamepads and give commands  2) robot.update()  3) telemetry
+ *
+ * CONTROLS (keep the same as ControlsConfig's list, TelemetryConfig.GAMEPAD*_HELP and docs/CONTROLS.md)
  *   INIT:   gamepad 1 D-pad = INIT menu (alliance, match type and number, battery)
  *   GAMEPAD 1 (driver):    left stick = move (field-centric)     right stick X = turn
- *                          Y = "facing away from drivers now"
- *                          X = switch field-centric / robot-centric
+ *                          Y = "facing away from drivers now"     X = field / robot-centric
+ *                          A = drive to our launch spot (S2)      B = drive to our LOADING ZONE (S2)
+ *                          D-pad left (hold 1 s) = set pose here (robot in our reset corner)
  *                          Back/Share = mark a moment in the match log
  *   GAMEPAD 2 (operator):  D-pad down = STOP ALL mechanisms
  *                          Back/Share = mark a moment in the match log
  *                          TODO(BioBuzz): mechanism buttons
  *
- * START POSE: if Autonomous ran, TeleOp starts from the pose it saved (PoseMemory).
- * If not, it assumes the robot faces away from the drivers and shows a warning:
- * press Y with the robot facing away to be sure.
- *
- * TO CHANGE A BUTTON: edit the matching line in handleDriver() or handleOperator() below.
- * TO CHANGE WHAT A BUTTON DOES: look in subsystems/ (the brain), not here.
+ * TO CHANGE A BUTTON: edit its line in handleDriver() or handleOperator() below.
+ * TO CHANGE WHAT A BUTTON DOES: look in Robot.java, then the mechanism or drive file.
  */
 @TeleOp(name = "BioBuzz TeleOp", group = "BioBuzz")
 public class BioBuzzTeleOp extends OpMode {
@@ -65,7 +69,7 @@ public class BioBuzzTeleOp extends OpMode {
      * Nothing waits or sleeps: each pass takes a few milliseconds.
      */
 
-    // ---------------- INIT ----------------
+    // ---------------- INIT: nothing on the robot may move here (rule G403) ----------------
     @Override
     public void init() {
         t = DashboardTelemetry.create(telemetry);   // shows on DS AND Dashboard
@@ -89,9 +93,10 @@ public class BioBuzzTeleOp extends OpMode {
                 driver.isDpadLeftPressed(), driver.isDpadRightPressed());
         menu.addTo(t);
         if (hasAutoPose) {
-            t.addData("Pose from auto", String.format("saved %.0f s ago", PoseMemory.secondsSinceSaved()));
+            t.addData("Pose from auto", String.format("saved %.0f s ago: assists (S2) ready",
+                    PoseMemory.secondsSinceSaved()));
         } else {
-            t.addLine("No auto pose: press Y facing away from drivers");
+            t.addLine("No auto pose: S1 only. Press Y facing away from drivers.");
         }
         t.update();
     }
@@ -107,20 +112,20 @@ public class BioBuzzTeleOp extends OpMode {
 
         robot.drive.setAlliance(MatchInfo.isRed());
         if (hasAutoPose) {
-            robot.drive.setStartingPose(PoseMemory.getPose());
+            robot.drive.setStartingPose(PoseMemory.getPose());   // S2 ready
             PoseMemory.clear();   // used once; a second TeleOp must not trust an old pose
             headingConfirmed = true;
         } else {
-            robot.drive.setStartingPoseFacingAway();
+            robot.drive.setStartingPoseFacingAway();             // S1 only
         }
     }
 
     @Override
     public void loop() {
-        handleDriver();          // 1+2. read gamepad 1, command Drive
-        handleOperator();        // 1+2. read gamepad 2, command the mechanisms
-        robot.update();          // 3. every brain takes one step
-        showTelemetry();         // 4.
+        handleDriver();          // gamepad 1 -> driving
+        handleOperator();        // gamepad 2 -> mechanisms
+        robot.update();          // every part takes one step
+        showTelemetry();
     }
 
     // ---------------- STOP ----------------
@@ -136,10 +141,26 @@ public class BioBuzzTeleOp extends OpMode {
         // Buttons are EDGE-DETECTED: read each one ONCE per loop and keep the answer.
         boolean faceAway = driver.isYPressed();
         boolean switchMode = driver.isXPressed();
+        boolean goToLaunchSpot = driver.isAPressed();
+        boolean goToLoadingZone = driver.isBPressed();
+        boolean setPoseHere = driver.isDpadLeftHeldFor(ControlsConfig.SET_POSE_HOLD_MS);
         boolean mark = driver.isBackPressed();
+        boolean sticksMoved = driver.areSticksMoved();
 
-        // Sticks: up = +forward, right = +right / +clockwise. Drive handles deadzone and Pedro's signs.
-        robot.drive.setDriverInput(driver.getLeftStickY(), driver.getLeftStickX(), driver.getRightStickX());
+        // ---- S2: assist buttons. Robot refuses them (warning + rumble) while the position is unknown.
+        if (goToLaunchSpot && !robot.driveToLaunchSpot()) driver.rumble(ControlsConfig.RUMBLE_REFUSED_MS);
+        if (goToLoadingZone && !robot.driveToLoadingZone()) driver.rumble(ControlsConfig.RUMBLE_REFUSED_MS);
+        if (setPoseHere) {
+            robot.setPoseAtResetCorner();
+            headingConfirmed = true;
+            driver.rumble(ControlsConfig.RUMBLE_POSE_SET_MS);
+        }
+
+        // ---- S1: the sticks. Moving a stick ALWAYS takes the robot back, even in the middle of a path.
+        // Sticks: up = +forward, right = +right / +clockwise. Drive handles Pedro's signs.
+        if (sticksMoved || !robot.drive.isDrivingItself()) {
+            robot.drive.driveWithSticks(driver.getLeftStickY(), driver.getLeftStickX(), driver.getRightStickX());
+        }
 
         if (faceAway) {
             robot.drive.resetHeading();
@@ -154,6 +175,7 @@ public class BioBuzzTeleOp extends OpMode {
         }
         // TODO(BioBuzz) step 4: right stick button = snap heading to 90,
         //                       hold left stick button 1 s = recalibrate the gyro.
+        // TODO(BioBuzz): right bumper (hold) = aim at the upward CELL, once the launcher exists.
     }
 
     // ==================== GAMEPAD 2: MECHANISMS ====================
@@ -162,7 +184,7 @@ public class BioBuzzTeleOp extends OpMode {
         // Buttons are EDGE-DETECTED: read each one ONCE per loop and keep the answer.
         boolean stopAll = operator.isDpadDownPressed();
         boolean mark = operator.isBackPressed();
-        // TODO(BioBuzz): one boolean per mechanism button, then one command each below.
+        // TODO(BioBuzz): one boolean per mechanism button, then one Robot method each below.
 
         if (stopAll) robot.stopMechanisms();
         if (mark) {

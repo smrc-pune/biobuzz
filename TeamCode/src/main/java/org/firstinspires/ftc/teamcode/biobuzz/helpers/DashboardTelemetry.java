@@ -7,6 +7,8 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.biobuzz.configurations.TelemetryConfig;
 
 /**
+ * MENTORS: you do not need to change this file.
+ *
  * DashboardTelemetry.java  -  one telemetry for the Driver Station AND FTC Dashboard.   ROLE: helper
  *
  * Every OpMode starts with:   Telemetry t = DashboardTelemetry.create(telemetry);

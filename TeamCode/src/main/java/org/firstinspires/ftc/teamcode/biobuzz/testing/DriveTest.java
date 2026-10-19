@@ -4,28 +4,29 @@ import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-import org.firstinspires.ftc.teamcode.biobuzz.Robot;
+import org.firstinspires.ftc.teamcode.biobuzz.drive.Drive;
 import org.firstinspires.ftc.teamcode.biobuzz.helpers.DashboardTelemetry;
 import org.firstinspires.ftc.teamcode.biobuzz.helpers.FieldDrawing;
 import org.firstinspires.ftc.teamcode.biobuzz.helpers.GamepadInput;
 import org.firstinspires.ftc.teamcode.biobuzz.helpers.MatchInfo;
-import org.firstinspires.ftc.teamcode.biobuzz.subsystems.Drive;
 
 /**
- * DriveTest.java  -  test DRIVING by itself (no mechanisms).                   ROLE: OpMode (test)
+ * STUDENTS: you will change this file.
+ *
+ * DriveTest.java  -  test DRIVING by itself (S1, no mechanisms, no assists).     ROLE: OpMode (test)
  *
  * WHEN TO USE: the robot drives strangely (strafe or turn backwards, field-centric
- * points the wrong way). Check the pose numbers here first.
+ * points the wrong way). Check the pose numbers here first. To test the S2 assist
+ * buttons, use BioBuzz TeleOp: they need Robot.
  *
  * CONTROLS (gamepad 1):   left stick = move   right stick X = turn
  *                         Y = "facing away from drivers now"   X = switch field / robot-centric
- *                         B (INIT only) = switch alliance BLUE / RED
+ *                         B (INIT only) = switch alliance RED / BLUE
  *
- * WHAT TO WATCH: the pose (x, y, heading). Push forward: does x or y change the way you
- * expect? With the robot facing away from the drivers, press Y: the heading must read
- * the driver heading in DriveConfig. Then turn the robot 90 degrees and push the stick
- * away from you: the robot must still move away from you.
- * If strafe or turn is backwards, the fix is the sign flip in parts/DriveBase.driveManual().
+ * WHAT TO WATCH: the pose (x, y, heading). With the robot facing away from the drivers,
+ * press Y: the heading must read the driver heading in DriveConfig. Then turn the robot
+ * 90 degrees and push the stick away from you: the robot must still move away from you.
+ * If strafe or turn is backwards, the fix is the sign flip in drive/Drive.driveWithSticks().
  */
 @TeleOp(name = "Test: Drive", group = "Tests")
 public class DriveTest extends OpMode {
@@ -38,7 +39,7 @@ public class DriveTest extends OpMode {
     public void init() {
         t = DashboardTelemetry.create(telemetry);
         pad = new GamepadInput(gamepad1);
-        drive = Robot.buildDrive(hardwareMap);   // ONLY the drivetrain
+        drive = new Drive(hardwareMap);   // ONLY the drivetrain
         MatchInfo.matchIdOverride = "TEST";
     }
 
@@ -61,7 +62,7 @@ public class DriveTest extends OpMode {
         boolean faceAway = pad.isYPressed();
         boolean switchMode = pad.isXPressed();
 
-        drive.setDriverInput(pad.getLeftStickY(), pad.getLeftStickX(), pad.getRightStickX());
+        drive.driveWithSticks(pad.getLeftStickY(), pad.getLeftStickX(), pad.getRightStickX());
         if (faceAway) drive.resetHeading();
         if (switchMode) drive.switchDriveMode();
 

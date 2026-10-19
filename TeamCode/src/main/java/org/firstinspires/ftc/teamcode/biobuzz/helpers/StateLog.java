@@ -6,6 +6,8 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.biobuzz.configurations.TelemetryConfig;
 
 /**
+ * MENTORS: you do not need to change this file.
+ *
  * StateLog.java  -  the "black box recorder" for a state machine.          ROLE: helper
  *
  * WHY IT EXISTS:

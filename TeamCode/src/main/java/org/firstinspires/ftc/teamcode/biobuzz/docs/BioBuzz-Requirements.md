@@ -335,7 +335,7 @@ The robot MUST always drive field-centric: pushing the stick away from the drive
 | S3 Autonomous | The robot | `auto/BioBuzzAuto.java` | The start pose |
 
 - An assist is one button, one fixed destination in `FieldConfig`, and one straight line or curve from where the robot is now, built by `drive/FieldPaths`. **Moving any stick takes the robot back in the same loop**, even in the middle of a path. No mode or toggle is needed.
-- An assist is refused with a warning (and the event `ASSIST_REFUSED`) while the pose is not known: no auto pose, or after a Pinpoint fault. "Set pose here" (D-pad left, held 1 s, robot backed into our LOADING ZONE corner) makes the pose known again (agreed, Q4).
+- An assist is refused with a warning (and the event `ASSIST_REFUSED`) while the pose is not known: no auto pose, or after a Pinpoint fault. "Set pose here" (D-pad left, held 1 s, robot sitting in our reset corner, `FieldConfig.RESET_CORNER`: a field corner on our side, back on the left wall and side on the far wall) makes the pose known again (agreed, Q4; the LOADING ZONE has only one wall, so a field corner is used). An assist whose path would cross the HIVE keep-out box is also refused.
 - `Drive` has no states. It has driver operations (`driveWithSticks`, `driveWithSticksAimedAt`, `resetHeading`, `switchDriveMode`) and path operations (`followPath`, `isDrivingItself`, `isPathDone`, `holdHere`, `stopDrivingItself`). The OpMode decides which to use.
 
 **Gamepad 1 map** (only the driver's controls; changes go in `teleop/` and the cheat sheet)
@@ -351,7 +351,7 @@ The robot MUST always drive field-centric: pushing the stick away from the drive
 | Right bumper (hold) | Aim: keep facing the upward CELL while driving (Pedro `ManualDrive.headingLock`) |
 | Right stick button (robot against a wall) | Snap heading to the nearest 90° (see Troubleshooting C) |
 | Left stick button (hold 1 s, robot still) | Recalibrate the gyro, keeping the heading |
-| D-pad left (hold 1 s, robot in our LOADING ZONE corner) | Set pose here (pose known again) |
+| D-pad left (hold 1 s, robot in our reset corner: back on the left wall, side on the far wall, `FieldConfig.RESET_CORNER`) | Set pose here (pose known again) |
 | D-pad (INIT only) | The INIT menu: up/down picks a row, left/right changes it (see Autonomous) |
 | Back / Share | Mark a moment in the match log (`"DRIVER MARK"`), for post-match analysis |
 
@@ -766,7 +766,7 @@ The team MUST give the AI the facts below before it writes BioBuzz-specific code
 - [ ] Mechanism hardware: Intake, Feeder and Launcher are planned; their motors, servos and directions. Storage sensing (counting balls, colour) is a future improvement (Q5)
 - [ ] Robot configuration names from the Control Hub, for `HardwareNames`
 - [x] Field frame, rotational symmetry and driver headings agreed (Q7, Q8)
-- [ ] Field poses (RED side): start positions, our launch spot, LOADING ZONE approach and park, GARDEN line, LOADING ZONE corner
+- [ ] Field poses (RED side): start positions, our launch spot, LOADING ZONE approach and park, GARDEN line, our reset corner (a field corner on our side)
 - [ ] Odometry: Pinpoint pod type and offsets (DecodeBot uses Pinpoint with goBILDA 4-bar pods)
 - [ ] Cameras (Q9): HuskyLens mounting and learned CELL tag IDs; Logitech webcam model, mounting position and angle (for the tag pose), resolution, and the POLLEN / NECTAR colour ranges
 - [x] Which CELL is up: operator button first, camera may confirm later (Q2)

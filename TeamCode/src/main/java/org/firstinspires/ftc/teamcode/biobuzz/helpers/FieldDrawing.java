@@ -8,6 +8,8 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.teamcode.biobuzz.configurations.TelemetryConfig;
 
 /**
+ * MENTORS: you do not need to change this file.
+ *
  * FieldDrawing.java  -  draws the robot and its path on the FTC Dashboard field.  ROLE: helper
  *
  * Open http://192.168.43.1:8080/dash and pick the "Field" view.

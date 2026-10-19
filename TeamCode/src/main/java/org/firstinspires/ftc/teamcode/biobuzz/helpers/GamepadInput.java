@@ -1,10 +1,14 @@
 package org.firstinspires.ftc.teamcode.biobuzz.helpers;
 
 import com.qualcomm.robotcore.hardware.Gamepad;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.biobuzz.configurations.ControlsConfig;
+import org.firstinspires.ftc.teamcode.biobuzz.configurations.DriveConfig;
 
 /**
+ * MENTORS: you do not need to change this file.
+ *
  * GamepadInput.java  -  clean access to ONE gamepad's sticks and buttons.      ROLE: helper
  *
  * It only reads inputs. It does not know what they are used for: buttons are wired
@@ -13,10 +17,12 @@ import org.firstinspires.ftc.teamcode.biobuzz.configurations.ControlsConfig;
  *   GamepadInput driver   = new GamepadInput(gamepad1);
  *   GamepadInput operator = new GamepadInput(gamepad2);
  *
- * TWO KINDS OF BUTTON READ:
+ * THREE KINDS OF BUTTON READ:
  *   isAPressed()  EDGE-DETECTED: true on the ONE loop where A goes from up to down.
  *                 Holding A does not keep returning true. Use it for "do this once".
  *   isAHeld()     true on every loop while A is down. Use it for "while held".
+ *   isDpadLeftHeldFor(1000)  true ONCE, when the button has been held for that many ms.
+ *                 Use it for actions that must not happen by accident.
  * The loop runs far faster than a person can let go of a button, so without edge
  * detection one press would run an action dozens of times.
  *
@@ -24,6 +30,8 @@ import org.firstinspires.ftc.teamcode.biobuzz.configurations.ControlsConfig;
  * A second call in the same loop returns false, because the press was already used.
  *
  * STICKS: -1.0 to 1.0. The SDK reports "up" as negative; we flip it so up = positive.
+ * Values smaller than DriveConfig.STICK_DEADZONE count as 0, so a stick that does not
+ * centre perfectly does not make the robot creep. areSticksMoved() says if any is pushed.
  * Triggers are 0.0 to 1.0, and count as "pressed" past ControlsConfig.TRIGGER_THRESHOLD.
  *
  * PS4/PS5 gamepads: Back = Share, Start = Options, A = cross, B = circle,
@@ -50,12 +58,21 @@ public class GamepadInput {
     private static final int BACK = 13;
     private static final int LEFT_STICK_BUTTON = 14;
     private static final int RIGHT_STICK_BUTTON = 15;
-    private final boolean[] wasDown = new boolean[16];
+    private static final int BUTTON_COUNT = 16;
+    private final boolean[] wasDown = new boolean[BUTTON_COUNT];
+
+    // For "held for" reads: when each button went down, and whether its hold was already reported.
+    private final ElapsedTime[] heldTime = new ElapsedTime[BUTTON_COUNT];
+    private final boolean[] holdStarted = new boolean[BUTTON_COUNT];
+    private final boolean[] holdReported = new boolean[BUTTON_COUNT];
 
     private final Gamepad gamepad;
 
     public GamepadInput(Gamepad gamepad) {
         this.gamepad = gamepad;
+        for (int i = 0; i < BUTTON_COUNT; i++) {
+            heldTime[i] = new ElapsedTime();
+        }
     }
 
     /** Edge detection: true only if the button is down now AND was up last time we asked. */
@@ -65,11 +82,40 @@ public class GamepadInput {
         return newPress;
     }
 
-    // ========== STICKS (-1.0 to 1.0) ==========
-    public double getLeftStickY()  { return -gamepad.left_stick_y; }   // up = positive
-    public double getLeftStickX()  { return gamepad.left_stick_x; }    // right = positive
-    public double getRightStickY() { return -gamepad.right_stick_y; }  // up = positive
-    public double getRightStickX() { return gamepad.right_stick_x; }   // right = positive
+    /** Held for: true ONCE, on the loop where the button has been down for the given time. */
+    private boolean isHeldLongEnough(int button, boolean isDownNow, double milliseconds) {
+        if (!isDownNow) {
+            holdStarted[button] = false;
+            holdReported[button] = false;
+            return false;
+        }
+        if (!holdStarted[button]) {
+            holdStarted[button] = true;
+            heldTime[button].reset();
+        }
+        if (!holdReported[button] && heldTime[button].milliseconds() >= milliseconds) {
+            holdReported[button] = true;
+            return true;
+        }
+        return false;
+    }
+
+    /** Stick values smaller than the deadzone count as 0. */
+    private double deadzone(double value) {
+        if (Math.abs(value) < DriveConfig.STICK_DEADZONE) return 0;
+        return value;
+    }
+
+    // ========== STICKS (-1.0 to 1.0, deadzone applied) ==========
+    public double getLeftStickY()  { return deadzone(-gamepad.left_stick_y); }   // up = positive
+    public double getLeftStickX()  { return deadzone(gamepad.left_stick_x); }    // right = positive
+    public double getRightStickY() { return deadzone(-gamepad.right_stick_y); }  // up = positive
+    public double getRightStickX() { return deadzone(gamepad.right_stick_x); }   // right = positive
+
+    /** true if the driving sticks are pushed past the deadzone (the driver wants control). */
+    public boolean areSticksMoved() {
+        return getLeftStickY() != 0 || getLeftStickX() != 0 || getRightStickX() != 0;
+    }
 
     // ========== TRIGGERS (0.0 to 1.0) ==========
     public double getLeftTrigger()  { return gamepad.left_trigger; }
@@ -104,6 +150,14 @@ public class GamepadInput {
     public boolean isRightTriggerHeld() { return gamepad.right_trigger > ControlsConfig.TRIGGER_THRESHOLD; }
     public boolean isLeftStickButtonHeld()  { return gamepad.left_stick_button; }
     public boolean isRightStickButtonHeld() { return gamepad.right_stick_button; }
+
+    // ========== HELD FOR: true once, after the button has been held this long ==========
+    public boolean isDpadLeftHeldFor(double milliseconds) {
+        return isHeldLongEnough(DPAD_LEFT, gamepad.dpad_left, milliseconds);
+    }
+    public boolean isLeftStickButtonHeldFor(double milliseconds) {
+        return isHeldLongEnough(LEFT_STICK_BUTTON, gamepad.left_stick_button, milliseconds);
+    }
 
     // ========== FEEDBACK to the person holding the gamepad ==========
 

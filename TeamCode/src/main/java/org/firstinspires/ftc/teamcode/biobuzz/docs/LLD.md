@@ -122,7 +122,7 @@ public class Robot {
 | `holdPreloads()` | Auto INIT only: grip the 4 POLLEN (G304) | – |
 | `stopMechanisms()` | Cancel every state machine, then `runStop()` on every mechanism | everything |
 | `driveToLaunchSpot()` / `driveToLoadingZone()` | S2 assists: refused with a warning if `!drive.isPoseKnown()`; else `drive.followPath(FieldPaths.toLaunchSpot(drive.getPose(), MatchInfo.isRed()))` | – |
-| `setPoseAtLoadingCorner()` | "Set pose here" (Q4) | – |
+| `setPoseAtResetCorner()` | "Set pose here" (Q4) | – |
 | `getAimHeadingDeg()` | Heading that faces the upward CELL from the current pose (for the aim button) | – |
 | `isIntakeOn()`, `isLaunching()` | Questions for OpModes (`isLaunching()` = `launch.isBusy()`) | – |
 | `hasNewUrgentAlert()` | True once per new urgent ALERT; the OpMode rumbles | – |
@@ -525,7 +525,7 @@ Park-by guard: `if (MatchClock.autoSeconds() > AutoConfig.PARK_BY_S && step is b
 | --- | --- |
 | `HardwareNames` | device names with hub and port; `ALL_DEVICES` array; motor and servo count (≤ 8 each) |
 | `DriveConfig` | `STICK_DEADZONE`, `BLUE_DRIVER_HEADING_DEG`, `RED_DRIVER_HEADING_DEG`, `ASSIST_TIMEOUT_MS`, `STILL_IN_PER_S` |
-| `FieldConfig` | `START_*` poses, `LAUNCH_SPOT`, `CELL_A`, `CELL_B`, `START_CELL_A_UP`, `LOADING_APPROACH`, `LOADING_PARK`, `LOADING_CORNER`, `GARDEN_*`, `HIVE_KEEP_OUT_*` (all RED, inches/degrees) |
+| `FieldConfig` | `START_*` poses, `LAUNCH_SPOT`, `CELL_A`, `CELL_B`, `START_CELL_A_UP`, `LOADING_APPROACH`, `LOADING_PARK`, `RESET_CORNER`, `GARDEN_*`, `HIVE_KEEP_OUT_*` (all RED, inches/degrees) |
 | `AutoConfig` | step timeouts (including `COLLECT_TIMEOUT_MS`), `PARK_BY_S` (start at 26), default routine (`LAUNCH_PARK`) and delay |
 | `IntakeConfig` | `COLLECT_POWER`, `REVERSE_POWER`, stall values |
 | `FeederConfig` | `FEED_POWER` or `FEED_POSITION`, `HOLD_POSITION` |
@@ -598,7 +598,7 @@ Park-by guard: `if (MatchClock.autoSeconds() > AutoConfig.PARK_BY_S && step is b
 | --- | --- | --- | --- |
 | **Bulk reads** (`LynxModule` caching, AUTO or MANUAL) | 1–2 ms per sensor read saved | MANUAL: a missed clear freezes sensor values; needs a stored hub list in a helper | When `LoopMonitor` shows loops near the slow-loop limit; record loop time before and after |
 | **Storage sensing** (a Storage mechanism) | Knowing how many balls are held and their colours: stop the intake at 4 (G407), push opponent NECTAR out automatically (G408), launch exactly what is held, pick a speed table per ball type | Sensors in the hopper (a colour sensor at the mouth, or one per slot); a `Storage` mechanism and a `CollectStateMachine` (intake until 4, reject opponent NECTAR) | When the robot's hopper gets sensors |
-| Camera pose fix (front webcam tag pose) | x/y recovery without the LOADING ZONE corner | Camera position calibration; the CELL tags face down, so they are seen at a steep angle; wrong fixes are worse than none | After Field Check 12 passes reliably |
+| Camera pose fix (front webcam tag pose) | x/y recovery without the reset corner | Camera position calibration; the CELL tags face down, so they are seen at a steep angle; wrong fixes are worse than none | After Field Check 12 passes reliably |
 | Launch while moving | Faster cycles | Needs velocity-aware aiming | After consistent stationary launching |
 | FLOWER placer | Bottom NECTAR Bonus, FLOWER ownership | A new mechanism (checklist in section 11) | If the team builds one |
 | Limelight 3A | Real 3D AprilTag pose | Cost, mounting | If HuskyLens is not good enough |

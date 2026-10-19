@@ -4,6 +4,8 @@ import com.pedropathing.math.Pose;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 /**
+ * MENTORS: you do not need to change this file.
+ *
  * PoseMemory.java  -  carries the robot's pose from Autonomous to TeleOp.       ROLE: helper
  *
  * WHY IT EXISTS:

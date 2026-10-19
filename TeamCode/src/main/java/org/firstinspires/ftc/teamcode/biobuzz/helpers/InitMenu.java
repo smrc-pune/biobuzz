@@ -3,6 +3,8 @@ package org.firstinspires.ftc.teamcode.biobuzz.helpers;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 
 /**
+ * MENTORS: you do not need to change this file.
+ *
  * InitMenu.java  -  a small menu on the Driver Station screen during INIT.     ROLE: helper
  *
  * WHY IT EXISTS:

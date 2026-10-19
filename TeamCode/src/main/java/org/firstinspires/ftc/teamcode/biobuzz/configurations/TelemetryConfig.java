@@ -3,6 +3,8 @@ package org.firstinspires.ftc.teamcode.biobuzz.configurations;
 import com.acmerobotics.dashboard.config.Config;
 
 /**
+ * STUDENTS: you will change this file.
+ *
  * TelemetryConfig.java  -  what shows on the Driver Station and Dashboard.     ROLE: config
  *
  * Too much text is hard to read during a match and slows the loop. Turn off what you
@@ -14,17 +16,16 @@ import com.acmerobotics.dashboard.config.Config;
  */
 @Config
 public class TelemetryConfig {
-    // ---- One switch per subsystem ----
-    public static boolean DRIVE = true;                // Drive state, drive mode and pose
-    // TODO(BioBuzz): one switch per mechanism subsystem.
+    // ---- One switch per part ----
+    public static boolean DRIVE = true;                // drive mode, who is driving, pose, warnings
 
     // ---- Extra detail ----
-    public static boolean HISTORY = true;              // each subsystem's last 5 state changes and WHY
-    public static boolean PARTS = false;               // low-level numbers: motor powers, follower mode
+    public static boolean HISTORY = true;              // the last change (and WHY) of each part and state machine
+    public static boolean DETAILS = false;             // low-level numbers: motor powers, Pedro's mode
     public static boolean GAMEPAD_HELP = true;         // the controls cheat sheet (the two lines below)
 
     // The controls cheat sheet. Keep it the same as BioBuzzTeleOp's header and docs/CONTROLS.md.
-    public static String GAMEPAD1_HELP = "GP1: sticks=drive  Y=face-away reset  X=field/robot  Back=mark";
+    public static String GAMEPAD1_HELP = "GP1: sticks=drive  Y=face-away  X=field/robot  A=launch spot  B=loading zone  Dpad-left(hold)=set pose";
     public static String GAMEPAD2_HELP = "GP2: Dpad-down=STOP ALL  Back=mark  (mechanisms: TODO)";
 
     // ---- Timing ----

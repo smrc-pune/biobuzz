@@ -6,12 +6,8 @@ yet: every file starts with a comment that says what it does in plain English.
 
 > **Keep this guide up to date.** When you add or change a file, update the matching
 > section here in the same commit. The "What is built so far" table at the end says
-> what exists today.
-
-> **A new design is in review.** `docs/HLD.md`, `docs/LLD.md` and
-> `docs/DESIGN-REVIEW.md` (Requirements v2.0) replace "brains" with mechanisms (no
-> states), state machines for tasks, and a Drive without states. This guide still
-> describes the code as it is today; it changes when the code is restructured.
+> what exists today. The full design is in `docs/HLD.md` (big picture) and
+> `docs/LLD.md` (every file).
 
 ---
 
@@ -20,65 +16,55 @@ yet: every file starts with a comment that says what it does in plain English.
 The robot runs a **loop**: the same few steps, about 50 times a second, until the
 match ends. Nothing in the code ever waits or sleeps. Each pass is a few milliseconds.
 
-Every pass of the loop does four things, always in this order:
+Every pass of the loop does three things, always in this order:
 
 ```
-  1. READ     the gamepads                     (only the OpMode does this)
-  2. COMMAND  tell a brain what you want       (robot.drive.resetHeading())
-  3. UPDATE   every brain takes ONE step       (robot.update())
-  4. SHOW     telemetry on the Driver Station  (t.update())
+  1. READ + COMMAND   read the gamepads, tell the robot what you want   (handleDriver(), handleOperator())
+  2. UPDATE           every part of the robot takes ONE small step      (robot.update())
+  3. SHOW             telemetry on the Driver Station and Dashboard     (t.update())
 ```
-
-A **command** never makes the robot move by itself. It only says what you want.
-The brain's `update()` decides what to do about it, on this loop or a later one.
 
 ---
 
-## 2. The four layers
+## 2. The parts of the code
 
-The code is stacked in four layers. **Each layer only talks to the layer below it.**
+**Each part only calls the parts below it, never the ones above.**
 
 ```
-  +-----------------------------------------------------------+
-  |  OpModes          BioBuzzTeleOp, Test: Drive, ...         |  read gamepads, give commands
-  +-----------------------------------------------------------+
-                              |  commands
-                              v
-  +-----------------------------------------------------------+
-  |  Robot            Robot.java                              |  builds everything, update() once
-  |                                                           |  per loop, links brains together
-  +-----------------------------------------------------------+
-                              |
-                              v
-  +-----------------------------------------------------------+
-  |  Brains           subsystems/Drive.java  (+ mechanisms)   |  state machines: decide WHAT to do
-  +-----------------------------------------------------------+
-                              |
-                              v
-  +-----------------------------------------------------------+
-  |  Parts            parts/DriveBase.java   (+ mechanisms)   |  hardware: motors, servos, sensors
-  +-----------------------------------------------------------+
-                              |
-                              v
-                Control Hub / Expansion Hub devices
+  OpModes          BioBuzzTeleOp, Test: Drive, ...      read gamepads, call Robot
+       |
+       v
+  Robot            Robot.java                           the robot's "menu"; update() once per loop
+       |                 |                   |
+       v                 v                   v
+  state machines    mechanisms           drive/  Drive + FieldPaths
+  (tasks that       (Intake, Feeder,          |
+   take time)        Launcher, cameras)       v
+       |  commands        ^              ..............................
+       +------------------+              : Pedro Pathing (off the     :
+                         |               : shelf: we never edit it)   :
+                         v               :............................:
+  ........................................................
+  : FTC SDK (off the shelf): motors, servos, sensors,    :
+  : cameras, gamepads  ->  Control Hub + Expansion Hub   :
+  :......................................................:
 ```
 
-Two more folders are used by every layer:
-
-- **configurations/** – every number you might want to change (deadzones, timeouts,
-  device names). No other file has "magic numbers".
-- **helpers/** – tools: timers, gamepad reading, telemetry, menus. You rarely change these.
-
-| Layer | Job | Never does |
+| Part | Job | Never does |
 | --- | --- | --- |
-| OpMode | Reads gamepads, calls commands, then `robot.update()` and telemetry | Touch motors. Hold mechanism logic. |
-| Robot | Builds parts and brains. Calls each brain's `update()`. The only place brains talk to each other | Read gamepads. Set motor powers. |
-| Brain (subsystem) | One state machine. Its `update()` does one step | Call another brain. Wait or sleep. |
-| Part | Wraps one group of devices with plain verbs (`setPower()`, `open()`) | Make decisions or use timers. |
+| OpMode | Reads the gamepads, calls Robot, then `robot.update()` and telemetry | Touch motors |
+| Robot | Builds everything. One method for each thing the robot can do. Updates every mechanism once per loop | Read gamepads. Set motor powers itself |
+| State machine | A job that takes time ("launch 4 balls": spin up, feed, wait, repeat). Gives mechanisms commands | Call another state machine |
+| Mechanism | One group of devices, with action words (`collect()`) and questions (`isUpToSpeed()`) | Remember states or wait |
+| Drive + FieldPaths | Driving: sticks, paths, where the robot is. The only code that uses Pedro | Decide when to drive a path |
 
-**Why so strict?** Because then a bug can only be in one place. If a motor does the
-wrong thing, the motor command came from exactly one part, which was told by exactly
-one brain, which was told by exactly one OpMode.
+**Why so strict?** Because then a bug can only be in one place.
+
+**Who changes which files.** The first line of every file says which zone it is in.
+
+| Student zone (you will change these) | Mentor zone (read, don't change) |
+| --- | --- |
+| `configurations/`, `mechanisms/` (except `Mechanism.java`), `statemachines/`, `teleop/`, `auto/`, `drive/FieldPaths.java`, the "ADD ... HERE" spots in `Robot.java`, `testing/` | `mechanisms/Mechanism.java`, `drive/Drive.java`, `helpers/`, `pedro/` |
 
 ---
 
@@ -94,75 +80,79 @@ teamcode/
     configurations/         numbers and names only
       HardwareNames.java      every device name, and the hub and port it plugs into
       DriveConfig.java        stick deadzone, "away from drivers" headings
-      ControlsConfig.java     trigger threshold, rumble lengths, button list
+      FieldConfig.java        every place we drive to (written for RED)
+      ControlsConfig.java     trigger threshold, hold times, rumble lengths, button list
       TelemetryConfig.java    what shows on screen
-    parts/
-      DriveBase.java          the drivetrain, through Pedro Pathing
-    subsystems/
-      Drive.java              the driving brain
+    drive/
+      Drive.java              the drivetrain: sticks, paths, pose (talks to Pedro)
+      FieldPaths.java         every path the robot drives by itself
+    mechanisms/
+      Mechanism.java          what every mechanism has in common (FAULTED safety)
     teleop/
-      BioBuzzTeleOp.java      the match TeleOp: both gamepad maps
+      BioBuzzTeleOp.java      the match TeleOp: both gamepad maps (S1 and S2)
     testing/
       DriveTest.java          "Test: Drive" – drive only, to check the drivetrain
-    helpers/                tools (see section 7)
+    helpers/                tools (see section 8)
     docs/                   requirements, design documents, guides
 ```
 
-Coming later (see section 9): `auto/`, `fieldchecks/`, `template/`, and more helpers.
+Coming later (see section 9): the mechanisms (Intake, Feeder, Launcher, cameras),
+`statemachines/`, `auto/`, `fieldchecks/`, `template/`, and more helpers.
 
-**How a part finds its devices.** The robot has two hubs: the **Control Hub** (drive
-motors, Pinpoint) and the **Expansion Hub** (most mechanism motors). Each part gets its
-devices in its constructor with the normal SDK call and a name from `HardwareNames`:
+**How a mechanism finds its devices.** The robot has two hubs: the **Control Hub**
+(drive motors, Pinpoint) and the **Expansion Hub** (most mechanism motors). Each
+mechanism gets its devices with the normal SDK call and a name from `HardwareNames`:
 
 ```java
-intakeMotor = hardwareMap.get(DcMotorEx.class, HardwareNames.MOTOR_INTAKE);
+roller = hardwareMap.get(DcMotorEx.class, HardwareNames.MOTOR_INTAKE);
 ```
 
-The code does not care which hub a device is on: the name finds it on either hub. The
-comment next to each name in `HardwareNames.java` says which hub and port it uses, so
-that file is also our wiring sheet. (`DriveBase` is special: Pedro's `Constants.java`
-finds the drive motors and Pinpoint, using the same `HardwareNames`.)
+The comment next to each name in `HardwareNames.java` says which hub and port it uses,
+so that file is also our wiring sheet.
 
 ---
 
-## 4. One loop, step by step: "the driver pushes the stick"
+## 4. One loop, step by step
 
 This is the most useful thing in this guide. When something goes wrong, follow the
 same path and look at each step.
+
+### "The driver pushes the stick" (S1)
 
 ```
 BioBuzzTeleOp.loop()
  |
  |-- handleDriver()
- |     driver.getLeftStickY() ...                      1. READ the sticks (GamepadInput)
- |     robot.drive.setDriverInput(fwd, right, turn)    2. COMMAND: Drive stores the values
- |                                                        (tiny values become 0: the deadzone)
- |-- handleOperator()                                  (gamepad 2: mechanisms)
+ |     driver.areSticksMoved()                          READ: a stick is pushed (tiny values = 0)
+ |     robot.drive.driveWithSticks(fwd, right, turn)    COMMAND: Drive turns the stick direction to
+ |                                                      match the field, then tells Pedro
+ |-- handleOperator()                                   (gamepad 2: mechanisms)
  |
- |-- robot.update()                                    3. UPDATE
- |     drive.update()
- |       state is DRIVER_CONTROL, so:
- |       driveBase.driveManual(...)                       Pedro's
- |                                                        ManualDrive.fieldCentric() turns the
- |                                                        stick direction to match the field
- |       driveBase.update()                               Pedro reads the Pinpoint and
- |                                                        sets the four motor powers
- |
- |-- showTelemetry()                                   4. SHOW
-       robot.addTelemetry(t)                              header line, Drive state, pose,
-                                                          field drawing on the Dashboard
-       t.update()                                         actually sends it
+ |-- robot.update()                                     UPDATE
+ |     every mechanism's runUpdate()                    (none yet)
+ |     drive.update()                                   Pedro reads the Pinpoint and
+ |                                                      sets the four motor powers
+ |-- showTelemetry()                                    SHOW
+       robot.addTelemetry(t), t.update()                header line, drive mode, pose,
+                                                        field drawing on the Dashboard
 ```
 
-### Another example: "the driver presses Y"
+### "The driver presses A" (S2: drive to our launch spot)
 
-Y means "the robot is facing away from the drivers right now".
+1. `handleDriver()` reads `driver.isAPressed()` once and keeps the answer.
+2. It calls `robot.driveToLaunchSpot()`. Robot checks two things:
+   - Is the robot's position known? If not: refused, a warning on screen, a short rumble.
+   - Would the path hit the HIVE? If so: refused the same way.
+3. Otherwise `FieldPaths.toLaunchSpot(...)` makes a straight path from where the robot
+   is, and `drive.followPath(...)` starts it. Pedro drives it, then holds the robot still.
+4. Each loop after that, the sticks are not used while the robot drives itself...
+5. ...until the driver moves **any** stick: then `driveWithSticks(...)` runs again and
+   the driver has the robot back, in the same loop.
 
-1. `handleDriver()` reads `driver.isYPressed()` once and keeps the answer.
-2. It calls the command `robot.drive.resetHeading()`. That only sets a flag.
-3. In `robot.update()`, `drive.update()` sees the flag, sets the heading to the
-   "away from drivers" angle in `DriveConfig`, and turns field-centric back on.
-4. Telemetry shows the new heading and `drive FIELD` in the header.
+### "The driver presses Y"
+
+Y means "the robot is facing away from the drivers right now". `robot.drive.resetHeading()`
+sets the heading to the "away" angle in `DriveConfig` and turns field-centric back on.
 
 ---
 
@@ -172,71 +162,90 @@ An OpMode is a program you pick on the Driver Station. The FTC SDK calls its
 methods for us, at these moments:
 
 ```
- press INIT ──> init()          ONCE: build the Robot, set up the INIT menu
+ press INIT ──> init()          ONCE: build the Robot, set up the INIT menu. Nothing may move!
                 init_loop()     OVER AND OVER until PLAY: the INIT menu runs here
  press PLAY ──> start()         ONCE: save the menu choices, set the starting pose
                 loop()          OVER AND OVER: this is the match (section 4)
  press STOP ──> stop()          ONCE: put every mechanism in a safe state
 ```
 
-**What BioBuzzTeleOp does at each step**
-
-| Step | What happens |
+| Step | What BioBuzzTeleOp does |
 | --- | --- |
 | `init()` | Builds the `Robot`. Adds the INIT menu rows: Alliance, Match type, Match number, Battery. |
-| `init_loop()` | Gamepad 1 D-pad runs the menu. Shows whether there is a pose from Autonomous. |
-| `start()` | Copies the menu choices into `MatchInfo`. Starts from the Autonomous pose if there is one; otherwise assumes the robot faces away from the drivers. |
+| `init_loop()` | Gamepad 1 D-pad runs the menu. Shows whether there is a position from Autonomous. |
+| `start()` | Copies the menu into `MatchInfo`. With a position from Auto: S2 ready. Without: S1 only, and the robot is assumed to face away from the drivers. |
 | `loop()` | `handleDriver()`, `handleOperator()`, `robot.update()`, telemetry. |
 | `stop()` | `robot.stopMechanisms()`. |
 
 ---
 
-## 6. How a brain (state machine) works
+## 6. Driving: S1 and S2
 
-A **state** is what the brain is doing right now. A brain is always in exactly one
-state, and it changes state only inside `goTo()`, always with a reason.
+**Field-centric** (the normal mode): push the stick away from you and the robot moves
+away from you, whichever way it is facing. **Robot-centric**: "forward" is the robot's
+own front. Used only when the driver presses X, or when the heading can't be trusted.
 
-`Drive` has three states:
+| Stage | Who drives |
+| --- | --- |
+| **S1 Manual** | The driver, with the sticks |
+| **S2 Assisted** | The driver, plus A and B: the robot drives itself to a fixed place. **Any stick takes the robot back** |
+| S3 Autonomous | The robot (coming later) |
 
-```
-                     followPath(path)                path finished / timeout
-   DRIVER_CONTROL  ------------------>  FOLLOWING_PATH  ------------------>  HOLDING
-        ^   ^                                 |                                 |
-        |   +------ stick moved --------------+                                 |
-        +---------- stick moved (or takeDriverControl()) -----------------------+
-```
+S2 needs to know where the robot is. After Autonomous it does. If Autonomous did not run,
+TeleOp starts as **S1 only** (the header says so). To turn the assists on: drive into our
+**reset corner** (back against our wall, side against the far wall) and hold D-pad left
+for 1 second. The gamepad buzzes and the header says "S2 ready".
 
-Every brain file has the same four sections, in this order:
+| Gamepad 1 | Action |
+| --- | --- |
+| Left stick | Move |
+| Right stick X | Turn |
+| Y | "Robot faces away from the drivers now" – resets the heading, field-centric on |
+| X | Switch field-centric / robot-centric |
+| A | S2: drive to our launch spot |
+| B | S2: drive to our LOADING ZONE |
+| D-pad left (hold 1 s) | Set pose here (robot in our reset corner) |
+| D-pad (INIT only) | INIT menu |
 
-1. **States** – the `enum` list of states, one comment each.
-2. **Commands** – public methods the OpMode calls. They only remember the request
-   or call `goTo(...)`. They never touch hardware.
-3. **`update()`** – a `switch` with one `case` per state. Each case is marked:
-   - `// DO`    – set the parts (motors, servos)
-   - `// CHECK` – look at a timer or a sensor
-   - `// GO`    – `goTo(nextState, "reason")` when the check says so
-4. **Bookkeeping** – `goTo()`, `isBusy()`, `getState()`, `addTelemetry()`.
+| Gamepad 2 | Action |
+| --- | --- |
+| D-pad down | Stop all mechanisms |
+| (mechanisms) | Coming with the mechanisms |
 
-**Waiting without sleeping.** Each brain has a `StateTimer` that restarts in every
-`goTo()`. So `timer.isTimeUp(500)` means "we have been in this state for 500 ms".
-Every state that waits for something has a timeout, so a jam can never freeze the robot.
-
-**The black box.** Each brain has a `StateLog`. It remembers the last 5 state changes
-and why they happened, and shows them on telemetry. When a brain refuses a command,
-it calls `log.warn("...")`, which shows a WARNING line for 4 seconds.
+All places are written **for RED** in `configurations/FieldConfig.java`. For BLUE,
+`FieldPaths.place(...)` turns them half a turn around the middle of the field.
 
 ---
 
-## 7. The helpers
+## 7. Mechanisms and state machines (coming next)
+
+**A mechanism** is one file in `mechanisms/` that `extends Mechanism`. It has action
+words and questions, and fills in up to three methods: `update()` (every loop),
+`stop()` (safe state) and `addDetails(t)` (telemetry). If it hits an error, it is marked
+**FAULTED** and stops, and the rest of the robot keeps running.
+
+**A state machine** is one file in `statemachines/` for a job that takes time. A **state**
+is what it is doing right now; it changes state only in `goTo(state, "reason")`. Every file
+has the same four sections: 1. the list of states, 2. commands (`start()`, `cancel()`),
+3. `update()` with `// DO`, `// CHECK`, `// GO` in each state, 4. bookkeeping (`isBusy()`,
+telemetry). It waits with a `StateTimer` (`timer.isTimeUp(500)`), never by sleeping, and
+every waiting state has a timeout.
+
+**To add one**, follow the checklist in `docs/LLD.md`, section 11. In `Robot.java`, look
+for the `ADD A MECHANISM HERE` and `ADD A STATE MACHINE HERE` comments.
+
+---
+
+## 8. The helpers
 
 | Helper | What it is for |
 | --- | --- |
 | `StateTimer` | Stopwatch for "how long have we been in this state?" |
-| `StateLog` | Remembers state changes and warnings; shows them on telemetry |
-| `GamepadInput` | Reads one gamepad. `isAPressed()` = once per press, `isAHeld()` = every loop while held |
+| `StateLog` | Remembers changes and warnings; shows them on telemetry |
+| `GamepadInput` | Reads one gamepad. `isAPressed()` = once per press, `isAHeld()` = every loop while held, `isDpadLeftHeldFor(1000)` = once after holding 1 s. Sticks have the deadzone applied |
 | `InitMenu` | The INIT menu: D-pad up/down picks a row, left/right changes it |
-| `MatchInfo` | Alliance, match id (`Q12`), battery label – kept from Auto INIT into TeleOp |
-| `PoseMemory` | Carries the robot's pose from Autonomous into TeleOp |
+| `MatchInfo` | Alliance (RED until chosen), match id (`Q12`), battery label – kept from Auto INIT into TeleOp |
+| `PoseMemory` | Carries the robot's position from Autonomous into TeleOp |
 | `DashboardTelemetry` | One telemetry that shows on the Driver Station AND FTC Dashboard |
 | `FieldDrawing` | Draws the robot and its path on the Dashboard field |
 
@@ -247,46 +256,19 @@ true only on the one loop when the button goes from up to down. Read each button
 
 ---
 
-## 8. Driving: field-centric
-
-**Field-centric** (the normal mode): push the stick away from you and the robot
-moves away from you, whichever way it is facing. The code uses the robot's heading
-(from the Pinpoint) to turn the stick direction.
-
-**Robot-centric**: "forward" is the robot's own front, like a remote-control car.
-Used only when the driver presses X, or when the heading can't be trusted.
-
-| Gamepad 1 | Action |
-| --- | --- |
-| Left stick | Move |
-| Right stick X | Turn |
-| Y | "Robot faces away from the drivers now" – resets the heading, field-centric on |
-| X | Switch field-centric / robot-centric |
-| D-pad (INIT only) | INIT menu |
-
-| Gamepad 2 | Action |
-| --- | --- |
-| D-pad down | Stop all mechanisms |
-| (mechanisms) | Coming once the mechanisms are designed |
-
-Gamepad 1 only drives. Gamepad 2 only runs mechanisms. Both maps are in
-`teleop/BioBuzzTeleOp.java`: `handleDriver()` and `handleOperator()`.
-
----
-
 ## 9. What is built so far
 
 | Step | What | Status |
 | --- | --- | --- |
 | 1 | Repository, Gradle (FTC Dashboard) | Done |
-| 2 | Base helpers: StateTimer, StateLog, GamepadInput, InitMenu, MatchInfo, PoseMemory, DashboardTelemetry | Done |
-| 3 | Robot, DriveBase, Drive, BioBuzzTeleOp, Test: Drive, FieldDrawing, drive configs | Done (not yet run on the robot) |
+| 2 | Helpers: StateTimer, StateLog, GamepadInput, InitMenu, MatchInfo, PoseMemory, DashboardTelemetry, FieldDrawing | Done |
+| 3 | New design (Requirements v2.3): Robot, Drive, FieldPaths, Mechanism, BioBuzzTeleOp with S1 and S2, Test: Drive | Done (not yet run on the robot; FieldConfig places are first guesses) |
 | 4 | Battery and loop monitors, health alerts, match logging, heading safeguards, recovery buttons | Next |
-| 5 | Robot Check, Test: Parts, Log Viewer, mechanism template | Planned |
+| 5 | Robot Check, Test: Parts, Log Viewer, templates | Planned |
 | 6 | Field Checks 01–13 | Planned |
-| 7 | Autonomous, BioBuzz field image | Planned |
-| 8 | Mechanisms | After the game reveal |
-| 9 | Design documents and the other student guides | Planned |
+| 7 | Autonomous (S3) | Planned |
+| 8 | Mechanisms: Intake, Feeder, Launcher, HIVE camera, front camera; LaunchStateMachine | When the robot's mechanisms are built |
+| 9 | The other student guides | Planned |
 
 > **Important:** Pedro's `pedro/Constants.java` is still the empty Quickstart file.
 > Until it is filled in at drive tuning, every BioBuzz OpMode stops at INIT with the
@@ -296,18 +278,22 @@ Gamepad 1 only drives. Gamepad 2 only runs mechanisms. Both maps are in
 
 ## 10. When something goes wrong
 
-1. **Read the telemetry first.** The header line shows alliance, match, drive mode
-   and heading. Each brain shows its state, how long it has been there, and the
-   reason for the last change.
-2. **Follow the loop** (section 4): was the button read? Was the command called?
-   What state is the brain in? What did the part get told?
+1. **Read the telemetry first.** The header line shows alliance, match, drive mode,
+   heading and "S1 only" or "S2 ready". The Drive lines show who is driving, the pose,
+   any WARNING and the last change.
+2. **Follow the loop** (section 4): was the button read? Was the Robot method called?
+   Was it refused (look for a WARNING)? What did Drive tell Pedro?
 3. **`Unable to find a hardware device with name "..."`** at INIT: a name in
    `configurations/HardwareNames.java` doesn't match the Robot Controller
    configuration. Check the hub and port in the comment next to that name. If every
    Expansion Hub device is missing, check that hub's power and its RS-485 cable.
 4. **Field-centric points the wrong way:** face the robot away from the drivers and
    press Y. Use "Test: Drive" to check.
-5. **A button does nothing:** check it is read only once per loop.
+5. **A or B does nothing but buzz:** the position is unknown (S1 only), or the path
+   would hit the HIVE. The WARNING line says which. Use "set pose here".
+6. **The robot drives to the wrong place:** check the numbers in `FieldConfig`, and that
+   the right alliance was picked in the INIT menu.
+7. **A button does nothing:** check it is read only once per loop.
 
 ---
 
@@ -317,17 +303,18 @@ Gamepad 1 only drives. Gamepad 2 only runs mechanisms. Both maps are in
 | --- | --- |
 | OpMode | A program you pick on the Driver Station (TeleOp, Autonomous, a test) |
 | Loop | One pass of read → command → update → show. About 50 per second |
-| Brain / subsystem | A state machine that decides what one mechanism does |
-| Part | A class that wraps hardware and does exactly what it is told |
-| State | What a brain is doing right now (for example `DRIVER_CONTROL`) |
-| Command | A method that asks a brain to do something (`resetHeading()`) |
+| Mechanism | One group of devices (intake, launcher) with action words and questions |
+| State machine | A job that takes time, done one small step per loop |
+| State | What a state machine is doing right now (for example `SPINNING_UP`) |
+| FAULTED | A mechanism that hit an error and stopped; the rest keeps going |
 | Pose | Where the robot is: x and y in inches, heading in degrees |
+| Pose known | We trust x and y (after Auto, or "set pose here"), so S2 can be used |
 | Heading | Which way the robot faces |
 | Field-centric | Stick directions follow the field, not the robot |
+| S1 / S2 / S3 | Manual driving / assisted driving / autonomous |
+| Assist | A button that makes the robot drive a short path by itself |
 | Deadzone | Tiny stick values treated as 0, so the robot doesn't creep |
+| Off the shelf | Code written by others that we use as it comes (Pedro Pathing, the FTC SDK) |
 | Telemetry | Text the robot sends to the Driver Station and Dashboard |
 | Dashboard | FTC Dashboard, a web page at `http://192.168.43.1:8080/dash` |
 | Config | A file of numbers you can change live in the Dashboard |
-| Pedro Pathing | The library that follows paths and knows where the robot is |
-| Pinpoint | The goBILDA odometry computer that tracks the robot's position |
-| Edge detection | Counting a button press once, not every loop it is held |

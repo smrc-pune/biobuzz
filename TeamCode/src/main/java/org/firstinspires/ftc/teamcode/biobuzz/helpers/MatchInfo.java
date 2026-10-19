@@ -1,6 +1,8 @@
 package org.firstinspires.ftc.teamcode.biobuzz.helpers;
 
 /**
+ * MENTORS: you do not need to change this file.
+ *
  * MatchInfo.java  -  what the drive team entered during INIT.                  ROLE: helper
  *
  * WHY IT EXISTS:
@@ -19,13 +21,13 @@ public class MatchInfo {
     // The choices shown in the InitMenu. The index into these lists is what is stored.
     public static final String[] MATCH_TYPES = {"P", "Q", "E"};
     public static final String[] BATTERY_LABELS = {"A", "B", "C", "D", "E", "F", "G", "H"};
-    public static final String[] ALLIANCES = {"BLUE", "RED"};
+    public static final String[] ALLIANCES = {"RED", "BLUE"};   // RED first: it is the default
     public static final int MAX_MATCH_NUMBER = 99;
 
     public static int matchType = 1;          // index into MATCH_TYPES (1 = Q)
     public static int matchNumber = 0;        // 0 = not entered
     public static int batteryLabel = 0;       // index into BATTERY_LABELS
-    public static int alliance = 0;           // index into ALLIANCES (0 = BLUE)
+    public static int alliance = 0;           // index into ALLIANCES (0 = RED)
     public static boolean allianceChosen = false;  // false until someone picks it in an INIT menu
     public static String fieldName = "home";  // set by the Field Checks
     public static String matchIdOverride = "";     // "FIELD" or "TEST", or "" for a real match
@@ -39,7 +41,7 @@ public class MatchInfo {
         return MATCH_TYPES[matchType] + number;
     }
 
-    public static boolean isRed() { return alliance == 1; }
+    public static boolean isRed() { return alliance == 0; }
 
     public static String getAllianceName() { return ALLIANCES[alliance]; }
 

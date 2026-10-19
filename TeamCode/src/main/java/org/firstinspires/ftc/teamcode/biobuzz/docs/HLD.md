@@ -206,7 +206,7 @@ We build the stages in this order: S1 (works today), then S3 (Auto proves the pa
 | Right bumper (hold) | Aim: keep facing the upward CELL while driving |
 | Right stick button | Snap heading to the nearest 90° (robot against a wall) |
 | Left stick button (hold 1 s) | Recalibrate the gyro |
-| D-pad left (hold 1 s) | Set pose here: robot backed into our LOADING ZONE corner |
+| D-pad left (hold 1 s) | Set pose here: robot sitting in our reset corner (back on the left wall, side on the far wall) |
 | Back / Share | Mark a moment in the match log |
 | D-pad (INIT only) | INIT menu |
 
@@ -288,7 +288,7 @@ The first telemetry line always shows: alliance, time left, loop time, battery, 
 | --- | --- |
 | Odometry (Pinpoint) fails mid-match | Drive switches to robot-centric with a rumble and an ALERT; assists say "position unknown"; the driver drives as S1 |
 | Heading drifts | Y (facing away), snap to 90°, recalibrate (gamepad 1) |
-| Position lost after a restart | TeleOp starts as S1; "set pose here" in the LOADING ZONE corner brings S2 back |
+| Position lost after a restart | TeleOp starts as S1; "set pose here" in our reset corner brings S2 back |
 | A mechanism's cable comes out | That mechanism is FAULTED and stops; an ALERT names it; the rest keeps working |
 | Opponent NECTAR picked up | The operator holds B to push it back out (G408) |
 | Upward CELL wrong (TIP button missed) | The operator presses the TIP button again; the screen shows which CELL is up |

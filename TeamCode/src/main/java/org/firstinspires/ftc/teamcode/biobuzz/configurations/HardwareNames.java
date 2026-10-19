@@ -1,6 +1,8 @@
 package org.firstinspires.ftc.teamcode.biobuzz.configurations;
 
 /**
+ * STUDENTS: you will change this file.
+ *
  * HardwareNames.java  -  THE WIRING LIST.                                      ROLE: config
  *
  * WHAT IS THIS FILE?
