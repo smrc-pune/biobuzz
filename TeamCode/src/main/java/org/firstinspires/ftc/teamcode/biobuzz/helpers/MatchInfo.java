@@ -16,13 +16,14 @@ package org.firstinspires.ftc.teamcode.biobuzz.helpers;
  * other alliance's side? Check the Alliance row in the INIT menu.
  */
 public class MatchInfo {
-    // The choices shown in the InitMenu. The index into this list is what is stored.
-    public static final String[] ALLIANCES = {"RED", "BLUE"};   // RED first: it is the default
+    public static Alliance alliance = Alliance.RED;   // RED until someone picks BLUE
+    public static String fieldName = "home";          // which field we are on; set by the Field Checks
 
-    public static int alliance = 0;           // index into ALLIANCES (0 = RED)
-    public static String fieldName = "home";  // which field we are on; set by the Field Checks
+    public static boolean isRed() { return alliance == Alliance.RED; }
 
-    public static boolean isRed() { return alliance == 0; }
-
-    public static String getAllianceName() { return ALLIANCES[alliance]; }
+    /** RED becomes BLUE, BLUE becomes RED (used by test OpModes' B button). */
+    public static void switchAlliance() {
+        if (alliance == Alliance.RED) alliance = Alliance.BLUE;
+        else alliance = Alliance.RED;
+    }
 }

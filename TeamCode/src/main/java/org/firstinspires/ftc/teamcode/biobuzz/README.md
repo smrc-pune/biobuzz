@@ -245,7 +245,8 @@ for the `ADD A MECHANISM HERE` and `ADD A STATE MACHINE HERE` comments.
 | `StateLog` | Remembers changes and warnings; shows them on telemetry |
 | `GamepadInput` | Reads one gamepad. `isAPressed()` = once per press, `isAHeld()` = every loop while held, `isDpadLeftHeldFor(1000)` = once after holding 1 s. Sticks have the deadzone applied |
 | `InitMenu` | The INIT menu: D-pad up/down picks a row, left/right changes it |
-| `MatchInfo` | Alliance (RED until chosen) – kept from Auto INIT into TeleOp |
+| `Alliance` | The two alliances as an `enum`: `Alliance.RED`, `Alliance.BLUE` |
+| `MatchInfo` | `MatchInfo.alliance` (RED until chosen) – kept from Auto INIT into TeleOp |
 | `PoseMemory` | Carries the robot's position from Autonomous into TeleOp |
 | `DashboardTelemetry` | One telemetry that shows on the Driver Station AND FTC Dashboard |
 | `FieldDrawing` | Draws the robot and its path on the Dashboard field |
@@ -321,3 +322,4 @@ true only on the one loop when the button goes from up to down. Read each button
 | Telemetry | Text the robot sends to the Driver Station and Dashboard |
 | Dashboard | FTC Dashboard, a web page at `http://192.168.43.1:8080/dash` |
 | Config | A file of numbers you can change live in the Dashboard |
+| enum | A fixed list of names, like `Alliance { RED, BLUE }`; a typo is caught when the code is built |

@@ -128,7 +128,7 @@ public class Robot {
         if (!drive.isFieldCentric()) driveMode = "ROBOT";
         String stage = "S2 ready";
         if (!drive.isPoseKnown()) stage = "S1 only";
-        t.addData("Match", MatchInfo.getAllianceName()
+        t.addData("Match", MatchInfo.alliance
                 + String.format("  battery %.1f V", battery.getVoltage())
                 + "  drive " + driveMode
                 + String.format("  heading %.0f deg", drive.getHeadingDegrees()) + "  " + stage);

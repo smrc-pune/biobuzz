@@ -44,8 +44,8 @@ public class DriveTest extends OpMode {
 
     @Override
     public void init_loop() {
-        if (pad.isBPressed()) MatchInfo.alliance = 1 - MatchInfo.alliance;   // 0 <-> 1
-        t.addData("Alliance (B to switch)", MatchInfo.getAllianceName());
+        if (pad.isBPressed()) MatchInfo.switchAlliance();   // RED <-> BLUE
+        t.addData("Alliance (B to switch)", MatchInfo.alliance);
         showControls();
         t.update();
     }

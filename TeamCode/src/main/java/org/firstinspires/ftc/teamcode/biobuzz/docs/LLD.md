@@ -509,8 +509,9 @@ Park-by guard: `if (MatchClock.autoSeconds() > AutoConfig.PARK_BY_S && step is b
 | `StateTimer` | `reset()`, `seconds()`, `milliseconds()`, `isTimeUp(ms)` |
 | `StateLog` | `record(from, to, reason)`, `warn(msg)`, `getLastChange()`, `getWarning()`, `addTo(t, name, state, timer, busy)` |
 | `GamepadInput` | sticks with deadzone (`getLeftStickY()` …), `areSticksMoved()`, `isXPressed()` / `isXHeld()` / `wasXReleased()` per button, `rumble(ms)`, `setLedColor(r, g, b)`, `getLastUpdateMs()` |
-| `InitMenu` | `addChoiceRow`, `addNumberRow`, `update(up, down, left, right)`, `getIndex(row)`, `getText(row)`, `addTo(t)` |
-| `MatchInfo` | static `alliance` (RED until chosen), `fieldName`; `isRed()`, `getAllianceName()`; the HIVE: `resetForNewMatch()`, `markHiveTipped()`, `isCellAUp()`, `getTipCount()`, `getNectarAllowed()`, `secondsSinceTip()` |
+| `InitMenu` | `addChoiceRow(label, choices, startChoice)` (choices can be an enum's `values()`), `addNumberRow`, `update(up, down, left, right)`, `getChoice(row)` (read back with the type in front: `(Alliance) menu.getChoice(row)`), `getNumber(row)`, `getText(row)`, `addTo(t)` |
+| `Alliance` | `enum Alliance { RED, BLUE }` |
+| `MatchInfo` | static `alliance` (an `Alliance`, RED until chosen), `fieldName`; `isRed()`, `switchAlliance()`; the HIVE: `resetForNewMatch()`, `markHiveTipped()`, `isCellAUp()`, `getTipCount()`, `getNectarAllowed()`, `secondsSinceTip()` |
 | `PoseMemory` | `save(pose)`, `hasPose()`, `getPose()`, `secondsSinceSaved()`, `clear()` |
 | `MatchClock` (new) | `startAuto()`, `startTeleOp()`, `autoSeconds()`, `teleOpSecondsLeft()`, `justReachedSecondsLeft(s)`, `getTimeLeftText()` |
 | `DashboardTelemetry` | `create(telemetry)` |

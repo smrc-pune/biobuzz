@@ -83,7 +83,7 @@ A 7th grader who has never used Java MUST be able to read any file in the studen
 | Use | Example |
 | --- | --- |
 | Classes with fields, a constructor and plain methods | `public class Gate { ... }` |
-| `enum` for fixed lists: states, auto steps, routines | `enum State { IDLE, INTAKING, FEEDING }` |
+| `enum` for fixed lists: states, auto steps, routines, alliances (`enum Alliance { RED, BLUE }`) | `enum State { IDLE, INTAKING, FEEDING }` |
 | `extends Mechanism`: every mechanism extends the one team base class, and overrides its hook methods with `@Override` | `public class Intake extends Mechanism { ... }` |
 | `switch` on the state enum, with one `case` per state | `switch (state) { case IDLE: ... break; }` |
 | `if` / `else`, and fixed-size arrays | `Mechanism[] mechanisms = { intake, feeder, launcher };` |
