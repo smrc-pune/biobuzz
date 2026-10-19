@@ -19,7 +19,7 @@ import com.acmerobotics.dashboard.config.Config;
  *                        A = drive to our launch spot (S2)     B = drive to our LOADING ZONE (S2)
  *                        D-pad left (hold 1 s) = set pose here (robot in our reset corner)
  *                        Back/Share = mark a moment in the match log
- *                        D-pad (INIT only) = INIT menu
+ *                        D-pad left/right (INIT only) = switch alliance RED / BLUE
  *                        TODO(BioBuzz): right bumper (hold) = aim at the upward CELL,
  *                                       right stick button = snap to 90 (step 4),
  *                                       hold left stick button 1 s = recalibrate gyro (step 4)

@@ -163,18 +163,18 @@ An OpMode is a program you pick on the Driver Station. The FTC SDK calls its
 methods for us, at these moments:
 
 ```
- press INIT ──> init()          ONCE: build the Robot, set up the INIT menu. Nothing may move!
-                init_loop()     OVER AND OVER until PLAY: the INIT menu runs here
- press PLAY ──> start()         ONCE: save the menu choices, set the starting pose
+ press INIT ──> init()          ONCE: build the Robot. Nothing may move!
+                init_loop()     OVER AND OVER until PLAY: pick the alliance here
+ press PLAY ──> start()         ONCE: set the alliance and the starting pose
                 loop()          OVER AND OVER: this is the match (section 4)
  press STOP ──> stop()          ONCE: put every mechanism in a safe state
 ```
 
 | Step | What BioBuzzTeleOp does |
 | --- | --- |
-| `init()` | Builds the `Robot`. Adds the INIT menu row: Alliance. |
-| `init_loop()` | Gamepad 1 D-pad runs the menu. Shows whether there is a position from Autonomous. |
-| `start()` | Copies the menu into `MatchInfo`. With a position from Auto: S2 ready. Without: S1 only, and the robot is assumed to face away from the drivers. |
+| `init()` | Builds the `Robot`. |
+| `init_loop()` | Gamepad 1 D-pad left/right switches the alliance (RED / BLUE). Shows the battery voltage and whether there is a position from Autonomous. |
+| `start()` | Tells Drive the alliance. With a position from Auto: S2 ready. Without: S1 only, and the robot is assumed to face away from the drivers. |
 | `loop()` | `handleDriver()`, `handleOperator()`, `robot.update()`, telemetry. |
 | `stop()` | `robot.stopMechanisms()`. |
 
@@ -206,7 +206,7 @@ for 1 second. The gamepad buzzes and the header says "S2 ready".
 | A | S2: drive to our launch spot |
 | B | S2: drive to our LOADING ZONE |
 | D-pad left (hold 1 s) | Set pose here (robot in our reset corner) |
-| D-pad (INIT only) | INIT menu |
+| D-pad left/right (INIT only) | Switch alliance RED / BLUE |
 
 | Gamepad 2 | Action |
 | --- | --- |
@@ -244,7 +244,6 @@ for the `ADD A MECHANISM HERE` and `ADD A STATE MACHINE HERE` comments.
 | `StateTimer` | Stopwatch for "how long have we been in this state?" |
 | `StateLog` | Remembers changes and warnings; shows them on telemetry |
 | `GamepadInput` | Reads one gamepad. `isAPressed()` = once per press, `isAHeld()` = every loop while held, `isDpadLeftHeldFor(1000)` = once after holding 1 s. Sticks have the deadzone applied |
-| `InitMenu` | The INIT menu: D-pad up/down picks a row, left/right changes it |
 | `AllianceColor` | The two alliances as an `enum`: `AllianceColor.RED`, `AllianceColor.BLUE` |
 | `MatchInfo` | `MatchInfo.alliance` (RED until chosen) – kept from Auto INIT into TeleOp |
 | `PoseMemory` | Carries the robot's position from Autonomous into TeleOp |
@@ -264,7 +263,7 @@ true only on the one loop when the button goes from up to down. Read each button
 | Step | What | Status |
 | --- | --- | --- |
 | 1 | Repository, Gradle (FTC Dashboard) | Done |
-| 2 | Helpers: StateTimer, StateLog, GamepadInput, InitMenu, MatchInfo, PoseMemory, DashboardTelemetry, FieldDrawing | Done |
+| 2 | Helpers: StateTimer, StateLog, GamepadInput, AllianceColor, MatchInfo, PoseMemory, DashboardTelemetry, FieldDrawing | Done |
 | 3 | New design (Requirements v2.3): Robot, Drive, FieldPaths, Mechanism, BioBuzzTeleOp with S1 and S2, Test: Drive | Done (not yet run on the robot; FieldConfig places are first guesses) |
 | 4 | Battery and loop monitors, health alerts, match logging, heading safeguards, recovery buttons | Next |
 | 5 | Robot Check, Test: Parts, Log Viewer, templates | Planned |
@@ -296,7 +295,7 @@ true only on the one loop when the button goes from up to down. Read each button
 5. **A or B does nothing but buzz:** the position is unknown (S1 only), or the path
    would hit the HIVE. The WARNING line says which. Use "set pose here".
 6. **The robot drives to the wrong place:** check the numbers in `FieldConfig`, and that
-   the right alliance was picked in the INIT menu.
+   the right alliance was picked during INIT.
 7. **A button does nothing:** check it is read only once per loop.
 
 ---

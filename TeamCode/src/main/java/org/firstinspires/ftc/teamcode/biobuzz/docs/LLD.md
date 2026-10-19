@@ -1,6 +1,6 @@
 # BioBuzz Software – Low-Level Design (LLD)
 
-Oct 19, 2026 · **Draft for review** · goes with Requirements v2.4 and `HLD.md`
+Oct 19, 2026 · **Draft for review** · goes with Requirements v2.5 and `HLD.md`
 
 This document describes each class: its job, its public methods, its config values and how it fits with the others. Code sketches show the **shape** of each class for review. They are not final code: names may change while building, and this document is then updated in the same commit.
 
@@ -64,7 +64,7 @@ teamcode/biobuzz/
   testing/   DriveTest, IntakeTest, FeederTest, LauncherTest, CameraTest, LaunchTest,
              PartsTest, RobotCheck, LogViewer
   fieldchecks/  FieldCheck01_Hardware ... FieldCheck13_Summary
-  helpers/   StateTimer, StateLog, GamepadInput, InitMenu, MatchInfo, PoseMemory, MatchClock,
+  helpers/   StateTimer, StateLog, GamepadInput, AllianceColor, MatchInfo, PoseMemory, MatchClock,
              DashboardTelemetry, FieldDrawing, MatchLogger, BatteryMonitor, LoopMonitor,
              HealthMonitor, FieldCheckHelper, LogSummary
   template/  TemplateMechanism.java, TemplateStateMachine.java, TemplateMechanismTest.java (@Disabled)
@@ -415,10 +415,10 @@ Which of our two CELLS faces up, and how many TIPS we have, are match facts like
 ### 9.1 BioBuzzTeleOp
 
 ```java
-public void init()       { build Robot, GamepadInputs, InitMenu rows (alliance, match, battery, logging) }
+public void init()       { build Robot, GamepadInputs }
                            // NO actuator commands here (G403)
-public void init_loop()  { menu with gamepad 1 D-pad; show pose-from-auto or "S1: no auto pose" }
-public void start()      { copy menu to MatchInfo; MatchClock.startTeleOp();
+public void init_loop()  { D-pad left/right switches the alliance; show battery and pose-from-auto or "S1: no auto pose" }
+public void start()      { drive.setAlliance(MatchInfo.isRed()); MatchClock.startTeleOp();
                            pose from PoseMemory -> drive.setStartingPose (pose known)
                            else drive.setStartingPoseFacingAway() (S1) }
 public void loop()       { handleDriver(); handleOperator(); robot.update(); signals(); showTelemetry(); }
@@ -474,11 +474,11 @@ private void signals() {
 
 ### 9.2 BioBuzzAuto
 
-INIT menu rows: Alliance, Start, Routine, Delay (0–10 s), Logging. `init()`: build Robot, `MatchInfo.resetForNewMatch()`, `robot.holdPreloads()` (the only actuator move in any INIT). `init_loop()`: menu, then build the routine's paths for the chosen alliance and start; show a red warning if any path fails `isOnOwnSide` or `avoidsHive`. `start()`: `MatchClock.startAuto()`, `drive.setStartingPose(...)`. `loop()`: park-by guard, `runStep()`, `robot.update()`, `PoseMemory.save(...)`, telemetry. `stop()`: `robot.stopMechanisms()`, save the pose.
+INIT: gamepad 1 D-pad left/right switches the alliance; the screen also shows `AutoConfig.ROUTINE`, `START` and `START_DELAY_S` (set before the match; no menu). `init()`: build Robot, `MatchInfo.resetForNewMatch()`, `robot.holdPreloads()` (the only actuator move in any INIT). `init_loop()`: menu, then build the routine's paths for the chosen alliance and start; show a red warning if any path fails `isOnOwnSide` or `avoidsHive`. `start()`: `MatchClock.startAuto()`, `drive.setStartingPose(...)`. `loop()`: park-by guard, `runStep()`, `robot.update()`, `PoseMemory.save(...)`, telemetry. `stop()`: `robot.stopMechanisms()`, save the pose.
 
 | Step | First loop | Done when | Timeout (`AutoConfig`) |
 | --- | --- | --- | --- |
-| `WAIT_DELAY` | – | delay from the menu passed | – |
+| `WAIT_DELAY` | – | `AutoConfig.START_DELAY_S` passed | – |
 | `LEAVE` | `drive.followPath(FieldPaths.leaveWall(...))` | `drive.isPathDone()` | `DRIVE_TIMEOUT_MS` → `holdHere()`, go on |
 | `LAUNCH_PRELOADS` | `robot.startLaunching(4)` (from where the robot is: no launch zones) | `!robot.isLaunching()` | `LAUNCH_TIMEOUT_MS` → cancel, go on |
 | `COLLECT_GARDEN` (`LAUNCH_COLLECT_PARK` only) | `robot.startIntake()`, `followPath(throughGarden)` | path done → `robot.stopIntake()` | `COLLECT_TIMEOUT_MS` |
@@ -509,7 +509,6 @@ Park-by guard: `if (MatchClock.autoSeconds() > AutoConfig.PARK_BY_S && step is b
 | `StateTimer` | `reset()`, `seconds()`, `milliseconds()`, `isTimeUp(ms)` |
 | `StateLog` | `record(from, to, reason)`, `warn(msg)`, `getLastChange()`, `getWarning()`, `addTo(t, name, state, timer, busy)` |
 | `GamepadInput` | sticks with deadzone (`getLeftStickY()` …), `areSticksMoved()`, `isXPressed()` / `isXHeld()` / `wasXReleased()` per button, `rumble(ms)`, `setLedColor(r, g, b)`, `getLastUpdateMs()` |
-| `InitMenu` | `addChoiceRow(label, choices, startChoice)` (choices can be an enum's `values()`), `addNumberRow`, `update(up, down, left, right)`, `getChoice(row)` (read back with the type in front: `(AllianceColor) menu.getChoice(row)`), `getNumber(row)`, `getText(row)`, `addTo(t)` |
 | `AllianceColor` | `enum AllianceColor { RED, BLUE }` |
 | `MatchInfo` | static `alliance` (an `AllianceColor`, RED until chosen), `fieldName`; `isRed()`, `switchAlliance()`; the HIVE: `resetForNewMatch()`, `markHiveTipped()`, `isCellAUp()`, `getTipCount()`, `getNectarAllowed()`, `secondsSinceTip()` |
 | `PoseMemory` | `save(pose)`, `hasPose()`, `getPose()`, `secondsSinceSaved()`, `clear()` |
@@ -528,7 +527,7 @@ Park-by guard: `if (MatchClock.autoSeconds() > AutoConfig.PARK_BY_S && step is b
 | `HardwareNames` | device names with hub and port; `ALL_DEVICES` array; motor and servo count (≤ 8 each) |
 | `DriveConfig` | `STICK_DEADZONE`, `BLUE_DRIVER_HEADING_DEG`, `RED_DRIVER_HEADING_DEG`, `ASSIST_TIMEOUT_MS`, `STILL_IN_PER_S` |
 | `FieldConfig` | `START_*` poses, `LAUNCH_SPOT`, `CELL_A`, `CELL_B`, `START_CELL_A_UP`, `LOADING_APPROACH`, `LOADING_PARK`, `RESET_CORNER`, `GARDEN_*`, `HIVE_KEEP_OUT_*` (all RED, inches/degrees) |
-| `AutoConfig` | step timeouts (including `COLLECT_TIMEOUT_MS`), `PARK_BY_S` (start at 26), default routine (`LAUNCH_PARK`) and delay |
+| `AutoConfig` | `ROUTINE` (`LAUNCH_PARK`), `START`, `START_DELAY_S` (0) – decided before the match; step timeouts (including `COLLECT_TIMEOUT_MS`), `PARK_BY_S` (start at 26) |
 | `IntakeConfig` | `COLLECT_POWER`, `REVERSE_POWER`, stall values |
 | `FeederConfig` | `FEED_POWER` or `FEED_POSITION`, `HOLD_POSITION` |
 | `LauncherConfig` | PIDF, `IDLE_RPM`, `SPEED_TOLERANCE_RPM`, the speed table, `SPIN_UP_TIMEOUT_MS`, `FEED_MS`, `RECOVER_MS`, `TIP_PAUSE_MS` |

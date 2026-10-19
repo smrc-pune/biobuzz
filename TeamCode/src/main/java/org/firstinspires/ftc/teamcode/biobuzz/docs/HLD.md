@@ -1,6 +1,6 @@
 # BioBuzz Software – High-Level Design (HLD)
 
-Oct 19, 2026 · **Draft for review** · goes with Requirements v2.4 and `LLD.md`
+Oct 19, 2026 · **Draft for review** · goes with Requirements v2.5 and `LLD.md`
 
 This document explains how the BioBuzz robot software fits together. It is written for our team: 7th graders who are new to Java. Read it once from top to bottom. Use `LLD.md` when you need the details of one file.
 
@@ -208,7 +208,7 @@ We build the stages in this order: S1 (works today), then S3 (Auto proves the pa
 | Left stick button (hold 1 s) | Recalibrate the gyro |
 | D-pad left (hold 1 s) | Set pose here: robot sitting in our reset corner (back on the left wall, side on the far wall) |
 | Back / Share | Mark a moment in the match log |
-| D-pad (INIT only) | INIT menu |
+| D-pad left/right (INIT only) | Switch alliance RED / BLUE |
 
 **Gamepad 2 (operator)** – mechanisms only. TODO(BioBuzz): confirm once the robot is built.
 
@@ -226,7 +226,7 @@ We build the stages in this order: S1 (works today), then S3 (Auto proves the pa
 
 ## 7. Autonomous plan
 
-Auto is one OpMode. In INIT the drive team picks Alliance (RED or BLUE), Start position, Routine and Delay. Each step starts something on its first loop, then checks "done?" and "out of time?". A **park-by guard** jumps to PARK at `AutoConfig.PARK_BY_S`, whatever step is running, because PARK and LEAVE feed the SWARM ranking point.
+Auto is one OpMode. In INIT the drive team picks only the alliance (RED or BLUE): it changes every match. The routine, start position and start delay are agreed with the alliance partner before the match and set in `AutoConfig`. Each step starts something on its first loop, then checks "done?" and "out of time?". A **park-by guard** jumps to PARK at `AutoConfig.PARK_BY_S`, whatever step is running, because PARK and LEAVE feed the SWARM ranking point.
 
 There are no launch zones, so the robot launches its preloads right after it leaves the wall:
 

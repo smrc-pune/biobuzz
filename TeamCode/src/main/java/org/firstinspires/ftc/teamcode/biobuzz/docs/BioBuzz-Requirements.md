@@ -2,7 +2,7 @@
 
 Oct 19, 2026 · @Girish
 
-**Version 2.4**
+**Version 2.5**
 
 ## Contents
 
@@ -194,7 +194,7 @@ teamcode/biobuzz/
   fieldchecks/            FieldCheck01_Hardware ... FieldCheck13_Summary: one OpMode per new-field test
   helpers/                StateTimer, StateLog, DashboardTelemetry, GamepadInput, MatchClock,
                           MatchLogger, MatchInfo, BatteryMonitor, LoopMonitor, HealthMonitor,
-                          FieldCheckHelper, PoseMemory, InitMenu, FieldDrawing, LogSummary
+                          FieldCheckHelper, PoseMemory, FieldDrawing, LogSummary
   template/               TemplateMechanism, TemplateStateMachine, TemplateMechanismTest to copy
   docs/                   HLD.md, LLD.md, DESIGN-REVIEW.md, guides (see Documentation deliverables)
 TeamCode/src/main/assets/images/field-biobuzz.png    BioBuzz field image for the Dashboard field view
@@ -218,7 +218,7 @@ tools/plot_match.py       laptop only, mentor-side (repo root, not built into th
 - Device names MUST appear only in `HardwareNames.java`. Each mechanism gets its own devices in its constructor with `hardwareMap.get(...)` and those names; `pedro/Constants.java` imports them for the drivetrain and the Pinpoint.
 - Tunable numbers MUST appear only in `configurations/`. There are no magic numbers in mechanisms, state machines, Drive, `FieldPaths` or OpModes.
 - The DecodeBot `GamepadConfig` wrapper moves to `helpers/GamepadInput.java`, because it is a tool, not a set of numbers. It keeps the edge-detected `isAPressed()` style, adds `isAHeld()` and `wasAReleased()` reads, applies the stick deadzone and answers `areSticksMoved()`. Back/Share is read from `gamepad.back` (in the SDK, `options` is the same button as Start).
-- `helpers/InitMenu.java` is the one pre-match menu (see Autonomous). `helpers/FieldDrawing.java` draws on the Dashboard field view (see Telemetry and dashboard). `helpers/LogSummary.java` reads log files for `LogViewer`, so file reading and its `try`/`catch` stay in `helpers/`. `helpers/MatchClock.java` keeps match time (see Game requirements).
+- `helpers/FieldDrawing.java` draws on the Dashboard field view (see Telemetry and dashboard). `helpers/LogSummary.java` reads log files for `LogViewer`, so file reading and its `try`/`catch` stay in `helpers/`. `helpers/MatchClock.java` keeps match time (see Game requirements).
 - A test OpMode builds just the mechanism it tests, with `new Intake(hardwareMap)`; there are no `Robot.buildX` methods.
 - `template/` MUST compile. It MUST be annotated `@Disabled` where it is an OpMode.
 
@@ -306,7 +306,7 @@ These come from the BIOBUZZ Competition Manual TU05. Rule numbers (G…, R…) a
 | GR6 | `helpers/MatchInfo` MUST know which of our two CELLS faces up (`MatchInfo.isCellAUp()`): the setup position at Auto `init()`, flipped by each TIP (`MatchInfo.markHiveTipped()`), kept from Auto to TeleOp like the rest of `MatchInfo`. A TIP is entered by the operator (gamepad 2 left bumper); the HIVE camera MAY confirm it later. After a TIP, launching pauses for `LauncherConfig.TIP_PAUSE_MS` | 9.6, 10.5.1 |
 | GR7 | BIOBUZZ has no launch zones: the robot may launch from anywhere. The aim heading MUST follow the upward CELL, and the launcher speed MUST depend on the distance to the upward CELL, from a table in `LauncherConfig`. The robot does not know which ball is next (POLLEN 2.8 in or NECTAR 3.6 in), so one table serves both; separate tables per ball type are a future improvement | 9.6, 9.8 |
 | GR8 | Every auto path MUST be checked at INIT: it stays on our side of the field (columns A–C red, D–F blue) and out of the HIVE footprint plus `FieldConfig` margin. A failing path shows a red warning on the INIT screen | G402, G409, G417 |
-| GR9 | Start positions MUST be a fixed list in `FieldConfig` (touching the wall, our side, not in the LOADING ZONE), picked in the INIT menu | G304 |
+| GR9 | Start positions MUST be a fixed list in `FieldConfig` (touching the wall, our side, not in the LOADING ZONE); the one used is set in `AutoConfig.START` before the match | G304 |
 | GR10 | Poses are written for RED, the default alliance. BLUE poses MUST be the RED pose turned 180° about the field centre (72, 72), because the field is rotationally symmetric (agreed, Q7). `FieldPaths.forAlliance` does it by chaining both reflections: `PoseFactory` `mirrorX(72.0).mirrorY(72.0)` | 9.3 |
 | GR11 | TeleOp MUST rumble both gamepads at 1:00 left (NECTAR may be entered, FLOWERS open) and gamepad 1 at 0:20 left (time to PARK). The header shows how many NECTAR the human player may enter (one per TIP before 1:00 left) | G410, G426 |
 | GR12 | The robot MUST stay within 8 motors and 8 servos, one Control Hub and at most one Expansion Hub. `HardwareNames` keeps the count in its header | R503, R701 |
@@ -320,7 +320,7 @@ The robot MUST always drive field-centric: pushing the stick away from the drive
 
 - Field-centric MUST be the normal mode. DecodeBot's `DriveConfig.ROBOT_CENTRIC` switch is removed. Robot-centric is used only as a safeguard fallback (Pinpoint not `READY`, or a heading jump) or when the driver presses X, and every switch is written to the match log (see Troubleshooting C).
 - In field-centric mode, `Drive.driveWithSticks(forward, right, clockwise)` MUST call Pedro's `ManualDrive.fieldCentric(powers, heading, offset)` every loop. The heading comes from the Pinpoint through the Pedro follower. In robot-centric mode (the fallback, or X) the stick powers go to the follower without the rotation.
-- `offset` is the alliance's driver-facing angle. It comes from `DriveConfig.BLUE_DRIVER_HEADING_DEG` and `DriveConfig.RED_DRIVER_HEADING_DEG`, picked by the alliance chosen in the INIT menu (kept in `MatchInfo`; RED until chosen). This means "away from the drivers" is correct on both alliances without a heading reset. In our field frame (the field image as drawn, origin bottom-left, red ALLIANCE AREA on the left wall; agreed, Q8) red drivers face 0° and blue drivers face 180°, so today's `DriveConfig` values are swapped when the code is restructured.
+- `offset` is the alliance's driver-facing angle. It comes from `DriveConfig.BLUE_DRIVER_HEADING_DEG` and `DriveConfig.RED_DRIVER_HEADING_DEG`, picked by the alliance chosen during INIT (kept in `MatchInfo`; RED until chosen). This means "away from the drivers" is correct on both alliances without a heading reset. In our field frame (the field image as drawn, origin bottom-left, red ALLIANCE AREA on the left wall; agreed, Q8) red drivers face 0° and blue drivers face 180°, so today's `DriveConfig` values are swapped when the code is restructured.
 - **Pose hand-off:** auto saves its Pedro pose in `helpers/PoseMemory.java` every loop and in `stop()`. TeleOp `start()` MUST start from that pose, and the pose is then **known**. If no auto ran in this app session, TeleOp starts as **S1**: it assumes the robot faces away from the drivers (heading only, pose **not** known) and shows `"No auto pose: S1 only. Press Y facing away from drivers"`.
 - **Heading reset:** gamepad 1 **Y** sets "the way the robot faces now = away from the drivers". This fixes drift during a match and turns field-centric back on after a fallback. Each reset MUST be written to the match log.
 - Stick input passes through a deadband (`DriveConfig.STICK_DEADZONE`, applied in `GamepadInput`), then goes to Pedro at full scale (no speed multiplier).
@@ -352,7 +352,7 @@ The robot MUST always drive field-centric: pushing the stick away from the drive
 | Right stick button (robot against a wall) | Snap heading to the nearest 90° (see Troubleshooting C) |
 | Left stick button (hold 1 s, robot still) | Recalibrate the gyro, keeping the heading |
 | D-pad left (hold 1 s, robot in our reset corner: back on the left wall, side on the far wall, `FieldConfig.RESET_CORNER`) | Set pose here (pose known again) |
-| D-pad (INIT only) | The INIT menu: up/down picks a row, left/right changes it (see Autonomous) |
+| D-pad left / right (INIT only) | Switch alliance RED / BLUE (see Autonomous, Pre-match selection) |
 | Back / Share | Mark a moment in the match log (`"DRIVER MARK"`), for post-match analysis |
 
 ## Operator controls (R2)
@@ -361,7 +361,7 @@ Gamepad 2 runs every mechanism, and only gamepad 2 does. The button map stays in
 
 **Rules**
 
-- Only OpModes (teleop, auto, test and Field Check OpModes) read `gamepad1` or `gamepad2`, always through `helpers/GamepadInput`. Only OpModes rumble a gamepad or set its LED. `Robot`, state machines, mechanisms and the other helpers never touch a gamepad; `InitMenu` is given the button presses by its OpMode. Autonomous reuses `Robot` unchanged because of this.
+- Only OpModes (teleop, auto, test and Field Check OpModes) read `gamepad1` or `gamepad2`, always through `helpers/GamepadInput`. Only OpModes rumble a gamepad or set its LED. `Robot`, state machines, mechanisms and the other helpers never touch a gamepad. Autonomous reuses `Robot` unchanged because of this.
 - For matches, `teleop/BioBuzzTeleOp.java` holds both gamepad maps: gamepad 1 in `handleDriver()`, gamepad 2 in `handleOperator()`.
 - Each loop, a button is read once into a local `boolean` and then used. This is the DecodeBot `handleOperator()` pattern, and it exists because button reads are edge-detected.
 - Every gamepad 2 button calls one `Robot` method. Logic like "only launch when up to speed" lives in the state machine, which calls `log.warn(...)` when it refuses a command.
@@ -398,16 +398,15 @@ Autonomous (stage S3) is a step list that drives the same `Robot` as teleop. It 
 
 - `drive/FieldPaths.java` builds every path, for Auto and for the TeleOp assists. Pedro's path API (`Paths.line`, `Paths.curve`, `PoseFactory`) appears only in this file and in `drive/Drive.java`.
 - Positions live in `configurations/FieldConfig.java` in inches and degrees, written for the RED alliance. `FieldPaths.forAlliance(pose, isRed)` turns them for BLUE (GR10).
-- The routine's paths are built in `init_loop()` whenever the menu changes, drawn on the Dashboard field, and checked against GR8.
+- The routine's paths are built in `init_loop()` whenever the alliance changes, drawn on the Dashboard field, and checked against GR8.
 - `robot.drive.setStartingPose(...)` is called in `start()`, from the chosen alliance and start position. The start pose MUST match where the robot is physically placed, which is the main cause of autonomous errors.
 
 **Pre-match selection**
 
-- During INIT, gamepad 1 uses one menu, `helpers/InitMenu.java`, instead of a button per setting. D-pad up/down moves between rows; D-pad left/right changes the value in that row, wrapping round at the ends. The OpMode reads the D-pad and passes the presses to the menu.
-- Auto's INIT rows: **Alliance** (RED / BLUE), **Start** position, **Routine**, **Delay** (0 to 10 s, for alliance partner coordination), and **Logging** (on / off). There are no match number or battery label rows: the team removed them to keep INIT short. A routine is one value of an `enum Routine`. BIOBUZZ has no launch zones, so routines are named by what they do. The first routines (Q10): `LAUNCH_PARK` (leave the wall, launch the 4 preloads, park) and `LAUNCH_COLLECT_PARK` (leave, launch 4, collect our GARDEN, launch, park).
-- TeleOp's INIT shows the rows it needs (alliance, logging), starting from what was picked in Auto's INIT (`MatchInfo`).
-- The choices show on telemetry and are written to the match log header.
-- The `AutoConfig` and `LogConfig` values are the defaults, so the robot still works if nobody presses anything.
+- **Only the alliance is picked at the field.** It changes every match (the schedule assigns it), so it is picked during INIT on the Driver Station, in both Auto and TeleOp: gamepad 1 D-pad left or right switches RED / BLUE, and the INIT screen shows it. It is kept in `MatchInfo`, so TeleOp starts with what Auto had.
+- **Everything else is decided before the match**, when working out the plan with the alliance partner, and set in `configurations/AutoConfig.java`: `ROUTINE` (an `enum Routine`), `START` (one of the start positions in `FieldConfig`) and `START_DELAY_S` (0 to 10 s, to stay out of a partner's way). They are changed in the pits, through FTC Dashboard or by editing the file and deploying; Dashboard edits are lost when the app restarts, so values meant to last are typed into the file. There is no INIT menu.
+- BIOBUZZ has no launch zones, so routines are named by what they do. The first routines (Q10): `LAUNCH_PARK` (leave the wall, launch the 4 preloads, park) and `LAUNCH_COLLECT_PARK` (leave, launch 4, collect our GARDEN, launch, park).
+- The INIT screen shows the alliance and, in Auto, the routine, start and delay from `AutoConfig`, so the drive team can check them before PLAY. They are written to the match log header.
 
 **Vision** (two cameras, GR13). `mechanisms/HiveCamera.java` (HuskyLens) and `mechanisms/FrontCamera.java` (Logitech webcam, `VisionPortal`) answer questions only: which tags or elements are in view, where they are in the image, and for the webcam the tag's pose relative to the camera. Robot decides whether to use an answer. The camera does not correct the Pedro pose in this version (see `docs/LLD.md`, Future improvements). `docs/CAMERA_GUIDE.md` explains mounting both cameras, training the HuskyLens on the CELL tags, calibrating the webcam (resolution, exposure, lens) and tuning the POLLEN and NECTAR colour ranges.
 
@@ -478,7 +477,7 @@ A new field is a new robot: tile grip, tile wear and walls differ from our pract
 - Test 07 MUST use the same method as Pedro's `ForwardDeceleration` and `StrafeDeceleration` tuners (power 1 until the target speed, then coast with `drivetrain.stop(false)`, average the slow-down until speed is under 1 in/s), so its numbers compare directly with `Constants`. Those tuners are internal to the Quickstart's `procedures/ForesightTuner.java` and cannot be called from team code, so `FieldCheck07_Brake` carries its own copy of the method, with a comment naming the tuner it copies. It compares with `naturalForwardDeceleration` / `naturalStrafeDeceleration` in `Constants.foresightConfig`, which exists once Constants is filled in at tuning. On a WARN or FAIL the screen prints the measured value to use for this event.
 - Paths in 08 and 09 start from wherever the robot is placed, so they work anywhere on the field.
 - Results: **PASS** within tolerance, **WARN** between 1× and 2× tolerance (look at it), **FAIL** beyond 2× or an absolute limit broken (fix before matches). Each result is kept in a `static` field of `FieldCheckHelper` for the Summary, and logged as a `FIELDCHECK_<nn>` event so nothing is lost if the app restarts.
-- The field name (`home`, `event-practice-1`, …) is chosen in the first check's INIT menu and offered again in the next ones. Every Field Check writes a match log; its OpMode name is in the file name.
+- The field name (`home`, `event-practice-1`, …) is set in `FieldCheckConfig.FIELD_NAME` before the checks. Every Field Check writes a match log; its OpMode name is in the file name.
 - **Baseline:** the same tests run at home, and the values printed by the Summary are copied into `FieldCheckConfig` with the date. They MUST be re-recorded after any re-tune or hardware change.
 - A FAIL tells the student which tuning procedure to run next. That procedure lives in the Quickstart's `pedro/procedures/` and is written up in `docs/TUNING.md`. The first time the robot runs on a field, it MUST pass every test.
 
@@ -611,7 +610,7 @@ The battery's **voltage** is measured by the robot (above). Which physical batte
 
 **On/off and retention**
 
-- `LogConfig.ENABLED` is the default and is what runs at competition. It can be changed in Dashboard during practice, and the INIT menu's Logging row changes it for that run. The choice is read once, at PLAY, so a file is never half-written. When off, every logger call returns at once: no file, no thread.
+- `LogConfig.ENABLED` is the default and is what runs at competition. It can be changed in Dashboard during practice. The choice is read once, at PLAY, so a file is never half-written. When off, every logger call returns at once: no file, no thread.
 - Keep the newest 100 files and delete older ones at INIT.
 
 ### F. After the match: analysis and debrief
@@ -798,6 +797,7 @@ The team MUST give the AI the facts below before it writes BioBuzz-specific code
 
 | Version | Date | Changes |
 | --- | --- | --- |
+| 2.5 | 2026-10-19 | No INIT menu: `InitMenu` removed. Only the alliance is picked at the field (gamepad 1 D-pad left/right in INIT, Auto and TeleOp). Auto's routine, start position and start delay are decided before the match and set in `AutoConfig`; the Field Check field name in `FieldCheckConfig`; logging on/off in `LogConfig`. |
 | 2.4 | 2026-10-19 | Removed the Match type, Match number and Battery label rows from the INIT menu and `MatchInfo` (only Alliance is picked). Match logs are named by start time, OpMode and alliance; an Auto file and the TeleOp file that starts within 180 s after it are one match. Battery voltage is still measured and logged. |
 | 2.3 | 2026-10-19 | Review round 3. No Storage sensing on the robot: the Storage mechanism (counting, colour) becomes a future improvement; a separate `Feeder` mechanism pushes balls into the launcher. `CollectStateMachine` removed: the intake is manual (A on/off, B hold reverse). G407 is met by the hopper holding 4; G408 is the drive team's job. `Element` removed; the front camera uses plain questions. Launcher speed by distance only. The diagrams show that Robot updates every mechanism directly, and why. |
 | 2.2 | 2026-10-19 | Review round 2. The code's owners are rookie 7th graders with no Java: student zone and mentor zone, plainer rules. Pedro Pathing, the FTC SDK and FTC Dashboard shown as off-the-shelf libraries. Mechanisms listed by name and walked with a "for each" loop (no index numbers). State machines use `isBusy()`. `game/` removed: `FieldPaths` moves to `drive/`, `Element` to `mechanisms/`, the HIVE state into `MatchInfo`. No launch zones: launch from anywhere; routines `LAUNCH_PARK` and `LAUNCH_COLLECT_PARK`; one favourite `LAUNCH_SPOT`. Poses written for RED, the default alliance; BLUE is turned. |

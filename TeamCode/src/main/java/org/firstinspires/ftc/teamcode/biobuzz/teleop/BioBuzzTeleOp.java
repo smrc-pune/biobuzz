@@ -10,10 +10,8 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.biobuzz.Robot;
 import org.firstinspires.ftc.teamcode.biobuzz.configurations.ControlsConfig;
 import org.firstinspires.ftc.teamcode.biobuzz.configurations.TelemetryConfig;
-import org.firstinspires.ftc.teamcode.biobuzz.helpers.AllianceColor;
 import org.firstinspires.ftc.teamcode.biobuzz.helpers.DashboardTelemetry;
 import org.firstinspires.ftc.teamcode.biobuzz.helpers.GamepadInput;
-import org.firstinspires.ftc.teamcode.biobuzz.helpers.InitMenu;
 import org.firstinspires.ftc.teamcode.biobuzz.helpers.MatchInfo;
 import org.firstinspires.ftc.teamcode.biobuzz.helpers.PoseMemory;
 
@@ -37,7 +35,7 @@ import org.firstinspires.ftc.teamcode.biobuzz.helpers.PoseMemory;
  * EVERY LOOP: 1) read the gamepads and give commands  2) robot.update()  3) telemetry
  *
  * CONTROLS (keep the same as ControlsConfig's list, TelemetryConfig.GAMEPAD*_HELP and docs/CONTROLS.md)
- *   INIT:   gamepad 1 D-pad = INIT menu (alliance)
+ *   INIT:   gamepad 1 D-pad left/right = switch alliance RED / BLUE
  *   GAMEPAD 1 (driver):    left stick = move (field-centric)     right stick X = turn
  *                          Y = "facing away from drivers now"     X = field / robot-centric
  *                          A = drive to our launch spot (S2)      B = drive to our LOADING ZONE (S2)
@@ -66,18 +64,13 @@ public class BioBuzzTeleOp extends OpMode {
     private GamepadInput operator;   // gamepad 2
     private Robot robot;             // the whole robot: drive, mechanisms, state machines
 
-    // The INIT menu (D-pad on gamepad 1 before PLAY). allianceRow says which line of the
-    // menu holds the alliance, so we can read the choice back in start().
-    private final InitMenu menu = new InitMenu();
-    private int allianceRow;
-
     private boolean hasAutoPose = false;        // true if Autonomous left us the robot's position
     private boolean headingConfirmed = false;   // false until the driver presses Y (when no auto pose)
 
     /*
      * An OpMode is a set of methods the SDK calls for us:
      *   init()       ONCE, when INIT is pressed
-     *   init_loop()  OVER AND OVER, while waiting for PLAY (the INIT menu runs here)
+     *   init_loop()  OVER AND OVER, while waiting for PLAY (the alliance is picked here)
      *   start()      ONCE, when PLAY is pressed
      *   loop()       OVER AND OVER, after PLAY (this is the match)
      *   stop()       ONCE, when STOP is pressed
@@ -96,23 +89,19 @@ public class BioBuzzTeleOp extends OpMode {
         operator = new GamepadInput(gamepad2);
         robot = new Robot(hardwareMap);   // finds every motor and sensor by name; moves nothing
 
-        // The menu starts from what was picked in Auto's INIT (MatchInfo keeps it), so the
-        // drive team only has to check it during the 8-second transition.
-        // AllianceColor.values() is the whole list { RED, BLUE }; MatchInfo.alliance is shown first.
-        allianceRow = menu.addChoiceRow("Alliance", AllianceColor.values(), MatchInfo.alliance);
-        // TODO(BioBuzz) step 4: a "Logging" row.
-
         // Did Autonomous save where the robot ended up? If yes, the assists (S2) can work.
         hasAutoPose = PoseMemory.hasPose();
     }
 
     @Override
     public void init_loop() {
-        // Runs over and over until PLAY. The D-pad moves around the menu:
-        // up/down picks a row, left/right changes the value in that row.
-        menu.update(driver.isDpadUpPressed(), driver.isDpadDownPressed(),
-                driver.isDpadLeftPressed(), driver.isDpadRightPressed());
-        menu.addTo(t);
+        // Runs over and over until PLAY. The alliance is the only thing picked here: it changes
+        // every match. It starts as whatever was picked in Auto's INIT (MatchInfo keeps it), so
+        // the drive team only has to check it during the 8-second transition.
+        // Everything else (Auto routine, start, delay) is decided before the match, in the configs.
+        boolean switchAlliance = driver.isDpadLeftPressed() || driver.isDpadRightPressed();
+        if (switchAlliance) MatchInfo.switchAlliance();   // RED <-> BLUE
+        t.addData("Alliance (D-pad left/right to change)", MatchInfo.alliance);
         // The battery's real voltage, so the drive team can swap a weak battery before PLAY.
         t.addData("Battery", String.format("%.1f V", robot.battery.getVoltage()));
         if (hasAutoPose) {
@@ -127,10 +116,6 @@ public class BioBuzzTeleOp extends OpMode {
     // ---------------- PLAY ----------------
     @Override
     public void start() {
-        // Copy the menu choice into MatchInfo, where every other file can read it.
-        // "(AllianceColor)" tells Java the menu's answer IS an AllianceColor (RED or BLUE).
-        MatchInfo.alliance = (AllianceColor) menu.getChoice(allianceRow);
-
         // Tell Drive our alliance: it decides which way is "away from the drivers".
         robot.drive.setAlliance(MatchInfo.isRed());
 
