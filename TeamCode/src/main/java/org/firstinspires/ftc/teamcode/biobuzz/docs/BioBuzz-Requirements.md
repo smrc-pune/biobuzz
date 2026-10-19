@@ -1,8 +1,8 @@
 # BioBuzz Robot Software – Requirements
 
-Oct 18, 2026 · @Girish
+Oct 19, 2026 · @Girish
 
-**Version 1.3**
+**Version 1.4**
 
 ## Contents
 
@@ -169,7 +169,7 @@ teamcode/biobuzz/
   README.md               start here: reading order, vocabulary, first changes
   Robot.java              builds every part + subsystem, update() once per loop, links subsystems
   configurations/         tunable numbers ONLY (@Config, public static)
-    HardwareNames.java    every device name + motor direction, nowhere else
+    HardwareNames.java    every device name + motor direction + hub and port, nowhere else
     DriveConfig.java      speeds, slow mode, field-heading offsets
     ControlsConfig.java   stick deadband, trigger threshold, which button does what (as comments + constants)
     AutoConfig.java       poses (inches, degrees, BLUE side), timeouts, alliance switch
@@ -184,7 +184,7 @@ teamcode/biobuzz/
   auto/                   AutoPaths.java (all paths), BioBuzzAuto.java (step machine)
   testing/                one test OpMode per subsystem + RobotCheck + LogViewer (+ MatchSimulator, TODO)
   fieldchecks/            FieldCheck01_Hardware ... FieldCheck13_Summary: one OpMode per new-field test
-  helpers/                StateTimer, StateLog, DashboardTelemetry, GamepadInput, HardwareLookup,
+  helpers/                StateTimer, StateLog, DashboardTelemetry, GamepadInput,
                           MatchLogger, MatchInfo, BatteryMonitor, LoopMonitor, HealthMonitor,
                           FieldCheckHelper, PoseMemory, InitMenu, FieldDrawing, LogSummary
   template/               TemplatePart.java, TemplateSubsystem.java to copy for a new mechanism
@@ -439,7 +439,7 @@ Two helpers watch the robot every loop. `helpers/LoopMonitor.java` tracks loop t
 
 | Problem | How it is detected | What the robot does |
 | --- | --- | --- |
-| Slow loop | Loop time averaged over 1 s is above 25 ms, or any single loop takes over 100 ms | ALERT with the slowest subsystem if known. Bulk reads are already on (`LynxModule.BulkCachingMode.MANUAL`, cleared once per loop) |
+| Slow loop | Loop time averaged over 1 s is above 25 ms, or any single loop takes over 100 ms | ALERT with the slowest subsystem if known. Bulk reads are off for now; turning them on is the first fix to try (LLD, Future improvements) |
 | Low battery | Below 12.0 V at INIT, or below 9.0 V for over 0.5 s during play | ALERT, rumble once. A low reading at INIT does not stop the OpMode; it is shown in red |
 | Pinpoint not `READY` | Status is anything but `READY` (a fault, or it restarted after a power blip) | Drive switches to **robot-centric**, rumble, ALERT. Driving is never stopped for this |
 | Heading jump | The heading changes more than `MAX_TURN_DEG_PER_S` × loop time + 10° in one loop (720°/s is faster than any FTC robot turns), measured the short way round | Drive switches to **robot-centric**, rumble, ALERT, log the jump |
@@ -471,7 +471,7 @@ Two helpers watch the robot every loop. `helpers/LoopMonitor.java` tracks loop t
 
 **Rules**
 
-- `HardwareLookup` MUST crash at INIT for a missing device, with its helpful message, so problems are found before the match. After PLAY, nothing MUST throw. Faults are caught in `helpers/` and turned into ALERTs.
+- Parts MUST get their devices in their constructor with the plain SDK call, `hardwareMap.get(DcMotorEx.class, HardwareNames.MOTOR_INTAKE)`, so a missing device crashes at INIT with the SDK's message (`Unable to find a hardware device with name "intake" and type DcMotorEx`) and problems are found before the match. There is no team wrapper around `hardwareMap.get`. After PLAY, nothing MUST throw. Faults are caught in `helpers/` and turned into ALERTs.
 - Every safeguard trip and every recovery press MUST be written to the match log as an EVENT.
 - Thresholds live in `configurations/HealthConfig.java`. The values above are starting values, to be set from our own logs.
 - `docs/MATCH_DAY.md` MUST give a one-page pre-match checklist (battery and its label, Pinpoint light, alliance and routine chosen, start pose placed, wires) and a between-match checklist, and MUST teach the drive team the recovery buttons.
@@ -483,7 +483,7 @@ Battery voltage is a likely hidden cause of match-only problems: a dip can reset
 `helpers/BatteryMonitor.java`:
 
 - Reads every hub's `VoltageSensor` (`hardwareMap.voltageSensor`) and keeps the **lowest**, because a dip on either hub matters.
-- Each read is a separate hub command (not part of a bulk read), so it MUST be sampled every `HealthConfig.BATTERY_SAMPLE_MS` (100 ms), not every loop.
+- Each read is a separate hub command, so it MUST be sampled every `HealthConfig.BATTERY_SAMPLE_MS` (100 ms), not every loop.
 - Keeps the **resting voltage** (averaged during INIT with the robot still), the **lowest since PLAY**, and the lowest since the last log row, so short dips are never missed at a 20 Hz log rate.
 - Is shared by `HealthMonitor` (low-battery ALERT), `MatchLogger`, `RobotCheck` and the Field Checks.
 
@@ -644,6 +644,8 @@ The documents MUST be Markdown files in `docs/` in the repository, so they chang
     - **Pinpoint access.** Pedro's `PinpointLocalizer` keeps its `GoBildaPinpointDriver` private, but the safeguards need `getDeviceStatus()`, `getFrequency()` and `recalibrateIMU()`. One option is a second handle to the same device from `hardwareMap` in `DriveBase`. The LLD records what was chosen and its risks: two objects talking to one device, recalibrating while the follower reads it, and resetting the pose after a Pinpoint restart.
     - **Dashboard field background.** How the BioBuzz field image is loaded by the Dashboard canvas (from the app's assets or a URL), and its scale and origin in inches.
     - **Constants depends on team code.** `pedro/Constants.java` imports `HardwareNames`, and what that means for Quickstart merges.
+11. **Future improvements**: optimizations left out on purpose to keep the code simple, each with what it gains, what it costs and when to do it. It MUST cover at least:
+    - **Bulk reads.** Off for now: every sensor and encoder read is its own hub command (about 1–2 ms each, slower on the Expansion Hub). Turning on `LynxModule` bulk caching makes each hub answer all its motor, digital and analog values in one read per loop; I2C devices (Pinpoint, color sensors) are never bulk-read. Options: `AUTO` (one loop in the `Robot` constructor, values can never go stale, an extra read when one value is read twice in a loop) or `MANUAL` (fastest, but the cache MUST be cleared once per loop at the top of `Robot.update()`, and a missed clear freezes sensor values with no error; it also needs a stored hub `List`, so it belongs in a small helper under R3). Do this when `LoopMonitor` shows loop times near the Slow loop threshold. Record the measured loop time before and after.
 
 ### Student guides
 
@@ -702,6 +704,7 @@ The team MUST give the AI the facts below before it writes BioBuzz-specific code
 
 | Version | Date | Changes |
 | --- | --- | --- |
+| 1.4 | 2026-10-19 | Removed `HardwareLookup`: parts call `hardwareMap.get(...)` directly with `HardwareNames` constants, and a missing device stops at INIT with the SDK's message. `HardwareNames` records each device's hub and port (Control Hub and Expansion Hub). Bulk reads are off and moved to a new LLD section, Future improvements. |
 | 1.3 | 2026-10-18 | Renamed the file to `BioBuzz-Requirements.md`; the version lives in the document only. `Constants.java` and `Tuning.java` stay as Quickstart stubs until tuning, then get a one-time structural fill-in recorded in `UPSTREAM.md`; `Constants` imports `HardwareNames`. Only OpModes read gamepads (through `GamepadInput`). One INIT menu (`InitMenu`, D-pad rows) replaces the separate INIT buttons. Field drawing goes through `helpers/FieldDrawing.java` with a BioBuzz field image asset. Field Check 07 carries its own copy of Pedro's deceleration method. Added `LogSummary`, `GamepadInput` held reads, the field-centric wording fix, and the LLD's Known implementation challenges (Pinpoint access first). |
 | 1.2 | 2026-10-18 | Added R11 and R12 and a new section, Base project and repository. The base is the Pedro Pathing Quickstart for Pedro 3.x, in a new `biobuzz` repository that stays up to date with the public Quickstart. Quickstart files are never moved, and team code goes in `teamcode/biobuzz/` next to `teamcode/pedro/`. Updated the code layout, testing and tuning, deliverables and acceptance sections to match. |
 | 1.1 | 2026-10-18 | Confirmed the change to R1: field-centric is the normal mode, and robot-centric is a safeguard fallback or a manual switch on gamepad 1 X. Added the table of contents and this revision history. |

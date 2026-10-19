@@ -5,7 +5,6 @@ import com.qualcomm.robotcore.hardware.HardwareMap;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.biobuzz.configurations.TelemetryConfig;
 import org.firstinspires.ftc.teamcode.biobuzz.helpers.FieldDrawing;
-import org.firstinspires.ftc.teamcode.biobuzz.helpers.HardwareLookup;
 import org.firstinspires.ftc.teamcode.biobuzz.helpers.MatchInfo;
 import org.firstinspires.ftc.teamcode.biobuzz.parts.DriveBase;
 import org.firstinspires.ftc.teamcode.biobuzz.subsystems.Drive;
@@ -14,8 +13,8 @@ import org.firstinspires.ftc.teamcode.biobuzz.subsystems.Drive;
  * Robot.java  -  the whole robot in one object. TeleOp AND Autonomous both use it.   ROLE: robot
  *
  * WHAT ROBOT DOES (and ONLY this):
- *   1. BUILDS every part and brain. This is the only place that connects device NAMES
- *      (HardwareNames) to parts, so you never hunt for names anywhere else.
+ *   1. BUILDS every part and brain. Each part finds its own devices with
+ *      hardwareMap.get(...) and the names in HardwareNames.
  *   2. UPDATES every brain, once per loop:   robot.update()
  *   3. LINKS brains that must cooperate (the ONE place brains talk to each other).
  *   4. Shows telemetry, honoring the switches in TelemetryConfig.
@@ -42,7 +41,6 @@ public class Robot {
     // TODO(BioBuzz): one public final field per mechanism brain.
 
     public Robot(HardwareMap hardwareMap) {
-        HardwareLookup.useManualBulkReads(hardwareMap);   // one hub read per loop (see HardwareLookup)
         drive = buildDrive(hardwareMap);
         // TODO(BioBuzz): build each mechanism here with its buildX() method.
     }
@@ -57,8 +55,6 @@ public class Robot {
      * Run one step of everything. Call once per loop, and ONLY once per loop.
      */
     public void update() {
-        HardwareLookup.clearBulkReadCache();   // fresh sensor values for this loop
-
         // ---- LINKS between brains (the only place brains talk to each other) ----
         // TODO(BioBuzz): for example "while the shooter fires, the intake feeds".
 

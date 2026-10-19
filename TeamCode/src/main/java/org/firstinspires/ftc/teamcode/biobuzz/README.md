@@ -87,7 +87,7 @@ teamcode/
     README.md               this guide
     Robot.java              the whole robot in one object
     configurations/         numbers and names only
-      HardwareNames.java      every device name, nowhere else
+      HardwareNames.java      every device name, and the hub and port it plugs into
       DriveConfig.java        drive speeds, deadzone, "away from drivers" headings
       ControlsConfig.java     trigger threshold, rumble lengths, button list
       TelemetryConfig.java    what shows on screen
@@ -104,6 +104,19 @@ teamcode/
 ```
 
 Coming later (see section 9): `auto/`, `fieldchecks/`, `template/`, and more helpers.
+
+**How a part finds its devices.** The robot has two hubs: the **Control Hub** (drive
+motors, Pinpoint) and the **Expansion Hub** (most mechanism motors). Each part gets its
+devices in its constructor with the normal SDK call and a name from `HardwareNames`:
+
+```java
+intakeMotor = hardwareMap.get(DcMotorEx.class, HardwareNames.MOTOR_INTAKE);
+```
+
+The code does not care which hub a device is on: the name finds it on either hub. The
+comment next to each name in `HardwareNames.java` says which hub and port it uses, so
+that file is also our wiring sheet. (`DriveBase` is special: Pedro's `Constants.java`
+finds the drive motors and Pinpoint, using the same `HardwareNames`.)
 
 ---
 
@@ -122,7 +135,6 @@ BioBuzzTeleOp.loop()
  |-- handleOperator()                                  (gamepad 2: mechanisms)
  |
  |-- robot.update()                                    3. UPDATE
- |     HardwareLookup.clearBulkReadCache()                fresh sensor values for this loop
  |     drive.update()
  |       state is DRIVER_CONTROL, so:
  |       driveBase.driveManual(...)                       scale by speed, then Pedro's
@@ -222,7 +234,6 @@ it calls `log.warn("...")`, which shows a WARNING line for 4 seconds.
 | `PoseMemory` | Carries the robot's pose from Autonomous into TeleOp |
 | `DashboardTelemetry` | One telemetry that shows on the Driver Station AND FTC Dashboard |
 | `FieldDrawing` | Draws the robot and its path on the Dashboard field |
-| `HardwareLookup` | Finds a device by name with a helpful error; turns on fast "bulk reads" |
 
 **Edge detection (important!).** The loop is much faster than your finger. If the
 code asked "is A down?", one press would count dozens of times. `isAPressed()` is
@@ -264,7 +275,7 @@ Gamepad 1 only drives. Gamepad 2 only runs mechanisms. Both maps are in
 | Step | What | Status |
 | --- | --- | --- |
 | 1 | Repository, Gradle (FTC Dashboard) | Done |
-| 2 | Base helpers: StateTimer, StateLog, GamepadInput, InitMenu, MatchInfo, PoseMemory, DashboardTelemetry, HardwareLookup | Done |
+| 2 | Base helpers: StateTimer, StateLog, GamepadInput, InitMenu, MatchInfo, PoseMemory, DashboardTelemetry | Done |
 | 3 | Robot, DriveBase, Drive, BioBuzzTeleOp, Test: Drive, FieldDrawing, drive configs | Done (not yet run on the robot) |
 | 4 | Battery and loop monitors, health alerts, match logging, heading safeguards, recovery buttons | Next |
 | 5 | Robot Check, Test: Parts, Log Viewer, mechanism template | Planned |
@@ -286,8 +297,10 @@ Gamepad 1 only drives. Gamepad 2 only runs mechanisms. Both maps are in
    reason for the last change.
 2. **Follow the loop** (section 4): was the button read? Was the command called?
    What state is the brain in? What did the part get told?
-3. **"DEVICE NOT FOUND"** at INIT: a name in `configurations/HardwareNames.java`
-   doesn't match the Robot Controller configuration.
+3. **`Unable to find a hardware device with name "..."`** at INIT: a name in
+   `configurations/HardwareNames.java` doesn't match the Robot Controller
+   configuration. Check the hub and port in the comment next to that name. If every
+   Expansion Hub device is missing, check that hub's power and its RS-485 cable.
 4. **Field-centric points the wrong way:** face the robot away from the drivers and
    press Y. Use "Test: Drive" to check.
 5. **A button does nothing:** check it is read only once per loop.
