@@ -132,9 +132,7 @@ public class Drive {
 
         switch (state) {
             case DRIVER_CONTROL:
-                driveBase.driveManual(forward * DriveConfig.DRIVE_SPEED,                       // DO
-                        right * DriveConfig.DRIVE_SPEED, clockwise * DriveConfig.TURN_SPEED,
-                        fieldCentric, getDriverHeadingDeg());
+                driveBase.driveManual(forward, right, clockwise, fieldCentric, getDriverHeadingDeg());  // DO
                 break;                                                     // (commands leave this state)
 
             case FOLLOWING_PATH:

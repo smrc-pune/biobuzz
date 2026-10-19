@@ -14,10 +14,6 @@ import com.acmerobotics.dashboard.config.Config;
  */
 @Config
 public class DriveConfig {
-    // Multipliers for the driver's sticks: 0.0 = no movement, 1.0 = full power.
-    public static double DRIVE_SPEED = 0.8;         // forward/back and sideways
-    public static double TURN_SPEED = 0.6;          // turning
-
     public static double STICK_DEADZONE = 0.05;     // stick values smaller than this count as 0 (stops creeping)
 
     // FIELD-CENTRIC: the robot's field heading (degrees, Pedro's field frame) when it faces

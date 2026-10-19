@@ -170,7 +170,7 @@ teamcode/biobuzz/
   Robot.java              builds every part + subsystem, update() once per loop, links subsystems
   configurations/         tunable numbers ONLY (@Config, public static)
     HardwareNames.java    every device name + motor direction + hub and port, nowhere else
-    DriveConfig.java      speeds, field-heading offsets
+    DriveConfig.java      stick deadzone, field-heading offsets
     ControlsConfig.java   stick deadband, trigger threshold, which button does what (as comments + constants)
     AutoConfig.java       poses (inches, degrees, BLUE side), timeouts, alliance switch
     TelemetryConfig.java  on/off switches per subsystem
@@ -267,14 +267,14 @@ The robot MUST always drive field-centric: pushing the stick away from the drive
 - `offset` is the alliance's driver-facing angle. It comes from `DriveConfig.BLUE_DRIVER_HEADING_DEG` and `DriveConfig.RED_DRIVER_HEADING_DEG`, picked by the alliance chosen in the INIT menu (kept in `MatchInfo`; the default is `AutoConfig.ALLIANCE_RED`). This means "away from the drivers" is correct on both alliances without a heading reset. TODO(BioBuzz): confirm both angles on the BioBuzz field drawing.
 - **Pose hand-off:** at the end of autonomous, the final Pedro pose MUST be saved in `helpers/PoseMemory.java` as a plain `public static` field. Teleop `init()` MUST start from that pose. If no auto ran in this app session, teleop uses the alliance's default start pose and shows a telemetry warning: `"No auto pose: press Y facing away from drivers"`.
 - **Heading reset:** gamepad 1 **Y** sets "the way the robot faces now = away from the drivers". This fixes drift during a match and turns field-centric back on after a fallback. Each reset MUST be written to the match log.
-- Stick input passes through a deadband (`DriveConfig.STICK_DEADZONE`) and a speed multiplier. It is never sent raw.
+- Stick input passes through a deadband (`DriveConfig.STICK_DEADZONE`), then goes to Pedro at full scale (no speed multiplier).
 
 **Gamepad 1 map** (only the driver's controls; changes go in `teleop/` and the cheat sheet)
 
 | Control | Action |
 | --- | --- |
-| Left stick | Move (field-centric), scaled by `DRIVE_SPEED` |
-| Right stick X | Turn, scaled by `TURN_SPEED` |
+| Left stick | Move (field-centric) |
+| Right stick X | Turn |
 | Y | Reset field heading ("facing away from the drivers"); field-centric back on |
 | Right stick button (robot against a wall) | Snap heading to the nearest 90° (see Troubleshooting C) |
 | Left stick button (hold 1 s, robot still) | Recalibrate the gyro, keeping the heading |
@@ -703,7 +703,7 @@ The team MUST give the AI the facts below before it writes BioBuzz-specific code
 
 | Version | Date | Changes |
 | --- | --- | --- |
-| 1.4 | 2026-10-19 | Removed `HardwareLookup`: parts call `hardwareMap.get(...)` directly with `HardwareNames` constants, and a missing device stops at INIT with the SDK's message. `HardwareNames` records each device's hub and port (Control Hub and Expansion Hub). Bulk reads are off and moved to a new LLD section, Future improvements. Removed slow mode (gamepad 1 left trigger is free); `SPEED_NORMAL` / `TURN_SPEED_NORMAL` renamed `DRIVE_SPEED` / `TURN_SPEED`. |
+| 1.4 | 2026-10-19 | Removed `HardwareLookup`: parts call `hardwareMap.get(...)` directly with `HardwareNames` constants, and a missing device stops at INIT with the SDK's message. `HardwareNames` records each device's hub and port (Control Hub and Expansion Hub). Bulk reads are off and moved to a new LLD section, Future improvements. Removed slow mode (gamepad 1 left trigger is free) and the stick speed multipliers: sticks drive at full scale after the deadzone. |
 | 1.3 | 2026-10-18 | Renamed the file to `BioBuzz-Requirements.md`; the version lives in the document only. `Constants.java` and `Tuning.java` stay as Quickstart stubs until tuning, then get a one-time structural fill-in recorded in `UPSTREAM.md`; `Constants` imports `HardwareNames`. Only OpModes read gamepads (through `GamepadInput`). One INIT menu (`InitMenu`, D-pad rows) replaces the separate INIT buttons. Field drawing goes through `helpers/FieldDrawing.java` with a BioBuzz field image asset. Field Check 07 carries its own copy of Pedro's deceleration method. Added `LogSummary`, `GamepadInput` held reads, the field-centric wording fix, and the LLD's Known implementation challenges (Pinpoint access first). |
 | 1.2 | 2026-10-18 | Added R11 and R12 and a new section, Base project and repository. The base is the Pedro Pathing Quickstart for Pedro 3.x, in a new `biobuzz` repository that stays up to date with the public Quickstart. Quickstart files are never moved, and team code goes in `teamcode/biobuzz/` next to `teamcode/pedro/`. Updated the code layout, testing and tuning, deliverables and acceptance sections to match. |
 | 1.1 | 2026-10-18 | Confirmed the change to R1: field-centric is the normal mode, and robot-centric is a safeguard fallback or a manual switch on gamepad 1 X. Added the table of contents and this revision history. |

@@ -60,7 +60,7 @@ The code is stacked in four layers. **Each layer only talks to the layer below i
 
 Two more folders are used by every layer:
 
-- **configurations/** – every number you might want to change (speeds, timeouts,
+- **configurations/** – every number you might want to change (deadzones, timeouts,
   device names). No other file has "magic numbers".
 - **helpers/** – tools: timers, gamepad reading, telemetry, menus. You rarely change these.
 
@@ -88,7 +88,7 @@ teamcode/
     Robot.java              the whole robot in one object
     configurations/         numbers and names only
       HardwareNames.java      every device name, and the hub and port it plugs into
-      DriveConfig.java        drive speeds, deadzone, "away from drivers" headings
+      DriveConfig.java        stick deadzone, "away from drivers" headings
       ControlsConfig.java     trigger threshold, rumble lengths, button list
       TelemetryConfig.java    what shows on screen
     parts/
@@ -137,7 +137,7 @@ BioBuzzTeleOp.loop()
  |-- robot.update()                                    3. UPDATE
  |     drive.update()
  |       state is DRIVER_CONTROL, so:
- |       driveBase.driveManual(...)                       scale by speed, then Pedro's
+ |       driveBase.driveManual(...)                       Pedro's
  |                                                        ManualDrive.fieldCentric() turns the
  |                                                        stick direction to match the field
  |       driveBase.update()                               Pedro reads the Pinpoint and
