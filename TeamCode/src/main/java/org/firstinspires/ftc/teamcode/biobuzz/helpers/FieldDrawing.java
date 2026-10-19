@@ -3,6 +3,8 @@ package org.firstinspires.ftc.teamcode.biobuzz.helpers;
 import com.acmerobotics.dashboard.FtcDashboard;
 import com.acmerobotics.dashboard.canvas.Canvas;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
+import com.pedropathing.math.Pose;
+import com.pedropathing.paths.Path;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
 import org.firstinspires.ftc.teamcode.biobuzz.configurations.TelemetryConfig;
@@ -16,7 +18,7 @@ import org.firstinspires.ftc.teamcode.biobuzz.configurations.TelemetryConfig;
  *
  * HOW IT IS USED (Drive does this every loop, then the OpMode sends it):
  *   FieldDrawing.drawRobot(x, y, headingDeg);
- *   FieldDrawing.drawPath(pathX, pathY);     // only while a path is followed
+ *   FieldDrawing.drawPath(path);             // only while a path is followed
  *   FieldDrawing.send();                     // once per loop, after telemetry
  *
  * COORDINATES: Pedro's field frame, in inches. The Dashboard field is 0 to 144 inches
@@ -34,6 +36,7 @@ public class FieldDrawing {
     private static final double ROBOT_RADIUS_IN = 9;   // half of an 18 in robot
     private static final double FIELD_SIZE_IN = 144;
     private static final int GRID_LINES = 7;           // one line every 24 in tile
+    private static final int PATH_POINTS = 20;         // a path is drawn as this many straight pieces
 
     private static TelemetryPacket packet = newPacket();
     private static final ElapsedTime sinceSent = new ElapsedTime();
@@ -51,9 +54,16 @@ public class FieldDrawing {
                 yIn + ROBOT_RADIUS_IN * Math.sin(headingRad));
     }
 
-    /** Draw a path as a line through these points (inches). Both arrays have the same length. */
-    public static void drawPath(double[] xIn, double[] yIn) {
+    /** Draw a Pedro path as a line through PATH_POINTS + 1 points along it. */
+    public static void drawPath(Path path) {
         if (!TelemetryConfig.FIELD_DRAWING) return;
+        double[] xIn = new double[PATH_POINTS + 1];
+        double[] yIn = new double[PATH_POINTS + 1];
+        for (int i = 0; i <= PATH_POINTS; i++) {
+            Pose point = path.get((double) i / PATH_POINTS);   // 0 = start, 1 = end
+            xIn[i] = point.x();
+            yIn[i] = point.y();
+        }
         Canvas canvas = packet.fieldOverlay();
         canvas.setStroke("#4CAF50");
         canvas.setStrokeWidth(1);

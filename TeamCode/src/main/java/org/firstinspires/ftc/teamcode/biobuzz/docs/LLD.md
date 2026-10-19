@@ -1,6 +1,6 @@
 # BioBuzz Software – Low-Level Design (LLD)
 
-Oct 19, 2026 · **Draft for review** · goes with Requirements v2.5 and `HLD.md`
+Oct 19, 2026 · **Draft for review** · goes with Requirements v2.6 and `HLD.md`
 
 This document describes each class: its job, its public methods, its config values and how it fits with the others. Code sketches show the **shape** of each class for review. They are not final code: names may change while building, and this document is then updated in the same commit.
 
@@ -65,8 +65,8 @@ teamcode/biobuzz/
              PartsTest, RobotCheck, LogViewer
   fieldchecks/  FieldCheck01_Hardware ... FieldCheck13_Summary
   helpers/   StateTimer, StateLog, GamepadInput, AllianceColor, MatchInfo, PoseMemory, MatchClock,
-             DashboardTelemetry, FieldDrawing, MatchLogger, BatteryMonitor, LoopMonitor,
-             HealthMonitor, FieldCheckHelper, LogSummary
+             DashboardTelemetry, FieldDrawing, MatchLogger, BatteryMonitor, HealthMonitor,
+             Alerts, FieldCheckHelper, LogSummary
   template/  TemplateMechanism.java, TemplateStateMachine.java, TemplateMechanismTest.java (@Disabled)
   docs/
 ```
@@ -125,14 +125,19 @@ public class Robot {
 | `setPoseAtResetCorner()` | "Set pose here" (Q4) | – |
 | `getAimHeadingDeg()` | Heading that faces the upward CELL from the current pose (for the aim button) | – |
 | `isIntakeOn()`, `isLaunching()` | Questions for OpModes (`isLaunching()` = `launch.isBusy()`) | – |
-| `hasNewUrgentAlert()` | True once per new urgent ALERT; the OpMode rumbles | – |
-| `update()` | See below | – |
-| `addTelemetry(t)`, `addLogData()` | Header, then each part, honoring `TelemetryConfig` | – |
+| `startMatch(opModeName, lengthS)` | PLAY: clears ALERTs, starts `clock`, the health checks and the match log | – |
+| `endMatch()` | STOP: `stopMechanisms()`, one last `update()`, then the log's END line | everything |
+| `hasNewUrgentAlert()` | True once per new urgent ALERT (`Alerts.takeUrgent()`); the OpMode rumbles | – |
+| `clock` (field) | The `MatchClock`: `getTimeLeftText()`, `justReachedSecondsLeft(s)`, `secondsSinceStart()` | – |
+| `update()` | See below; also writes the match-log DATA row | – |
+| `addTelemetry(t)` | Header (and the newest ALERT), then each part, honoring `TelemetryConfig` | – |
 
 **`update()` order** (once per loop, and only once)
 
 ```java
 public void update() {
+    clock.update();
+
     // 1. STATE MACHINES: they decide and give mechanisms commands
     launch.update();                        // ADD A STATE MACHINE HERE
 
@@ -144,9 +149,21 @@ public void update() {
     // 3. DRIVE: Pedro reads the Pinpoint and sets the drive motors
     drive.update();
 
-    // 4. ALWAYS-ON RULES: see this loop's fresh pose and sensors
-    // health.update(...)   step 4: battery, loop time, Pinpoint, heading jump -> ALERTs, robot-centric
+    // 4. HEALTH: loop time, battery, Pinpoint, heading jump -> ALERTs, robot-centric
+    health.update();
     // hive confirm from the HIVE camera: optional, Q2
+
+    // 5. MATCH LOG: one DATA row, LogConfig.RATE_HZ times a second
+    if (MatchLogger.isRowDue()) {
+        MatchLogger.value("match_s_left", clock.secondsLeft());
+        health.addLogData();
+        drive.addLogData();
+        for (Mechanism mechanism : mechanisms) {
+            mechanism.addLogData();
+        }
+        MatchLogger.value("launch_state", launch.getState().ordinal());   // ADD A STATE MACHINE HERE
+        MatchLogger.endRow();
+    }
 }
 ```
 
@@ -177,7 +194,8 @@ public class Mechanism {
     protected void stop() { }
     /** Your own telemetry lines (powers, speeds, sensor values). */
     protected void addDetails(Telemetry t) { }
-    /** Up to 8 values for the match log: MatchLogger.value("intake_power", power); */
+    /** Match-log columns, the same every row: MatchLogger.value("intake_power", power);
+     *  Log values kept in fields; do NOT read hardware here (this also runs while FAULTED). */
     protected void addLogValues() { }
 
     // ===== FIXED: Robot and test OpModes call these. Do not override. =====
@@ -211,12 +229,13 @@ public class Mechanism {
     public final boolean isFaulted() { return faulted; }
     public final String getName() { return name; }
 
-    /** A mechanism may call this itself, for example when a stall is detected. */
+    /** A mechanism may call this itself, for example when it sees a problem. */
     protected final void markFaulted(String reason) {
         if (faulted) return;
         faulted = true;
         faultReason = reason;
-        MatchLogger.event("FAULT", name + ": " + reason);   // also raises an ALERT (step 4)
+        runStop();
+        Alerts.raise(name + " FAULTED: " + reason, true);   // urgent; also an EVENT row
     }
 }
 ```
@@ -276,7 +295,7 @@ public class Intake extends Mechanism {
 | Devices | `MOTOR_INTAKE` (roller) |
 | Verbs | `collect()` (power `IntakeConfig.COLLECT_POWER`), `reverse()` (`REVERSE_POWER`), `stop()` |
 | Questions | `isOn()`, `getPower()` |
-| `update()` | Stall check (step 4): power above `STALL_POWER` while current above `STALL_CURRENT_A` for `STALL_MS` → `markFaulted("stalled")` |
+| `update()` | Nothing yet (stall detection is a future improvement, section 14) |
 | Log | `intake_power`, `intake_current_a` |
 
 ### 5.2 Feeder
@@ -339,14 +358,15 @@ There is no Storage mechanism: the hopper has no sensors, so the robot does not 
 | Driver driving (S1) | `driveWithSticks(forward, right, clockwise)`: field-centric unless robot-centric is on; `driveWithSticksAimedAt(forward, right, targetHeadingDeg)` (Pedro `ManualDrive.headingLock`); `resetHeading()`; `switchDriveMode()`; `useRobotCentric(reason)`, `useFieldCentric(reason)`; `isFieldCentric()` |
 | Path driving (S2, S3) | `followPath(path)`; `isDrivingItself()` (Pedro FOLLOW or HOLD); `isPathDone()`; `holdHere()`; `stopDrivingItself()` (back to manual, zero power) |
 | Pose | `getPose()`, `getX()`, `getY()`, `getHeadingDegrees()` (−180 to 180), `setPose(pose, reason)` (logged), `isPoseKnown()`, `isStill()` (speed under `DriveConfig.STILL_IN_PER_S`) |
-| Loop | `update()` (Pedro's `follower.update()`, every loop), `addTelemetry(t)`, `addLogData()`, `addDrawing()` |
+| Health | `getPinpointStatus()` (the same Pinpoint object Pedro reads; status only), `getHeadingSetCount()` (+1 whenever our code sets the heading, so it is not taken for a jump), `forgetPose(reason)` |
+| Loop | `update()` (Pedro's `follower.update()`, every loop), `addTelemetry(t)`, `addLogData()` (pose, heading speed, Pinpoint status, Pedro mode, drive mode, pose known, sticks), `addDrawing()` |
 
 **Rules**
 
-- Field-centric: `ManualDrive.fieldCentric(powers, heading, −driverHeading)`; robot-centric skips the rotation. Every switch is logged (`RECOVER_*` / `SAFEGUARD_*` events).
+- Field-centric: `ManualDrive.fieldCentric(powers, heading, −driverHeading)`; robot-centric skips the rotation. Every switch is a `CHANGE:Drive` EVENT (from `StateLog`). Moving a stick while a path runs logs `ASSIST_CANCELLED:stick`.
 - `isPoseKnown()` is true after `setStartingPose` (auto, or the pose from `PoseMemory`) or `setPose` (set-pose-here, camera); false after `setStartingPoseFacingAway()` and after a Pinpoint fault. Assist buttons check it.
 - Speed and acceleration limits for paths come from Pedro's `ForesightConfig` in `pedro/Constants.java`. Sticks drive at full power.
-- Pinpoint status, rate and recalibration: see Known implementation challenges.
+- Pinpoint status: see Known implementation challenges.
 
 ---
 
@@ -418,11 +438,11 @@ Which of our two CELLS faces up, and how many TIPS we have, are match facts like
 public void init()       { build Robot, GamepadInputs }
                            // NO actuator commands here (G403)
 public void init_loop()  { D-pad left/right switches the alliance; show battery and pose-from-auto or "S1: no auto pose" }
-public void start()      { drive.setAlliance(MatchInfo.isRed()); MatchClock.startTeleOp();
+public void start()      { robot.startMatch("BioBuzzTeleOp", MatchClock.TELEOP_S); drive.setAlliance(MatchInfo.isRed());
                            pose from PoseMemory -> drive.setStartingPose (pose known)
                            else drive.setStartingPoseFacingAway() (S1) }
-public void loop()       { handleDriver(); handleOperator(); robot.update(); signals(); showTelemetry(); }
-public void stop()       { robot.stopMechanisms(); robot.update(); }
+public void loop()       { handleDriver(); handleOperator(); robot.update(); rumbleForEvents(); showTelemetry(); }
+public void stop()       { robot.endMatch(); }
 
 private void handleDriver() {
     boolean faceAway = driver.isYPressed();
@@ -443,7 +463,7 @@ private void handleDriver() {
     }
     if (faceAway) robot.drive.resetHeading();
     if (switchMode) robot.drive.switchDriveMode();
-    // snap to 90, recalibrate, set pose here, mark: step 4
+    // D-pad left held 1 s: robot.setPoseAtResetCorner();  Back: MatchLogger.event("MARK", "driver")
 }
 
 private void handleOperator() {
@@ -465,16 +485,16 @@ private void handleOperator() {
 }
 
 /** Rumbles: only OpModes touch gamepads. */
-private void signals() {
-    if (robot.hasNewUrgentAlert()) { driver.rumble(...); operator.rumble(...); }
-    if (MatchClock.justReachedSecondsLeft(60)) { both rumble }   // NECTAR + FLOWERS unlocked
-    if (MatchClock.justReachedSecondsLeft(20)) { driver rumble }  // time to PARK
+private void rumbleForEvents() {
+    if (robot.hasNewUrgentAlert()) { driver.rumble(RUMBLE_ALERT_MS); operator.rumble(RUMBLE_ALERT_MS); }
+    if (robot.clock.justReachedSecondsLeft(ONE_MINUTE_WARNING_S)) { both rumble }   // NECTAR + FLOWERS unlocked
+    if (robot.clock.justReachedSecondsLeft(PARK_WARNING_S)) { driver rumble }       // time to PARK
 }
 ```
 
 ### 9.2 BioBuzzAuto
 
-INIT: gamepad 1 D-pad left/right switches the alliance; the screen also shows `AutoConfig.ROUTINE`, `START` and `START_DELAY_S` (set before the match; no menu). `init()`: build Robot, `MatchInfo.resetForNewMatch()`, `robot.holdPreloads()` (the only actuator move in any INIT). `init_loop()`: menu, then build the routine's paths for the chosen alliance and start; show a red warning if any path fails `isOnOwnSide` or `avoidsHive`. `start()`: `MatchClock.startAuto()`, `drive.setStartingPose(...)`. `loop()`: park-by guard, `runStep()`, `robot.update()`, `PoseMemory.save(...)`, telemetry. `stop()`: `robot.stopMechanisms()`, save the pose.
+INIT: gamepad 1 D-pad left/right switches the alliance; the screen also shows `AutoConfig.ROUTINE`, `START` and `START_DELAY_S` (set before the match; no menu). `init()`: build Robot, `MatchInfo.resetForNewMatch()`, `robot.holdPreloads()` (the only actuator move in any INIT). `init_loop()`: menu, then build the routine's paths for the chosen alliance and start; show a red warning if any path fails `isOnOwnSide` or `avoidsHive`. `start()`: `robot.startMatch("BioBuzzAuto", MatchClock.AUTO_S)`, `drive.setStartingPose(...)`. `loop()`: park-by guard, `runStep()`, `robot.update()`, `PoseMemory.save(...)`, telemetry. `stop()`: `robot.endMatch()`, save the pose.
 
 | Step | First loop | Done when | Timeout (`AutoConfig`) |
 | --- | --- | --- | --- |
@@ -486,7 +506,7 @@ INIT: gamepad 1 D-pad left/right switches the alliance; the screen also shows `A
 | `PARK` | `robot.stopMechanisms()`, `followPath(toLoadingZone)` | path done | `PARK_TIMEOUT_MS` |
 | `DONE` | – | – | – |
 
-Park-by guard: `if (MatchClock.autoSeconds() > AutoConfig.PARK_BY_S && step is before PARK) goToStep(PARK, "park-by")`.
+Park-by guard: `if (robot.clock.secondsSinceStart() > AutoConfig.PARK_BY_S && step is before PARK) goToStep(PARK, "park-by")`.
 
 ### 9.3 Test OpModes (group "Tests")
 
@@ -507,17 +527,18 @@ Park-by guard: `if (MatchClock.autoSeconds() > AutoConfig.PARK_BY_S && step is b
 | Helper | Public methods |
 | --- | --- |
 | `StateTimer` | `reset()`, `seconds()`, `milliseconds()`, `isTimeUp(ms)` |
-| `StateLog` | `record(from, to, reason)`, `warn(msg)`, `getLastChange()`, `getWarning()`, `addTo(t, name, state, timer, busy)` |
-| `GamepadInput` | sticks with deadzone (`getLeftStickY()` …), `areSticksMoved()`, `isXPressed()` / `isXHeld()` / `wasXReleased()` per button, `rumble(ms)`, `setLedColor(r, g, b)`, `getLastUpdateMs()` |
+| `StateLog` | `new StateLog(name)`; `record(from, to, reason)` and `warn(msg)` (each also a match-log EVENT), `getLastChange()`, `getWarning()`, `addTo(t, state, timer, busy)` |
+| `GamepadInput` | sticks with deadzone (`getLeftStickY()` …), `areSticksMoved()`, `isXPressed()` / `isXHeld()` / `wasXReleased()` per button, `isDpadLeftHeldFor(ms)`, `rumble(ms)`, `setLedColor(r, g, b)`, `getLastUpdateMs()` |
 | `AllianceColor` | `enum AllianceColor { RED, BLUE }` |
 | `MatchInfo` | static `alliance` (an `AllianceColor`, RED until chosen), `fieldName`; `isRed()`, `switchAlliance()`; the HIVE: `resetForNewMatch()`, `markHiveTipped()`, `isCellAUp()`, `getTipCount()`, `getNectarAllowed()`, `secondsSinceTip()` |
 | `PoseMemory` | `save(pose)`, `hasPose()`, `getPose()`, `secondsSinceSaved()`, `clear()` |
-| `MatchClock` (new) | `startAuto()`, `startTeleOp()`, `autoSeconds()`, `teleOpSecondsLeft()`, `justReachedSecondsLeft(s)`, `getTimeLeftText()` |
+| `MatchClock` | One per Robot (`robot.clock`). `AUTO_S`, `TELEOP_S`; `start(lengthS)`, `update()`, `hasStarted()`, `secondsSinceStart()`, `secondsLeft()`, `justReachedSecondsLeft(s)`, `getTimeLeftText()` |
 | `DashboardTelemetry` | `create(telemetry)` |
-| `FieldDrawing` | `drawRobot(x, y, headingDeg)`, `drawPath(xs, ys)`, `drawPoint(x, y)`, `send()` |
-| `MatchLogger` (step 4) | `start(opModeName)`, `value(column, number)`, `event(type, text)`, `endRow()`, `stop()` |
-| `BatteryMonitor` | `getVoltage()`: the lowest hub voltage, read at most every `HealthConfig.BATTERY_SAMPLE_MS`; shown on the header line and in TeleOp INIT. Step 4 adds resting voltage, lowest since PLAY and alerts |
-| `LoopMonitor`, `HealthMonitor` (step 4) | see Requirements, Troubleshooting C and D |
+| `FieldDrawing` | `drawRobot(x, y, headingDeg)`, `drawPath(path)`, `send()` (`drawPoint(x, y)` with the cameras) |
+| `MatchLogger` | static. `start(opModeName, batteryVolts)`, `isRowDue()`, `value(column, number or boolean)`, `endRow()`, `event(type, text)`, `stop(endText)`. No thread: a `BufferedWriter` saved every `LogConfig.FLUSH_S`; deletes old files at PLAY; a file error turns logging off with one ALERT |
+| `BatteryMonitor` | `getVoltage()`: the lowest hub voltage, read at most every `HealthConfig.BATTERY_SAMPLE_MS` |
+| `HealthMonitor` | One per Robot. `start()`, `update()` (loop time, low battery, Pinpoint not READY, heading jump), `getLoopMs()`, `addLogData()` (`loop_ms`, `worst_loop_ms`, `battery_v`), `getSummary()` (for the END line) |
+| `Alerts` | static. `raise(text, urgent)` (also an EVENT row), `getMessage()` (shown `TelemetryConfig.ALERT_SHOW_S`), `takeUrgent()`, `clear()` |
 | `FieldCheckHelper`, `LogSummary` | steps 5 and 6 |
 
 **Configurations** (`@Config`, `public static`, not `final`, except `HardwareNames`)
@@ -570,7 +591,7 @@ Park-by guard: `if (MatchClock.autoSeconds() > AutoConfig.PARK_BY_S && step is b
 
 **New DATA columns:** `intake_power`, `feeder_power`, `launcher_rpm`, `launcher_target_rpm`, `up_cell`, `tip_count`, `launch_state`, `<mechanism>_faulted`, `pose_known`, `match_s_left`.
 
-**New EVENTS:** `HIVE_TIP:<n>`, `INTAKE_ON`, `INTAKE_OFF`, `INTAKE_REVERSE`, `FAULT:<mechanism>:<reason>`, `ASSIST:<name>`, `ASSIST_REFUSED:pose unknown`, `ASSIST_CANCELLED:stick`, `POSE_SET:<how>:<old>-><new>`, `AUTO_PATH_OFFSIDE:<path>`, `PARK_BY`.
+**EVENTS (step 4):** `PLAY`, `STOP`, `CHANGE:<part>: <from> -> <to> (<reason>)`, `WARN:<part>: <message>` (refused assists among them), `ALERT:<text>` (mechanism FAULTED among them), `PINPOINT:<status>`, `ASSIST:<name>`, `ASSIST_CANCELLED:stick`, `MARK:driver`, `MARK:operator`. **Later:** `HIVE_TIP:<n>`, `INTAKE_ON`, `INTAKE_OFF`, `INTAKE_REVERSE`, `AUTO_PATH_OFFSIDE:<path>`, `PARK_BY`.
 
 **New ALERTs:** mechanism FAULTED (urgent), auto path off our side (INIT, red), launcher can't reach speed (spin-up timeout).
 
@@ -580,7 +601,7 @@ Park-by guard: `if (MatchClock.autoSeconds() > AutoConfig.PARK_BY_S && step is b
 
 | Challenge | Options | Plan |
 | --- | --- | --- |
-| **Pinpoint access.** Pedro's `PinpointLocalizer` keeps its driver private; safeguards need status, rate and `recalibrateIMU()` | A second handle from `hardwareMap` in `Drive`; reflection (forbidden); a team localizer class | Second handle, read-only except a recalibrate when the robot is still; record the risks (two objects on one device, reset during a path) |
+| **Pinpoint access.** Pedro's `PinpointLocalizer` keeps its `GoBildaPinpointDriver` private (checked in revhub 3.0.1); the safeguard needs `getDeviceStatus()` | `hardwareMap.get(GoBildaPinpointDriver.class, HardwareNames.PINPOINT)` in `Drive`; reflection (forbidden); a team localizer class | **Done:** `hardwareMap.get` returns the same object Pedro made (one object per configured device), so there is no second device object. `getDeviceStatus()` only reads the value Pedro's `update()` already fetched: no extra I2C read. Drive never writes to it. Needs the localizer in `Constants` to be the Pinpoint (it is). `recalibrateIMU()` (a write) waits with the recalibrate button (section 14) |
 | **Dashboard field background** | `TelemetryPacket(false)` + `drawImage("/images/field-biobuzz.png", 0, 0, 144, 144)`; flicker between packets | Already in `FieldDrawing`; the image is at `TeamCode/src/main/assets/images/field-biobuzz.png`; check flicker on the robot |
 | **Constants depends on team code** | `pedro/Constants.java` imports `HardwareNames` | Keep; record in `UPSTREAM.md` |
 | **HuskyLens is 2D** | Box size → rough distance; tag learned IDs must be trained on each unit; one algorithm at a time; I2C read takes a few ms | Read every 100 ms; use for "which CELL" and aim offsets only; document training in `CAMERA_GUIDE.md` |
@@ -597,7 +618,13 @@ Park-by guard: `if (MatchClock.autoSeconds() > AutoConfig.PARK_BY_S && step is b
 
 | Improvement | Gains | Costs | When |
 | --- | --- | --- | --- |
-| **Bulk reads** (`LynxModule` caching, AUTO or MANUAL) | 1–2 ms per sensor read saved | MANUAL: a missed clear freezes sensor values; needs a stored hub list in a helper | When `LoopMonitor` shows loops near the slow-loop limit; record loop time before and after |
+| **Bulk reads** (`LynxModule` caching, AUTO or MANUAL) | 1–2 ms per sensor read saved | MANUAL: a missed clear freezes sensor values; needs a stored hub list in a helper | When `loop_ms` or a SLOW LOOP ALERT shows loops near the slow-loop limit; record loop time before and after |
+| Snap heading to 90° (gamepad 1 right stick button, robot flat on a wall) | Fast heading fix without facing away | About 15 lines in Drive and TeleOp (`follower.setHeading`), refuse if more than 20° off | If Y is not enough in matches |
+| Gyro recalibrate (hold left stick button) and INIT drift checks | Fixes a slow heading creep | `pinpoint.recalibrateIMU()` while still; the status reads `CALIBRATING` for about 0.25 s (must not trip the Pinpoint safeguard); INIT "hands off" and drift screens | If logs show the heading creeping while still |
+| Gamepad-disconnect, pose-jump and motor-stall detection | More ALERTs | Gamepad `timestamp` watch and a drive stop; pose-step check; per-mechanism current and velocity checks with config values | When a match log shows one of these happened |
+| Gamepad LED colours (PS4/PS5) | Field / robot-centric and low battery at a glance | `GamepadInput.setLedColor` exists; only on Sony gamepads | If the drive team asks |
+| Background log writer thread | Storage saves never touch the loop | A thread and a queue (R3 bans threads in team code; would need an exception for `helpers/`) | If `worst_loop_ms` shows spikes every `FLUSH_S` |
+| Config snapshot in the log header | Know every tuned value of a run | One hand-written line per value (no reflection) | When tuning values change often between matches |
 | **Storage sensing** (a Storage mechanism) | Knowing how many balls are held and their colours: stop the intake at 4 (G407), push opponent NECTAR out automatically (G408), launch exactly what is held, pick a speed table per ball type | Sensors in the hopper (a colour sensor at the mouth, or one per slot); a `Storage` mechanism and a `CollectStateMachine` (intake until 4, reject opponent NECTAR) | When the robot's hopper gets sensors |
 | Camera pose fix (front webcam tag pose) | x/y recovery without the reset corner | Camera position calibration; the CELL tags face down, so they are seen at a steep angle; wrong fixes are worse than none | After Field Check 12 passes reliably |
 | Launch while moving | Faster cycles | Needs velocity-aware aiming | After consistent stationary launching |

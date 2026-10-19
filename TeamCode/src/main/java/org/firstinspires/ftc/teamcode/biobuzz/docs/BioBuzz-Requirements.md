@@ -2,7 +2,7 @@
 
 Oct 19, 2026 · @Girish
 
-**Version 2.5**
+**Version 2.6**
 
 ## Contents
 
@@ -193,7 +193,7 @@ teamcode/biobuzz/
                           LogViewer (+ MatchSimulator, TODO)
   fieldchecks/            FieldCheck01_Hardware ... FieldCheck13_Summary: one OpMode per new-field test
   helpers/                StateTimer, StateLog, DashboardTelemetry, GamepadInput, MatchClock,
-                          MatchLogger, MatchInfo, BatteryMonitor, LoopMonitor, HealthMonitor,
+                          MatchLogger, MatchInfo, BatteryMonitor, HealthMonitor, Alerts,
                           FieldCheckHelper, PoseMemory, FieldDrawing, LogSummary
   template/               TemplateMechanism, TemplateStateMachine, TemplateMechanismTest to copy
   docs/                   HLD.md, LLD.md, DESIGN-REVIEW.md, guides (see Documentation deliverables)
@@ -218,7 +218,7 @@ tools/plot_match.py       laptop only, mentor-side (repo root, not built into th
 - Device names MUST appear only in `HardwareNames.java`. Each mechanism gets its own devices in its constructor with `hardwareMap.get(...)` and those names; `pedro/Constants.java` imports them for the drivetrain and the Pinpoint.
 - Tunable numbers MUST appear only in `configurations/`. There are no magic numbers in mechanisms, state machines, Drive, `FieldPaths` or OpModes.
 - The DecodeBot `GamepadConfig` wrapper moves to `helpers/GamepadInput.java`, because it is a tool, not a set of numbers. It keeps the edge-detected `isAPressed()` style, adds `isAHeld()` and `wasAReleased()` reads, applies the stick deadzone and answers `areSticksMoved()`. Back/Share is read from `gamepad.back` (in the SDK, `options` is the same button as Start).
-- `helpers/FieldDrawing.java` draws on the Dashboard field view (see Telemetry and dashboard). `helpers/LogSummary.java` reads log files for `LogViewer`, so file reading and its `try`/`catch` stay in `helpers/`. `helpers/MatchClock.java` keeps match time (see Game requirements).
+- `helpers/FieldDrawing.java` draws on the Dashboard field view (see Telemetry and dashboard). `helpers/LogSummary.java` reads log files for `LogViewer`, so file reading and its `try`/`catch` stay in `helpers/`. `helpers/MatchClock.java` keeps match time (see Game requirements); Robot owns one (`robot.clock`).
 - A test OpMode builds just the mechanism it tests, with `new Intake(hardwareMap)`; there are no `Robot.buildX` methods.
 - `template/` MUST compile. It MUST be annotated `@Disabled` where it is an OpMode.
 
@@ -349,11 +349,9 @@ The robot MUST always drive field-centric: pushing the stick away from the drive
 | A | S2: drive to our favourite launch spot (`FieldConfig.LAUNCH_SPOT`; launching works from anywhere, this is just a known good spot) |
 | B | S2: drive to our LOADING ZONE (park, or pick up NECTAR) |
 | Right bumper (hold) | Aim: keep facing the upward CELL while driving (Pedro `ManualDrive.headingLock`) |
-| Right stick button (robot against a wall) | Snap heading to the nearest 90° (see Troubleshooting C) |
-| Left stick button (hold 1 s, robot still) | Recalibrate the gyro, keeping the heading |
 | D-pad left (hold 1 s, robot in our reset corner: back on the left wall, side on the far wall, `FieldConfig.RESET_CORNER`) | Set pose here (pose known again) |
 | D-pad left / right (INIT only) | Switch alliance RED / BLUE (see Autonomous, Pre-match selection) |
-| Back / Share | Mark a moment in the match log (`"DRIVER MARK"`), for post-match analysis |
+| Back / Share | Mark a moment in the match log (`MARK:driver`), for post-match analysis |
 
 ## Operator controls (R2)
 
@@ -443,7 +441,7 @@ Troubleshooting is one loop with four stages: check the robot, detect and recove
 | --- | --- | --- | --- |
 | 1a. New field | First practice-field slot at each event, and after a big repair | Pit crew + a driver | `fieldchecks/` OpModes (A) |
 | 1b. Before every match | In the pits, before queuing | Pit crew | `testing/RobotCheck.java` + `docs/MATCH_DAY.md` checklist (B) |
-| 2. Detect and recover | During the match | Driver + operator | `helpers/LoopMonitor`, `helpers/HealthMonitor`, heading safeguards, gamepad 1 recovery buttons (C) |
+| 2. Detect and recover | During the match | Driver + operator | `helpers/HealthMonitor` (loop time, battery, Pinpoint, heading jump), `helpers/Alerts`, gamepad 1 recovery buttons (C) |
 | 3. Record | Always, when logging is on | Nobody: automatic | `helpers/MatchLogger` + `helpers/BatteryMonitor` (D, E) |
 | 4. Analyse | Back in the pits, about 5 minutes per match | Data lead + drive team | `tools/plot_match.py`, `Log Viewer`, match sheet (F) |
 
@@ -466,7 +464,7 @@ A new field is a new robot: tile grip, tile wear and walls differ from our pract
 | 07 | `FieldCheck07_Brake` | Full power to a set speed, then coast; forward, then sideways | Deceleration within 15% of `naturalForwardDeceleration` / `naturalStrafeDeceleration` in `Constants` and the baseline | **Yes** |
 | 08 | `FieldCheck08_Line` | Pedro straight line, 48 in, stop on a seam | End error within the baseline + 0.75 in; overshoot and settle time shown | **Yes** |
 | 09 | `FieldCheck09_Square` | Pedro 48 in square, back to start | End error under 1.5 in and 3° | **Yes** |
-| 10 | `FieldCheck10_Wall` | Robot squared against a wall | Heading within 3° of the nearest 90°; then snap-to-90° is tried | Partly |
+| 10 | `FieldCheck10_Wall` | Robot squared against a wall | Heading within 3° of the nearest 90° (snap-to-90° is a future improvement) | Partly |
 | 11 | `FieldCheck11_Mechanisms` | One bench check per mechanism, through Robot methods (for example a flywheel reaches its target velocity within its spin-up time) | Per mechanism. TODO(BioBuzz): define one check per mechanism | No |
 | 12 | `FieldCheck12_Camera` | Only if Vision is used: robot on a seam crossing in view of a tag | Camera position within ±2 in of the Pinpoint. Event lighting is a common cause of failure | **Yes** |
 | 13 | `FieldCheck13_Summary` | Nothing | Shows every result, plus battery sag (resting from 02, lowest during 07 to 09) | – |
@@ -506,44 +504,36 @@ Things code cannot see (connectors seated, Pinpoint mounted firmly, battery stra
 
 ### C. Match-time issues: detect and recover (R8)
 
-Two helpers watch the robot every loop. `helpers/LoopMonitor.java` tracks loop timing and `helpers/HealthMonitor.java` checks the hardware, the heading and the battery. They MUST raise an **ALERT**, which goes on the telemetry header line, in the match log, and, for urgent alerts, as a gamepad rumble done by the OpMode (`robot.hasNewUrgentAlert()`). They MUST keep the robot running instead of crashing it.
+`helpers/HealthMonitor.java` watches the robot every loop: loop time, battery, Pinpoint status and heading jumps (one helper; the earlier separate `LoopMonitor` was merged into it to keep the file count down). Problems raise an **ALERT** through `helpers/Alerts.java`: the newest ALERT shows under the telemetry header, every ALERT is an `EVENT` row in the match log, and an urgent ALERT rumbles both gamepads, done by the OpMode (`robot.hasNewUrgentAlert()`). The robot MUST keep running instead of crashing.
 
 | Problem | How it is detected | What the robot does |
 | --- | --- | --- |
-| Slow loop | Loop time averaged over 1 s is above 25 ms, or any single loop takes over 100 ms | ALERT with the slowest mechanism or state machine if known. Bulk reads are off for now; turning them on is the first fix to try (LLD, Future improvements) |
-| Low battery | Below 12.0 V at INIT, or below 9.0 V for over 0.5 s during play | ALERT, rumble once. A low reading at INIT does not stop the OpMode; it is shown in red |
-| Pinpoint not `READY` | Status is anything but `READY` (a fault, or it restarted after a power blip) | Drive switches to **robot-centric**, the pose is no longer known (assists refused), rumble, ALERT. Driving is never stopped for this |
-| Heading jump | The heading changes more than `MAX_TURN_DEG_PER_S` × loop time + 10° in one loop (720°/s is faster than any FTC robot turns), measured the short way round | Drive switches to **robot-centric**, rumble, ALERT, log the jump |
-| Pose jump | The pose moves more than 6 in within one loop | ALERT and log the jump |
-| Device disconnected | A hub stops answering, or a mechanism device read throws an error | That mechanism is marked FAULTED (`Mechanism.runUpdate()`) and its outputs are set to zero. ALERT names it. The rest of the robot keeps working; a state machine that needs it stops with a warning |
-| Mechanism stuck | A state machine's timeout fires, or a motor is commanded above 0.3 power while its velocity stays near zero for 500 ms | Go to a safe state and `log.warn(...)`. ALERT and a rumble on gamepad 2 |
-| Gamepad disconnected | The gamepad's timestamp does not change for 1 s | ALERT. Drive powers are set to zero and any assist path is stopped until input returns |
+| Slow loop | Loop time averaged over 1 s is above 25 ms, or any single loop in that second took over 100 ms | ALERT (not urgent), at most once a second. Bulk reads are off for now; turning them on is the first fix to try (LLD, Future improvements) |
+| Low battery | Below 12.0 V at INIT, or below 9.0 V for over 0.5 s during play | During play: urgent ALERT, once per match. A low reading at INIT does not stop the OpMode; TeleOp's INIT screen shows "LOW - swap the battery" |
+| Pinpoint not `READY` | The status changes to anything but `READY` (a fault, or it restarted after a power blip) | Drive switches to **robot-centric**, the pose is no longer known (assists refused), urgent ALERT. Driving is never stopped for this. When the status is `READY` again, Y turns field-centric back on |
+| Heading jump | The heading changes more than `MAX_TURN_DEG_PER_S` × loop time + 10° in one loop (720°/s is faster than any FTC robot turns), measured the short way round. A heading our own code sets (Y, set pose here, start pose) is not a jump | Drive switches to **robot-centric**, urgent ALERT |
+| Device disconnected | A mechanism device read throws an error | That mechanism is marked FAULTED (`Mechanism.runUpdate()`) and its outputs are set to zero. Urgent ALERT names it. The rest of the robot keeps working; a state machine that needs it stops with a warning |
+| Mechanism stuck | A state machine's timeout fires | Go to a safe state and `log.warn(...)` |
 | Robot restarted mid-match | `PoseMemory` is empty in teleop | TeleOp runs as S1 (assists refused): warning and instructions for a heading reset and for "set pose here" (see Driving) |
 
-**Heading safeguards.** Field-centric driving is only as good as the heading. The checks above catch **sudden** problems (Pinpoint reset, fault, accidental reset). A **slow** creep from a bad gyro calibration is prevented at INIT instead:
+**Heading safeguards.** Field-centric driving is only as good as the heading. The checks above catch **sudden** problems (Pinpoint reset or fault, a heading jump). A **slow** creep from a bad gyro calibration is handled by the drive team: hands off the robot during INIT, and Y ("facing away from the drivers") when field-centric feels rotated.
 
-| Seen in INIT | Screen | Action |
-| --- | --- | --- |
-| Pinpoint `CALIBRATING` | "CALIBRATING - DON'T TOUCH THE ROBOT" | Wait |
-| `READY`, but turning faster than 1°/s | "ROBOT MOVING - hands off" | After 1 s still, `recalibrateIMU()` again |
-| `READY`, still, heading changed more than 0.5° in 5 s | "Gyro drifting - recalibrated" | `recalibrateIMU()`, start the 5 s again |
-| `READY`, still, steady | "Ready" | Record the resting battery voltage |
-
-**Recovery buttons (gamepad 1).** The driver owns heading recovery, so gamepad 2 stays on mechanisms (R2). These are added to the Gamepad 1 map in Driving:
+**Recovery buttons (gamepad 1).** The driver owns heading recovery, so gamepad 2 stays on mechanisms (R2).
 
 | Button | Action |
 | --- | --- |
 | Y | "The robot now faces away from the drivers": heading reset, and field-centric back on |
-| Right stick button (robot flat against a wall) | **Snap heading to the nearest 90°**. Refused with an ALERT if more than 20° from a multiple of 90° (the robot is not square to the wall) |
-| Hold left stick button 1 s (robot still) | **Recalibrate the gyro** (`recalibrateIMU()`, about 0.25 s), keeping the heading. Refused while moving. The Pinpoint `CALIBRATING` status is ignored for 500 ms afterwards |
 | X | Switch field-centric / robot-centric by hand, if the heading can't be trusted and nothing else works |
+| D-pad left (hold 1 s, in our reset corner) | Set pose here: the pose is known again, assists work |
 
-**Signals to the drive team.** Telemetry header shows `FIELD` or `ROBOT` drive mode, the heading (−180° to 180°, so "away" reads near 0 instead of flickering between 0 and 360), Pinpoint status and the battery. Urgent ALERTs rumble the gamepad. On PS4/PS5 gamepads the LED (`Gamepad.setLedColor`) shows green for field-centric trusted, orange for the robot-centric fallback, red for low battery.
+Snap-to-90°, an in-match gyro recalibrate, INIT drift checks, gamepad-disconnect and pose-jump detection, motor-stall detection and gamepad LED colours are future improvements (LLD section 14), left out to keep step 4 simple.
+
+**Signals to the drive team.** The telemetry header shows the alliance, time left, loop time, battery, `FIELD` or `ROBOT` drive mode, the heading (−180° to 180°, so "away" reads near 0 instead of flickering between 0 and 360) and the stage (S1 only / S2 ready); the drive line shows the Pinpoint status. The newest ALERT shows under the header. Urgent ALERTs rumble both gamepads.
 
 **Rules**
 
 - Mechanisms MUST get their devices in their constructor with the plain SDK call, `hardwareMap.get(DcMotorEx.class, HardwareNames.MOTOR_INTAKE)`, so a missing device crashes at INIT with the SDK's message (`Unable to find a hardware device with name "intake" and type DcMotorEx`) and problems are found before the match. There is no team wrapper around `hardwareMap.get`. After PLAY, nothing MUST throw: errors in a mechanism are caught by `Mechanism.runUpdate()` (FAULTED), and other faults are caught in `helpers/` and turned into ALERTs.
-- Every safeguard trip and every recovery press MUST be written to the match log as an EVENT.
+- Every ALERT, every state change and warning (`StateLog`), and every pose or drive-mode change MUST be written to the match log as an EVENT.
 - Thresholds live in `configurations/HealthConfig.java`. The values above are starting values, to be set from our own logs.
 - `docs/MATCH_DAY.md` MUST give a one-page pre-match checklist (a charged battery, Pinpoint light, alliance and routine chosen, start pose placed, wires) and a between-match checklist, and MUST teach the drive team the recovery buttons.
 
@@ -555,13 +545,12 @@ Battery voltage is a likely hidden cause of match-only problems: a dip can reset
 
 - Reads every hub's `VoltageSensor` (`hardwareMap.voltageSensor`) and keeps the **lowest**, because a dip on either hub matters.
 - Each read is a separate hub command, so it MUST be sampled every `HealthConfig.BATTERY_SAMPLE_MS` (100 ms), not every loop.
-- Keeps the **resting voltage** (averaged during INIT with the robot still), the **lowest since PLAY**, and the lowest since the last log row, so short dips are never missed at a 20 Hz log rate.
-- Is shared by `HealthMonitor` (low-battery ALERT), `MatchLogger`, `RobotCheck` and the Field Checks.
+- Is shared by `HealthMonitor` (low-battery ALERT, lowest since PLAY), `MatchLogger` (the voltage at PLAY in the file header, `battery_v` in every DATA row, `min_battery_v` in the END line), `RobotCheck` and the Field Checks. The battery is sampled every 100 ms and logged every 50 ms, so no dip between rows is missed.
 
 | Question | What the log shows |
 | --- | --- |
 | Did the Pinpoint reset because of a voltage dip? | Pinpoint status change or heading jump at the same moment as a deep dip |
-| Is this battery worn out? | Large sag (resting minus lowest) for normal driving, compared across matches |
+| Is this battery worn out? | Large sag (voltage at PLAY minus lowest) for normal driving, compared across matches |
 | Why did the auto end short? | Lower voltage, so less motor power |
 | Does one action draw too much? | Dips line up with a mechanism event |
 
@@ -575,10 +564,11 @@ The battery's **voltage** is measured by the robot (above). Which physical batte
 
 - Folder: `/sdcard/FIRST/data/biobuzz-logs/`. **Not** `/sdcard/FIRST/matchlogs/`: the SDK writes its own match logs there (`AppUtil.MATCH_LOG_FOLDER`), and ours must not mix with them.
 - Name: `<yyyy-MM-dd_HH-mm-ss>_<OpMode>_<ALLIANCE>.csv`, for example `2026-10-18_14-32-05_BioBuzzAuto_RED.csv`. The time comes first so files sort in the order they were run, and one match's Auto and TeleOp files sit next to each other. The OpMode name says whether it was a match, a test or a Field Check. Two files in the same second get `_2`, `_3`.
-- Header block (`#` lines): OpMode, alliance, routine, field name, battery resting voltage at INIT, `started_epoch_ms` (Control Hub clock at PLAY, to the millisecond), and a snapshot of every `*Config` value in use.
-- Footer: `# END rows=… dropped=… min_battery_v=… worst_loop_ms=…`, written only by a clean stop. **A file without `# END` means the OpMode crashed or the robot lost power.**
+- Header block (`#` lines): OpMode, alliance, field name, battery voltage at PLAY, `started_epoch_ms` (Control Hub clock at PLAY, to the millisecond). Auto adds its routine in step 7. A snapshot of every `*Config` value is a future improvement.
+- Then one line of column names: `type,t_s,event,<data columns>`. DATA rows leave `event` empty; EVENT rows stop after `event`.
+- Footer: `# END rows=… min_battery_v=… worst_loop_ms=…`, written only by a clean stop. **A file without `# END` means the OpMode crashed or the robot lost power.**
 
-**Which files belong to one match.** There is no match number in the software. A TeleOp file belongs to the Auto file just before it when it started within `LogConfig.MATCH_JOIN_S` (180 s) of that Auto file, on the same alliance. The plot tool and `LogViewer` use this rule.
+**Which files belong to one match.** There is no match number in the software. A TeleOp file belongs to the Auto file just before it when it started within 180 s (`MATCH_JOIN_S` in the plot tool; the robot code does not need it) of that Auto file, on the same alliance. The plot tool and `LogViewer` use this rule.
 
 **Match time.** Each OpMode's `t_s` restarts at 0 at PLAY, and Auto and TeleOp are separate files with a transition of varying length between them. The plot tool joins one match's files using `started_epoch_ms`: `match_s = t_s + (file start − Auto start) / 1000`, so `match_s` is 0 at Auto PLAY and TeleOp continues from the real moment it started. Only the difference between two clock readings on the same hub is used, so a wrong date on the hub does not matter.
 
@@ -589,29 +579,29 @@ The battery's **voltage** is measured by the robot (above). Which physical batte
 | Column | Unit | Notes |
 | --- | --- | --- |
 | `t_s` | s | Since PLAY of this OpMode |
+| `match_s_left` | s | Match time left (TeleOp) |
 | `loop_ms`, `worst_loop_ms` | ms | Latest loop, and the worst since the last row (so spikes are not missed at 20 Hz) |
-| `battery_v`, `battery_min_v` | V | Latest sample, and the lowest since the last row (D) |
+| `battery_v` | V | Latest sample (D) |
 | `x_in`, `y_in`, `heading_deg`, `heading_vel_dps` | in, °, °/s | Pedro pose; heading −180 to 180 |
 | `pinpoint_status` | code | Enum order: 0 `NOT_READY`, 1 `READY`, 2 `CALIBRATING`, 3 to 7 faults |
 | `follower_mode` | code | 0 `FOLLOW`, 1 `HOLD`, 2 `MANUAL`, 3 `IDLE` |
-| `stick_forward`, `stick_right`, `stick_turn` | −1 to 1 | Driver's stick values after deadband |
-| `drive_mode` | code | 1 field-centric, 0 robot-centric |
-| `<statemachine>_state` | code | Each state machine's state |
-| `<mechanism>_faulted`, mechanism values | – | Each mechanism's fault flag and up to 8 key values, chosen in its `addLogValues()` |
-| `intake_power`, `launcher_rpm`, `launcher_target_rpm`, `up_cell`, `tip_count`, `pose_known`, `match_s_left` | –, RPM, RPM, code, count, 0/1, s | Game values (see `docs/LLD.md`) |
+| `field_centric`, `pose_known` | 0/1 | Drive mode; whether assists are allowed |
+| `stick_forward`, `stick_right`, `stick_turn` | −1 to 1 | Driver's stick values after deadband (forward +, right +, clockwise +) |
+| `<mechanism>_faulted`, mechanism values | – | Each mechanism's fault flag and its key values, chosen in its `addLogValues()` (step 8) |
+| `<statemachine>_state` | code | Each state machine's state (step 8) |
 
-- `EVENT` rows whenever something happens: `PLAY` and `STOP`; every state change and its reason (logged automatically from `StateLog.record`); every `log.warn`; every ALERT; every safeguard trip (`SAFEGUARD_PINPOINT_<STATUS>`, `SAFEGUARD_HEADING_JUMP:<deg>`, `SAFEGUARD_LOW_BATTERY:<V>`); every recovery (`RECOVER_FACE_AWAY`, `RECOVER_SNAP90:<from>-><to>`, `RECOVER_RECALIBRATE`, `RECOVER_ROBOT_CENTRIC`, `RECOVER_FIELD_CENTRIC`, `POSE_SET:<how>`); game events (`HIVE_TIP:<n>`, `ASSIST:<name>`, `ASSIST_REFUSED`, `ASSIST_CANCELLED`, `PARK_BY`); `FAULT:<mechanism>:<reason>`; button presses that send commands; auto step changes, paths and timeouts; Field Check results (`FIELDCHECK_<nn>:<result>`); `LOGGER_DROPPED:<n>`; and driver or operator MARKs.
+- `EVENT` rows whenever something happens, as `TYPE:text`: `PLAY` and `STOP`; `CHANGE:<part>: <from> -> <to> (<reason>)` for every state, drive-mode and pose change (from `StateLog.record`); `WARN:<part>: <message>` (from `log.warn`, including refused assists); `ALERT:<text>` for every ALERT (safeguards, low battery, slow loop, mechanism FAULTED, log errors); `PINPOINT:<status>` on every Pinpoint status change; `ASSIST:<name>` and `ASSIST_CANCELLED:stick`; `MARK:driver` and `MARK:operator`. Game events (`HIVE_TIP`, launches), auto steps and Field Check results are added with their features.
 
 **Cost and safety**
 
-- Logging MUST NOT add more than 2 ms to the loop. The loop only copies numbers into a reused row and hands it to a queue. A background writer thread turns rows into text (no `String.format` per row) and writes them through a buffered writer, flushing at most every 250 ms and in `stop()`. The loop never waits for storage: if the queue (about 10 s of rows) is full, the row is dropped and counted.
+- Logging MUST NOT add more than 2 ms to the loop on average. There is no background thread (team code has no threads, R3): the loop builds each row in a reused `StringBuilder` (no `String.format` per row) and writes it to a `BufferedWriter`, which keeps it in memory. The file is saved to storage at most every `LogConfig.FLUSH_S` (1 s) and at STOP. A slow save shows up as a `worst_loop_ms` spike in the log itself; a background writer is a future improvement if that is ever a problem.
 - A file error turns logging off with one ALERT and never stops the robot.
 - Storage: roughly 3 KB/s at 20 Hz, under 1 MB per match.
 
 **On/off and retention**
 
 - `LogConfig.ENABLED` is the default and is what runs at competition. It can be changed in Dashboard during practice. The choice is read once, at PLAY, so a file is never half-written. When off, every logger call returns at once: no file, no thread.
-- Keep the newest 100 files and delete older ones at INIT.
+- Keep the newest `LogConfig.KEEP_FILES` (100) files; older ones are deleted at PLAY, before the new file is made.
 
 ### F. After the match: analysis and debrief
 
@@ -624,7 +614,7 @@ The battery's **voltage** is measured by the robot (above). Which physical batte
 - `--at 2.0` (or `--at 1:45`) prints the rows and events from 1 s before to 1 s after that match time.
 - `--compare` overlays the battery voltage of several files, labelled by file, to show which runs sagged most.
 - `--fieldcheck` builds the Field Check table (one row per field, one column per test) from the `FIELDCHECK_*` events.
-- A printed summary gives duration, rows, dropped rows, clean end, resting and lowest voltage, worst loop time, and for every `SAFEGUARD_*` event the battery voltage at that moment and the lowest in the 2 s before it: the quickest test of "was it the battery?".
+- A printed summary gives duration, rows, clean end, resting and lowest voltage, worst loop time, and for every `ALERT` event the battery voltage at that moment and the lowest in the 2 s before it: the quickest test of "was it the battery?".
 
 **Debrief, about 5 minutes per match**
 
@@ -638,11 +628,11 @@ The battery's **voltage** is measured by the robot (above). Which physical batte
 
 | Symptom | Likely causes | Evidence in the log | Fix |
 | --- | --- | --- | --- |
-| Field-centric suddenly rotated | Pinpoint reset, accidental Y, heading jump | Heading jumps; Pinpoint status change; `RECOVER_*` event | Secure the Pinpoint cable; check for a voltage dip at the same moment; snap to 90° |
-| Field-centric slowly rotated | Bad gyro calibration at INIT, Pinpoint mounting | Heading creeps while still; worse after many turns | Hands off at INIT; recalibrate; remount |
+| Field-centric suddenly rotated | Pinpoint reset, accidental Y, heading jump | Heading jumps; `PINPOINT:` event; `ALERT:HEADING JUMP`; `CHANGE:Drive` heading event (Y) | Secure the Pinpoint cable; check for a voltage dip at the same moment; Y facing away |
+| Field-centric slowly rotated | Bad gyro calibration at INIT, Pinpoint mounting | Heading creeps while still; worse after many turns | Hands off at INIT; Y facing away; remount |
 | Sluggish late in the match | Battery sag | Voltage trending down, deep dips under load | Fresh battery; retire a battery that sags every time |
 | Auto fine at home, off at the event | Different tile grip, so different braking | Field Check 07 to 09 vs baseline | Use the measured deceleration; adjust end poses |
-| Laggy or jerky drive | Slow loop | `worst_loop_ms` spikes; dropped rows | Remove slow code; fewer hardware reads; bulk reads (LLD, Future improvements) |
+| Laggy or jerky drive | Slow loop | `worst_loop_ms` spikes; `ALERT:SLOW LOOP` | Remove slow code; fewer hardware reads; bulk reads (LLD, Future improvements) |
 | Launches fall short or long | Wrong upward CELL, wrong distance, low battery | `up_cell`, pose, `launcher_rpm` vs target, `battery_v` at each launch | Press TIP when the HIVE tips; retune the speed table; fresh battery |
 | Log ends early | Crash, power loss, disconnect | No `# END`; last voltage reading | Robot Controller log for the crash; check power connectors |
 
@@ -723,12 +713,13 @@ The documents MUST be Markdown files in `docs/` in the repository, so they chang
 11. How to extend: checklists to add a mechanism, a state machine, an assist and an auto step.
 12. Telemetry, match log columns, EVENT types and ALERTs.
 13. **Known implementation challenges**: each problem found while building, the options considered, what was chosen and why. It MUST cover at least:
-    - **Pinpoint access.** Pedro's `PinpointLocalizer` keeps its `GoBildaPinpointDriver` private, but the safeguards need `getDeviceStatus()`, `getFrequency()` and `recalibrateIMU()`. One option is a second handle to the same device from `hardwareMap` in `Drive`. The LLD records what was chosen and its risks: two objects talking to one device, recalibrating while the follower reads it, and resetting the pose after a Pinpoint restart.
+    - **Pinpoint access.** Pedro's `PinpointLocalizer` keeps its `GoBildaPinpointDriver` private, but the safeguard needs `getDeviceStatus()`. `Drive` gets the device with `hardwareMap.get(GoBildaPinpointDriver.class, HardwareNames.PINPOINT)`, which returns the same object Pedro uses, and only reads its status (refreshed by Pedro's `update()`, no extra I2C read). Nothing else is written to it.
     - **Dashboard field background.** How the BioBuzz field image is loaded by the Dashboard canvas (from the app's assets or a URL), and its scale and origin in inches.
     - **Constants depends on team code.** `pedro/Constants.java` imports `HardwareNames`, and what that means for Quickstart merges.
     - **HuskyLens**, **which CELL is up**, **detecting a disconnected device**, **arrays in `@Config`**, **Pedro 3 path headings** and **static state between OpModes**.
 14. **Future improvements**: optimizations left out on purpose to keep the code simple, each with what it gains, what it costs and when to do it. It MUST cover at least:
-    - **Bulk reads.** Off for now: every sensor and encoder read is its own hub command (about 1–2 ms each, slower on the Expansion Hub). Turning on `LynxModule` bulk caching makes each hub answer all its motor, digital and analog values in one read per loop; I2C devices (Pinpoint, color sensors, HuskyLens) are never bulk-read. Options: `AUTO` (one loop in the `Robot` constructor, values can never go stale, an extra read when one value is read twice in a loop) or `MANUAL` (fastest, but the cache MUST be cleared once per loop at the top of `Robot.update()`, and a missed clear freezes sensor values with no error; it also needs a stored hub `List`, so it belongs in a small helper under R3). Do this when `LoopMonitor` shows loop times near the Slow loop threshold. Record the measured loop time before and after.
+    - **Bulk reads.** Off for now: every sensor and encoder read is its own hub command (about 1–2 ms each, slower on the Expansion Hub). Turning on `LynxModule` bulk caching makes each hub answer all its motor, digital and analog values in one read per loop; I2C devices (Pinpoint, color sensors, HuskyLens) are never bulk-read. Options: `AUTO` (one loop in the `Robot` constructor, values can never go stale, an extra read when one value is read twice in a loop) or `MANUAL` (fastest, but the cache MUST be cleared once per loop at the top of `Robot.update()`, and a missed clear freezes sensor values with no error; it also needs a stored hub `List`, so it belongs in a small helper under R3). Do this when `HealthMonitor` (the `loop_ms` column or a SLOW LOOP ALERT) shows loop times near the Slow loop threshold. Record the measured loop time before and after.
+    - **Step 4 items left out to keep it simple:** snap heading to 90° (right stick button), in-match gyro recalibrate (hold left stick button) and the INIT drift checks, gamepad-disconnect and pose-jump detection, motor-stall detection, gamepad LED colours, a background log writer thread, and a `*Config` snapshot in the log header.
 
 ### Design review: `docs/DESIGN-REVIEW.md`
 
@@ -786,7 +777,7 @@ The team MUST give the AI the facts below before it writes BioBuzz-specific code
 - [ ] Telemetry shows on both the Driver Station and the Dashboard, with the match header line and the per-mechanism and per-state-machine switches. The Dashboard field view shows the robot pose on the BioBuzz field.
 - [ ] Every Field Check OpMode runs and writes its log, and `Field Check 13: Summary` shows all results against the home baseline. `Robot Check` ends with READY FOR MATCH.
 - [ ] Pulling a motor cable during teleop raises an ALERT, marks that mechanism FAULTED, and does not crash the OpMode.
-- [ ] A full teleop run writes a match log with DATA and EVENT rows. `Log Viewer` summarizes it.
+- [ ] A full teleop run writes a match log with DATA and EVENT rows and an END line. `Log Viewer` summarizes it.
 - [ ] Unplugging the Pinpoint while driving switches to robot-centric with a rumble and an ALERT, and Y returns to field-centric.
 - [ ] A practice match's Auto and TeleOp logs are joined by `plot_match.py --match <Auto file> --at 2.0`, which shows what happened 2 s into the match, with battery voltage.
 - [ ] The loop time averages under 25 ms with logging and telemetry on.
@@ -797,6 +788,7 @@ The team MUST give the AI the facts below before it writes BioBuzz-specific code
 
 | Version | Date | Changes |
 | --- | --- | --- |
+| 2.6 | 2026-10-19 | Step 4 kept to the core: `MatchLogger` (CSV, no background thread: buffered writes from the loop, saved every `LogConfig.FLUSH_S`; newest 100 files kept), `MatchClock` (owned by Robot), `Alerts` (newest ALERT on screen, EVENT row, urgent rumble), and `HealthMonitor` with loop time, low battery, Pinpoint not READY and heading jump (`LoopMonitor` merged into it). Snap-to-90°, gyro recalibrate and INIT drift checks, gamepad-disconnect, pose-jump and stall detection, LED colours, the config snapshot and dropped-row counting moved to Future improvements. EVENT types simplified to `CHANGE`, `WARN`, `ALERT`, `PINPOINT`, `ASSIST`, `MARK`. |
 | 2.5 | 2026-10-19 | No INIT menu: `InitMenu` removed. Only the alliance is picked at the field (gamepad 1 D-pad left/right in INIT, Auto and TeleOp). Auto's routine, start position and start delay are decided before the match and set in `AutoConfig`; the Field Check field name in `FieldCheckConfig`; logging on/off in `LogConfig`. |
 | 2.4 | 2026-10-19 | Removed the Match type, Match number and Battery label rows from the INIT menu and `MatchInfo` (only Alliance is picked). Match logs are named by start time, OpMode and alliance; an Auto file and the TeleOp file that starts within 180 s after it are one match. Battery voltage is still measured and logged. |
 | 2.3 | 2026-10-19 | Review round 3. No Storage sensing on the robot: the Storage mechanism (counting, colour) becomes a future improvement; a separate `Feeder` mechanism pushes balls into the launcher. `CollectStateMachine` removed: the intake is manual (A on/off, B hold reverse). G407 is met by the hopper holding 4; G408 is the drive team's job. `Element` removed; the front camera uses plain questions. Launcher speed by distance only. The diagrams show that Robot updates every mechanism directly, and why. |

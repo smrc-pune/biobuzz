@@ -9,10 +9,13 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.biobuzz.Robot;
 import org.firstinspires.ftc.teamcode.biobuzz.configurations.ControlsConfig;
+import org.firstinspires.ftc.teamcode.biobuzz.configurations.HealthConfig;
 import org.firstinspires.ftc.teamcode.biobuzz.configurations.TelemetryConfig;
 import org.firstinspires.ftc.teamcode.biobuzz.helpers.DashboardTelemetry;
 import org.firstinspires.ftc.teamcode.biobuzz.helpers.GamepadInput;
+import org.firstinspires.ftc.teamcode.biobuzz.helpers.MatchClock;
 import org.firstinspires.ftc.teamcode.biobuzz.helpers.MatchInfo;
+import org.firstinspires.ftc.teamcode.biobuzz.helpers.MatchLogger;
 import org.firstinspires.ftc.teamcode.biobuzz.helpers.PoseMemory;
 
 /**
@@ -32,20 +35,14 @@ import org.firstinspires.ftc.teamcode.biobuzz.helpers.PoseMemory;
  * did not run (or the robot restarted), TeleOp starts as S1: drive into our reset corner
  * and hold D-pad left for 1 second ("set pose here") to turn the assists on.
  *
- * EVERY LOOP: 1) read the gamepads and give commands  2) robot.update()  3) telemetry
+ * EVERY LOOP: 1) read the gamepads and give commands  2) robot.update()  3) rumbles  4) telemetry
+ * Rumbles: urgent ALERT = both gamepads, 1:00 left = both, 0:20 left (time to PARK) = gamepad 1.
  *
- * CONTROLS (keep the same as ControlsConfig's list, TelemetryConfig.GAMEPAD*_HELP and docs/CONTROLS.md)
- *   INIT:   gamepad 1 D-pad left/right = switch alliance RED / BLUE
- *   GAMEPAD 1 (driver):    left stick = move (field-centric)     right stick X = turn
- *                          Y = "facing away from drivers now"     X = field / robot-centric
- *                          A = drive to our launch spot (S2)      B = drive to our LOADING ZONE (S2)
- *                          D-pad left (hold 1 s) = set pose here (robot in our reset corner)
- *                          Back/Share = mark a moment in the match log
- *   GAMEPAD 2 (operator):  D-pad down = STOP ALL mechanisms
- *                          Back/Share = mark a moment in the match log
- *                          TODO(BioBuzz): mechanism buttons
+ * CONTROLS: the full list is in configurations/ControlsConfig.java.
+ *   INIT: gamepad 1 D-pad left/right = switch alliance RED / BLUE.
  *
- * TO CHANGE A BUTTON: edit its line in handleDriver() or handleOperator() below.
+ * TO CHANGE A BUTTON: edit its line in handleDriver() or handleOperator() below, then the
+ * list in ControlsConfig and the cheat sheet in TelemetryConfig.GAMEPAD*_HELP.
  * TO CHANGE WHAT A BUTTON DOES: look in Robot.java, then the mechanism or drive file.
  *
  * TRACING A BUG: start in loop(). Was the button read in handleDriver()/handleOperator()?
@@ -103,7 +100,10 @@ public class BioBuzzTeleOp extends OpMode {
         if (switchAlliance) MatchInfo.switchAlliance();   // RED <-> BLUE
         t.addData("Alliance (D-pad left/right to change)", MatchInfo.alliance);
         // The battery's real voltage, so the drive team can swap a weak battery before PLAY.
-        t.addData("Battery", String.format("%.1f V", robot.battery.getVoltage()));
+        double volts = robot.battery.getVoltage();
+        String batteryText = String.format("%.1f V", volts);
+        if (volts < HealthConfig.INIT_LOW_BATTERY_V) batteryText += "  LOW - swap the battery";
+        t.addData("Battery", batteryText);
         if (hasAutoPose) {
             t.addData("Pose from auto", String.format("saved %.0f s ago: assists (S2) ready",
                     PoseMemory.secondsSinceSaved()));
@@ -116,6 +116,9 @@ public class BioBuzzTeleOp extends OpMode {
     // ---------------- PLAY ----------------
     @Override
     public void start() {
+        // Start the match clock (2:00), the health checks and the match log file.
+        robot.startMatch("BioBuzzTeleOp", MatchClock.TELEOP_S);
+
         // Tell Drive our alliance: it decides which way is "away from the drivers".
         robot.drive.setAlliance(MatchInfo.isRed());
 
@@ -131,18 +134,18 @@ public class BioBuzzTeleOp extends OpMode {
 
     @Override
     public void loop() {
-        // The match. These four lines run about 50 times every second, always in this order.
+        // The match. These lines run about 50 times every second, always in this order.
         handleDriver();          // 1. gamepad 1 -> driving commands
         handleOperator();        // 1. gamepad 2 -> mechanism commands
         robot.update();          // 2. every part of the robot takes one small step
-        showTelemetry();         // 3. show what is happening
+        rumbleForEvents();       // 3. buzz the gamepads for ALERTs and match time
+        showTelemetry();         // 4. show what is happening
     }
 
     // ---------------- STOP ----------------
     @Override
     public void stop() {
-        robot.stopMechanisms();  // every mechanism to its safe state
-        robot.update();          // push the "off" state to the motors before we finish
+        robot.endMatch();        // every mechanism to its safe state, then close the match log
     }
 
     // ==================== GAMEPAD 1: DRIVING ====================
@@ -196,11 +199,8 @@ public class BioBuzzTeleOp extends OpMode {
             robot.drive.switchDriveMode();
             driver.rumble(ControlsConfig.RUMBLE_DRIVE_MODE_MS);
         }
-        if (mark) {
-            // TODO(BioBuzz) step 4: MatchLogger "DRIVER MARK" event.
-        }
-        // TODO(BioBuzz) step 4: right stick button = snap heading to 90,
-        //                       hold left stick button 1 s = recalibrate the gyro.
+        // Back: "something odd just happened" - find this moment in the match log afterwards.
+        if (mark) MatchLogger.event("MARK", "driver");
         // TODO(BioBuzz): right bumper (hold) = aim at the upward CELL, once the launcher exists.
     }
 
@@ -215,8 +215,22 @@ public class BioBuzzTeleOp extends OpMode {
         //                if (intakeOnOff) robot.toggleIntake();
 
         if (stopAll) robot.stopMechanisms();   // the emergency button: every mechanism stops
-        if (mark) {
-            // TODO(BioBuzz) step 4: MatchLogger "OPERATOR MARK" event.
+        if (mark) MatchLogger.event("MARK", "operator");
+    }
+
+    // ==================== RUMBLES (only OpModes touch gamepads) ====================
+
+    private void rumbleForEvents() {
+        if (robot.hasNewUrgentAlert()) {   // the ALERT text is on the screen
+            driver.rumble(ControlsConfig.RUMBLE_ALERT_MS);
+            operator.rumble(ControlsConfig.RUMBLE_ALERT_MS);
+        }
+        if (robot.clock.justReachedSecondsLeft(ControlsConfig.ONE_MINUTE_WARNING_S)) {
+            driver.rumble(ControlsConfig.RUMBLE_ONE_MINUTE_MS);
+            operator.rumble(ControlsConfig.RUMBLE_ONE_MINUTE_MS);
+        }
+        if (robot.clock.justReachedSecondsLeft(ControlsConfig.PARK_WARNING_S)) {
+            driver.rumble(ControlsConfig.RUMBLE_PARK_MS);   // time to drive to the LOADING ZONE
         }
     }
 

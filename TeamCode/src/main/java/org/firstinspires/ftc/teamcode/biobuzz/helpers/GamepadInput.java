@@ -155,9 +155,6 @@ public class GamepadInput {
     public boolean isDpadLeftHeldFor(double milliseconds) {
         return isHeldLongEnough(DPAD_LEFT, gamepad.dpad_left, milliseconds);
     }
-    public boolean isLeftStickButtonHeldFor(double milliseconds) {
-        return isHeldLongEnough(LEFT_STICK_BUTTON, gamepad.left_stick_button, milliseconds);
-    }
 
     // ========== FEEDBACK to the person holding the gamepad ==========
 

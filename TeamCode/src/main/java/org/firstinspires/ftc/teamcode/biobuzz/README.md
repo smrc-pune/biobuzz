@@ -82,7 +82,8 @@ teamcode/
       DriveConfig.java        stick deadzone, "away from drivers" headings
       FieldConfig.java        every place we drive to (written for RED)
       ControlsConfig.java     trigger threshold, hold times, rumble lengths, button list
-      HealthConfig.java       how often the battery voltage is read (alerts come in step 4)
+      HealthConfig.java       limits for ALERTs: low battery, slow loop, heading jump
+      LogConfig.java          match log on/off, rows per second, how many files to keep
       TelemetryConfig.java    what shows on screen
     drive/
       Drive.java              the drivetrain: sticks, paths, pose (talks to Pedro)
@@ -165,18 +166,18 @@ methods for us, at these moments:
 ```
  press INIT ──> init()          ONCE: build the Robot. Nothing may move!
                 init_loop()     OVER AND OVER until PLAY: pick the alliance here
- press PLAY ──> start()         ONCE: set the alliance and the starting pose
+ press PLAY ──> start()         ONCE: start the clock and the match log; alliance and starting pose
                 loop()          OVER AND OVER: this is the match (section 4)
- press STOP ──> stop()          ONCE: put every mechanism in a safe state
+ press STOP ──> stop()          ONCE: every mechanism to a safe state; close the match log
 ```
 
 | Step | What BioBuzzTeleOp does |
 | --- | --- |
 | `init()` | Builds the `Robot`. |
-| `init_loop()` | Gamepad 1 D-pad left/right switches the alliance (RED / BLUE). Shows the battery voltage and whether there is a position from Autonomous. |
-| `start()` | Tells Drive the alliance. With a position from Auto: S2 ready. Without: S1 only, and the robot is assumed to face away from the drivers. |
-| `loop()` | `handleDriver()`, `handleOperator()`, `robot.update()`, telemetry. |
-| `stop()` | `robot.stopMechanisms()`. |
+| `init_loop()` | Gamepad 1 D-pad left/right switches the alliance (RED / BLUE). Shows the battery voltage ("LOW - swap the battery" under 12.0 V) and whether there is a position from Autonomous. |
+| `start()` | `robot.startMatch(...)`: starts the 2:00 clock, the health checks and the match log. Tells Drive the alliance. With a position from Auto: S2 ready. Without: S1 only, and the robot is assumed to face away from the drivers. |
+| `loop()` | `handleDriver()`, `handleOperator()`, `robot.update()`, `rumbleForEvents()`, telemetry. |
+| `stop()` | `robot.endMatch()`: every mechanism safe, then the log's `# END` line. |
 
 ---
 
@@ -206,12 +207,17 @@ for 1 second. The gamepad buzzes and the header says "S2 ready".
 | A | S2: drive to our launch spot |
 | B | S2: drive to our LOADING ZONE |
 | D-pad left (hold 1 s) | Set pose here (robot in our reset corner) |
+| Back / Share | Mark this moment in the match log ("something odd just happened") |
 | D-pad left/right (INIT only) | Switch alliance RED / BLUE |
 
 | Gamepad 2 | Action |
 | --- | --- |
 | D-pad down | Stop all mechanisms |
+| Back / Share | Mark this moment in the match log |
 | (mechanisms) | Coming with the mechanisms |
+
+**Rumbles:** a long buzz on both gamepads = an urgent ALERT (read the screen). Both buzz
+at 1:00 left; gamepad 1 buzzes at 0:20 left: time to PARK.
 
 All places are written **for RED** in `configurations/FieldConfig.java`. For BLUE,
 `FieldPaths.place(...)` turns them half a turn around the middle of the field.
@@ -250,7 +256,19 @@ for the `ADD A MECHANISM HERE` and `ADD A STATE MACHINE HERE` comments.
 | `DashboardTelemetry` | One telemetry that shows on the Driver Station AND FTC Dashboard |
 | `FieldDrawing` | Draws the robot and its path on the Dashboard field |
 | `BatteryMonitor` | The battery's real voltage, measured by the hubs (the lowest of the two), read at most every 100 ms |
+| `MatchClock` | Match time left. Robot owns one: `robot.clock.getTimeLeftText()` = "1:42" |
+| `HealthMonitor` | Watches loop time, battery, the Pinpoint and the heading every loop, and raises ALERTs |
+| `Alerts` | `Alerts.raise("text", urgent)`: shows under the header, goes in the log; urgent = rumble |
+| `MatchLogger` | Writes every run to a CSV file (see below) |
 
+**The match log.** Every run of BioBuzz TeleOp writes a file to
+`/sdcard/FIRST/data/biobuzz-logs/` on the Control Hub, named by time, OpMode and alliance,
+for example `2026-10-18_14-32-05_BioBuzzTeleOp_RED.csv`. It has 20 DATA rows a second
+(pose, heading, battery, loop time, sticks, Pinpoint status, ...) and an EVENT row for
+everything that happens (changes, warnings, ALERTs, assists, MARK presses). A file that
+does not end with `# END` means the OpMode crashed or the robot lost power. Copy the
+files to a laptop with Android Studio's Device Explorer and open them in a spreadsheet.
+To log a value from a new mechanism, fill in its `addLogValues()`.
 **Edge detection (important!).** The loop is much faster than your finger. If the
 code asked "is A down?", one press would count dozens of times. `isAPressed()` is
 true only on the one loop when the button goes from up to down. Read each button
@@ -265,8 +283,8 @@ true only on the one loop when the button goes from up to down. Read each button
 | 1 | Repository, Gradle (FTC Dashboard) | Done |
 | 2 | Helpers: StateTimer, StateLog, GamepadInput, AllianceColor, MatchInfo, PoseMemory, DashboardTelemetry, FieldDrawing | Done |
 | 3 | New design (Requirements v2.3): Robot, Drive, FieldPaths, Mechanism, BioBuzzTeleOp with S1 and S2, Test: Drive | Done (not yet run on the robot; FieldConfig places are first guesses) |
-| 4 | Battery and loop monitors, health alerts, match logging, heading safeguards, recovery buttons | Next |
-| 5 | Robot Check, Test: Parts, Log Viewer, templates | Planned |
+| 4 | Match log, match clock, ALERTs; health checks: loop time, low battery, Pinpoint, heading jump (Requirements v2.6) | Done (not yet run on the robot) |
+| 5 | Robot Check, Test: Parts, Log Viewer, templates | Next |
 | 6 | Field Checks 01–13 | Planned |
 | 7 | Autonomous (S3) | Planned |
 | 8 | Mechanisms: Intake, Feeder, Launcher, HIVE camera, front camera; LaunchStateMachine | When the robot's mechanisms are built |
@@ -280,10 +298,11 @@ true only on the one loop when the button goes from up to down. Read each button
 
 ## 10. When something goes wrong
 
-1. **Read the telemetry first.** The header line shows alliance, battery voltage, drive
-   mode, heading and "S1 only" or "S2 ready". A full battery reads about 13 V at rest;
-   it drops while the motors work hard. The Drive lines show who is driving, the pose,
-   any WARNING and the last change.
+1. **Read the telemetry first.** The header line shows alliance, time left, loop time,
+   battery voltage, drive mode, heading and "S1 only" or "S2 ready". Any ALERT is right
+   under it. A full battery reads about 13 V at rest; it drops while the motors work hard.
+   The Drive lines show who is driving, the Pinpoint status, the pose, any WARNING and
+   the last change.
 2. **Follow the loop** (section 4): was the button read? Was the Robot method called?
    Was it refused (look for a WARNING)? What did Drive tell Pedro?
 3. **`Unable to find a hardware device with name "..."`** at INIT: a name in
@@ -297,6 +316,12 @@ true only on the one loop when the button goes from up to down. Read each button
 6. **The robot drives to the wrong place:** check the numbers in `FieldConfig`, and that
    the right alliance was picked during INIT.
 7. **A button does nothing:** check it is read only once per loop.
+8. **"ROBOT" suddenly in the header, with an ALERT:** the Pinpoint had a problem or the
+   heading jumped. Check the Pinpoint cable. Once the Drive line says "Pinpoint READY",
+   face the robot away from the drivers and press Y. For the assists, "set pose here".
+9. **After the match:** open the log. Look at the EVENT rows around the time the drive
+   team noticed the problem (`t_s` is seconds since PLAY), and at `battery_v` and
+   `loop_ms` just before it. Pressing Back during the match leaves a MARK to find.
 
 ---
 

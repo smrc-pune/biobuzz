@@ -1,6 +1,8 @@
 package org.firstinspires.ftc.teamcode.biobuzz.mechanisms;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.teamcode.biobuzz.helpers.Alerts;
+import org.firstinspires.ftc.teamcode.biobuzz.helpers.MatchLogger;
 
 /**
  * MENTORS: you do not need to change this file.
@@ -14,11 +16,12 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
  *       @Override protected void update() { ... }               // every loop (optional)
  *       @Override protected void stop() { ... }                 // safe state: motors off
  *       @Override protected void addDetails(Telemetry t) { ... } // your telemetry lines
+ *       @Override protected void addLogValues() { ... }          // match-log columns (optional)
  *   }
  *
- * Robot calls runUpdate(), runStop() and addTelemetry() on every mechanism. If your
- * mechanism throws an error (for example a cable came out), it is marked FAULTED: it stops,
- * telemetry says why, and the rest of the robot keeps running.
+ * Robot calls runUpdate(), runStop(), addTelemetry() and addLogData() on every mechanism.
+ * If your mechanism throws an error (for example a cable came out), it is marked FAULTED:
+ * it stops, an urgent ALERT says why, and the rest of the robot keeps running.
  *
  * RULES FOR EVERY MECHANISM: get devices in the constructor with hardwareMap.get(...) and
  * HardwareNames; never move anything in the constructor (rule G304.H: robots stay still
@@ -44,6 +47,13 @@ public class Mechanism {
     /** Your own telemetry lines (powers, speeds, sensor values). */
     protected void addDetails(Telemetry t) { }
 
+    /**
+     * Your match-log columns, the same ones in the same order every time, for example
+     * MatchLogger.value("intake_power", power). Log numbers you already keep in fields:
+     * do NOT read hardware here (this also runs while FAULTED).
+     */
+    protected void addLogValues() { }
+
     // ==================== FIXED: Robot and test OpModes call these ====================
 
     public final void runUpdate() {
@@ -68,6 +78,12 @@ public class Mechanism {
         else addDetails(t);
     }
 
+    /** Robot calls this for each match-log DATA row. */
+    public final void addLogData() {
+        MatchLogger.value(name + "_faulted", faulted);
+        addLogValues();
+    }
+
     public final boolean isFaulted() { return faulted; }
 
     public final String getName() { return name; }
@@ -78,6 +94,6 @@ public class Mechanism {
         faulted = true;
         faultReason = reason;
         runStop();
-        // TODO(BioBuzz) step 4: write a FAULT event to the match log and raise an ALERT.
+        Alerts.raise(name + " FAULTED: " + reason, true);   // urgent: also written to the match log
     }
 }

@@ -5,13 +5,16 @@ import com.pedropathing.follower.Follower;
 import com.pedropathing.follower.ManualDrive;
 import com.pedropathing.math.Pose;
 import com.pedropathing.paths.Path;
+import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.teamcode.biobuzz.configurations.DriveConfig;
+import org.firstinspires.ftc.teamcode.biobuzz.configurations.HardwareNames;
 import org.firstinspires.ftc.teamcode.biobuzz.configurations.TelemetryConfig;
 import org.firstinspires.ftc.teamcode.biobuzz.helpers.FieldDrawing;
+import org.firstinspires.ftc.teamcode.biobuzz.helpers.MatchLogger;
 import org.firstinspires.ftc.teamcode.biobuzz.helpers.StateLog;
 import org.firstinspires.ftc.teamcode.pedro.Constants;
 
@@ -37,21 +40,23 @@ import org.firstinspires.ftc.teamcode.pedro.Constants;
  * the drivers, the sticks are not turned at all.
  *
  * POSE KNOWN: true after a real starting pose (from Auto) or "set pose here". False when
- * TeleOp only assumes "facing away from the drivers" (S1). Assist buttons need it.
+ * TeleOp only assumes "facing away from the drivers" (S1), or after a Pinpoint fault
+ * (helpers/HealthMonitor). Assist buttons need it.
  *
  * TRACING A BUG: "DRIVE NOT SET UP" at INIT means pedro/Constants.java is still the
  * Quickstart stub (filled in at drive tuning, docs/TUNING.md).
  */
 public class Drive {
 
-    private static final int PATH_DRAW_POINTS = 20;   // points used to draw a path on the Dashboard
-
     private final Follower follower;
-    private final StateLog log = new StateLog();      // drive-mode changes and warnings, for telemetry
+    private final GoBildaPinpointDriver pinpoint;     // only to read its status (HealthMonitor)
+    private final StateLog log = new StateLog("Drive");   // mode changes and warnings: telemetry + match log
     private boolean fieldCentric = true;
     private boolean isRed = true;
     private boolean poseKnown = false;
     private Path currentPath = null;                  // kept so the Dashboard can draw it
+    private int headingSetCount = 0;                  // +1 each time WE set the heading (not a "jump")
+    private double stickForward = 0, stickRight = 0, stickClockwise = 0;   // for the match log
 
     public Drive(HardwareMap hardwareMap) {
         follower = Constants.create(hardwareMap);
@@ -60,6 +65,9 @@ public class Drive {
                     + " Constants.java is still the Quickstart stub. Fill it in during drive tuning"
                     + " (docs/TUNING.md) before running a BioBuzz OpMode.");
         }
+        // The SAME Pinpoint object Pedro reads (the hardwareMap keeps one object per device).
+        // We only read its status; Pedro keeps it updated in follower.update().
+        pinpoint = hardwareMap.get(GoBildaPinpointDriver.class, HardwareNames.PINPOINT);
     }
 
     // ==================== SETUP (INIT and start only) ====================
@@ -71,18 +79,25 @@ public class Drive {
     public void setStartingPose(Pose pose) {
         follower.setPose(pose);
         poseKnown = true;
+        headingSetCount++;
     }
 
     /** No pose from Auto: only the heading is assumed (robot faces away from the drivers). S1 only. */
     public void setStartingPoseFacingAway() {
         follower.setPose(new Pose(0, 0, Math.toRadians(getDriverHeadingDeg())));
         poseKnown = false;
+        headingSetCount++;
     }
 
     // ==================== DRIVER DRIVING (S1) ====================
 
     /** Drive with stick values, each -1 to 1 (deadzone already applied by GamepadInput). */
     public void driveWithSticks(double forward, double right, double clockwise) {
+        boolean sticksMoved = forward != 0 || right != 0 || clockwise != 0;
+        if (sticksMoved && follower.following()) MatchLogger.event("ASSIST_CANCELLED", "stick");
+        stickForward = forward;
+        stickRight = right;
+        stickClockwise = clockwise;
         DrivePowers powers = new DrivePowers(forward, -right, -clockwise);   // Pedro: +left, +counter-clockwise
         if (fieldCentric) {
             powers = ManualDrive.fieldCentric(powers, follower.pose().heading(),
@@ -95,6 +110,7 @@ public class Drive {
     /** "The robot faces away from the drivers now." Fixes drift; turns field-centric back on. */
     public void resetHeading() {
         follower.setHeading(Math.toRadians(getDriverHeadingDeg()));
+        headingSetCount++;
         log.record("heading", String.format("%.0f deg", getDriverHeadingDeg()), "driver pressed Y");
         useFieldCentric("heading reset");
     }
@@ -148,6 +164,14 @@ public class Drive {
         log.record(poseText(follower.pose()), poseText(pose), reason);
         follower.setPose(pose);
         poseKnown = true;
+        headingSetCount++;
+    }
+
+    /** We can no longer trust x and y (for example a Pinpoint fault). Assists are refused. */
+    public void forgetPose(String reason) {
+        if (!poseKnown) return;
+        poseKnown = false;
+        log.record("pose known", "pose UNKNOWN", reason);
     }
 
     public boolean isPoseKnown() { return poseKnown; }
@@ -167,6 +191,12 @@ public class Drive {
         return DriveConfig.BLUE_DRIVER_HEADING_DEG;
     }
 
+    /** READY when all is well. Pedro reads the Pinpoint in update(); this just looks at the answer. */
+    public GoBildaPinpointDriver.DeviceStatus getPinpointStatus() { return pinpoint.getDeviceStatus(); }
+
+    /** Goes up by one every time our code sets the heading, so HealthMonitor knows it was not a jump. */
+    public int getHeadingSetCount() { return headingSetCount; }
+
     /** Show a short message on telemetry, for example "assist refused: position unknown". */
     public void warn(String message) { log.warn(message); }
 
@@ -180,7 +210,7 @@ public class Drive {
         if (!fieldCentric) mode = "ROBOT-centric";
         String who = "driver";
         if (isDrivingItself()) who = "robot (path)";
-        t.addData("Drive", mode + ", driven by " + who);
+        t.addData("Drive", mode + ", driven by " + who + ", Pinpoint " + getPinpointStatus());
         t.addData("Pose x / y / heading", String.format("%.1f in / %.1f in / %.1f deg",
                 getX(), getY(), getHeadingDegrees()));
         if (!log.getWarning().isEmpty()) t.addData("Drive WARNING", log.getWarning());
@@ -190,18 +220,25 @@ public class Drive {
         if (TelemetryConfig.DETAILS) t.addData("Pedro mode", follower.mode().toString());
     }
 
+    /** Drive columns of a match-log DATA row. */
+    public void addLogData() {
+        MatchLogger.value("x_in", getX());
+        MatchLogger.value("y_in", getY());
+        MatchLogger.value("heading_deg", getHeadingDegrees());
+        MatchLogger.value("heading_vel_dps", Math.toDegrees(follower.velocity().omega));
+        MatchLogger.value("pinpoint_status", getPinpointStatus().ordinal());   // 1 = READY
+        MatchLogger.value("follower_mode", follower.mode().ordinal());         // 0 FOLLOW 1 HOLD 2 MANUAL 3 IDLE
+        MatchLogger.value("field_centric", fieldCentric);
+        MatchLogger.value("pose_known", poseKnown);
+        MatchLogger.value("stick_forward", stickForward);
+        MatchLogger.value("stick_right", stickRight);
+        MatchLogger.value("stick_turn", stickClockwise);
+    }
+
     /** Draw the robot, and the path while the robot drives itself, on the Dashboard field. */
     public void addDrawing() {
         FieldDrawing.drawRobot(getX(), getY(), getHeadingDegrees());
-        if (currentPath == null || !isDrivingItself()) return;
-        double[] xs = new double[PATH_DRAW_POINTS + 1];
-        double[] ys = new double[PATH_DRAW_POINTS + 1];
-        for (int i = 0; i <= PATH_DRAW_POINTS; i++) {
-            Pose point = currentPath.get((double) i / PATH_DRAW_POINTS);
-            xs[i] = point.x();
-            ys[i] = point.y();
-        }
-        FieldDrawing.drawPath(xs, ys);
+        if (currentPath != null && isDrivingItself()) FieldDrawing.drawPath(currentPath);
     }
 
     private String poseText(Pose pose) {

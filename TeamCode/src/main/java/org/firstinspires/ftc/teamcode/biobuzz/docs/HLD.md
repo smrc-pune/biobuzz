@@ -1,6 +1,6 @@
 # BioBuzz Software – High-Level Design (HLD)
 
-Oct 19, 2026 · **Draft for review** · goes with Requirements v2.5 and `LLD.md`
+Oct 19, 2026 · **Draft for review** · goes with Requirements v2.6 and `LLD.md`
 
 This document explains how the BioBuzz robot software fits together. It is written for our team: 7th graders who are new to Java. Read it once from top to bottom. Use `LLD.md` when you need the details of one file.
 
@@ -204,8 +204,6 @@ We build the stages in this order: S1 (works today), then S3 (Auto proves the pa
 | A | S2: drive to our favourite launch spot |
 | B | S2: drive to our LOADING ZONE (park, or pick up NECTAR) |
 | Right bumper (hold) | Aim: keep facing the upward CELL while driving |
-| Right stick button | Snap heading to the nearest 90° (robot against a wall) |
-| Left stick button (hold 1 s) | Recalibrate the gyro |
 | D-pad left (hold 1 s) | Set pose here: robot sitting in our reset corner (back on the left wall, side on the far wall) |
 | Back / Share | Mark a moment in the match log |
 | D-pad left/right (INIT only) | Switch alliance RED / BLUE |
@@ -267,7 +265,7 @@ Each camera is a mechanism (`HiveCamera`, `FrontCamera`). Cameras only answer qu
  drive team (screen, rumble)      pits (Log Viewer)      laptop (plot tool)
 ```
 
-The first telemetry line always shows: alliance, time left, loop time, battery, FIELD or ROBOT driving, intake on or off, launcher ready, the upward CELL, and any ALERT.
+The first telemetry line always shows: alliance, time left, loop time, battery, FIELD or ROBOT driving with the heading, and S1 only / S2 ready (intake, launcher and the upward CELL join it with the mechanisms). The newest ALERT shows right under it. Gamepads rumble for an urgent ALERT, at 1:00 left (both) and at 0:20 left (gamepad 1: time to PARK).
 
 ---
 
@@ -287,14 +285,14 @@ The first telemetry line always shows: alliance, time left, loop time, battery, 
 | Risk | What happens |
 | --- | --- |
 | Odometry (Pinpoint) fails mid-match | Drive switches to robot-centric with a rumble and an ALERT; assists say "position unknown"; the driver drives as S1 |
-| Heading drifts | Y (facing away), snap to 90°, recalibrate (gamepad 1) |
+| Heading drifts | Y (facing away) on gamepad 1; a sudden jump switches to robot-centric with an ALERT |
 | Position lost after a restart | TeleOp starts as S1; "set pose here" in our reset corner brings S2 back |
 | A mechanism's cable comes out | That mechanism is FAULTED and stops; an ALERT names it; the rest keeps working |
 | Opponent NECTAR picked up | The operator holds B to push it back out (G408) |
 | Upward CELL wrong (TIP button missed) | The operator presses the TIP button again; the screen shows which CELL is up |
 | Auto runs late | The park-by guard: PARK always happens |
 | Loop gets slow | ALERT; first fix is bulk reads (LLD, Future improvements) |
-| Low battery | ALERT and rumble; logged in every row for the debrief |
+| Low battery | "LOW" on the INIT screen; during play an ALERT and rumble; logged in every row for the debrief |
 
 ---
 
