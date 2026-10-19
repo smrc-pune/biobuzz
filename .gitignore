@@ -79,3 +79,7 @@ lint/generated/
 lint/outputs/
 lint/tmp/
 # lint/reports/
+
+# ---- BioBuzz additions ----
+# Game manual PDF: download it from the FIRST website, do not commit it.
+BIOBUZZ_Competition_Manual_*.pdf
