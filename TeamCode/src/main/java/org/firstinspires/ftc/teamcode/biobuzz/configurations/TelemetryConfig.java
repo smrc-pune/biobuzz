@@ -24,7 +24,7 @@ public class TelemetryConfig {
     public static boolean GAMEPAD_HELP = true;         // the controls cheat sheet (the two lines below)
 
     // The controls cheat sheet. Keep it the same as BioBuzzTeleOp's header and docs/CONTROLS.md.
-    public static String GAMEPAD1_HELP = "GP1: sticks=drive  LT=slow  Y=face-away reset  X=field/robot  Back=mark";
+    public static String GAMEPAD1_HELP = "GP1: sticks=drive  Y=face-away reset  X=field/robot  Back=mark";
     public static String GAMEPAD2_HELP = "GP2: Dpad-down=STOP ALL  Back=mark  (mechanisms: TODO)";
 
     // ---- Timing ----

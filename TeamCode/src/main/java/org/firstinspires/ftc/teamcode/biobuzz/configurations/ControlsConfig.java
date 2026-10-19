@@ -13,7 +13,7 @@ import com.acmerobotics.dashboard.config.Config;
  * handleOperator()). This list is a copy for reading; keep it the same by hand:
  *
  *   GAMEPAD 1 (driver)   left stick = move (field-centric)     right stick X = turn
- *                        left trigger (hold) = slow mode       Y = reset heading (facing away)
+ *                        Y = reset heading (facing away)
  *                        X = switch field-centric / robot-centric
  *                        Back/Share = mark a moment in the match log
  *                        D-pad (INIT only) = INIT menu

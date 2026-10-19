@@ -255,7 +255,6 @@ Used only when the driver presses X, or when the heading can't be trusted.
 | --- | --- |
 | Left stick | Move |
 | Right stick X | Turn |
-| Left trigger (hold) | Slow mode |
 | Y | "Robot faces away from the drivers now" – resets the heading, field-centric on |
 | X | Switch field-centric / robot-centric |
 | D-pad (INIT only) | INIT menu |

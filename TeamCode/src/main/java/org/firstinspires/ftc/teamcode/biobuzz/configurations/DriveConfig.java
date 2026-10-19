@@ -15,10 +15,8 @@ import com.acmerobotics.dashboard.config.Config;
 @Config
 public class DriveConfig {
     // Multipliers for the driver's sticks: 0.0 = no movement, 1.0 = full power.
-    public static double SPEED_NORMAL = 0.8;        // forward/back and sideways, normal mode
-    public static double SPEED_SLOW = 0.3;          // same, while slow mode is held
-    public static double TURN_SPEED_NORMAL = 0.6;   // turning, normal mode
-    public static double TURN_SPEED_SLOW = 0.3;     // turning, slow mode
+    public static double DRIVE_SPEED = 0.8;         // forward/back and sideways
+    public static double TURN_SPEED = 0.6;          // turning
 
     public static double STICK_DEADZONE = 0.05;     // stick values smaller than this count as 0 (stops creeping)
 

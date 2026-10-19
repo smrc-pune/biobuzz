@@ -17,7 +17,7 @@ import org.firstinspires.ftc.teamcode.biobuzz.subsystems.Drive;
  * WHEN TO USE: the robot drives strangely (strafe or turn backwards, field-centric
  * points the wrong way). Check the pose numbers here first.
  *
- * CONTROLS (gamepad 1):   left stick = move   right stick X = turn   left trigger (hold) = slow
+ * CONTROLS (gamepad 1):   left stick = move   right stick X = turn
  *                         Y = "facing away from drivers now"   X = switch field / robot-centric
  *                         B (INIT only) = switch alliance BLUE / RED
  *
@@ -62,7 +62,6 @@ public class DriveTest extends OpMode {
         boolean switchMode = pad.isXPressed();
 
         drive.setDriverInput(pad.getLeftStickY(), pad.getLeftStickX(), pad.getRightStickX());
-        drive.setSlowMode(pad.isLeftTriggerHeld());
         if (faceAway) drive.resetHeading();
         if (switchMode) drive.switchDriveMode();
 
@@ -85,7 +84,6 @@ public class DriveTest extends OpMode {
         t.addLine("--- CONTROLS (gamepad 1) ---");
         t.addData("Left stick", "MOVE (field-centric: away = away from you)");
         t.addData("Right stick X", "TURN");
-        t.addData("Left trigger (hold)", "SLOW mode");
         t.addData("Y", "robot faces AWAY from drivers now (heading reset)");
         t.addData("X", "switch FIELD-centric / ROBOT-centric");
     }

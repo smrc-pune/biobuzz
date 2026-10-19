@@ -28,7 +28,7 @@ import org.firstinspires.ftc.teamcode.biobuzz.helpers.PoseMemory;
  * CONTROLS (keep the same as TelemetryConfig.GAMEPAD*_HELP and docs/CONTROLS.md)
  *   INIT:   gamepad 1 D-pad = INIT menu (alliance, match type and number, battery)
  *   GAMEPAD 1 (driver):    left stick = move (field-centric)     right stick X = turn
- *                          left trigger (hold) = slow mode       Y = "facing away from drivers now"
+ *                          Y = "facing away from drivers now"
  *                          X = switch field-centric / robot-centric
  *                          Back/Share = mark a moment in the match log
  *   GAMEPAD 2 (operator):  D-pad down = STOP ALL mechanisms
@@ -140,7 +140,6 @@ public class BioBuzzTeleOp extends OpMode {
 
         // Sticks: up = +forward, right = +right / +clockwise. Drive handles deadzone and Pedro's signs.
         robot.drive.setDriverInput(driver.getLeftStickY(), driver.getLeftStickX(), driver.getRightStickX());
-        robot.drive.setSlowMode(driver.isLeftTriggerHeld());
 
         if (faceAway) {
             robot.drive.resetHeading();

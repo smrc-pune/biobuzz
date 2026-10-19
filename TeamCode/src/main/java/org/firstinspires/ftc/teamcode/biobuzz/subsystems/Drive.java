@@ -53,7 +53,6 @@ public class Drive {
 
     // The latest requests, remembered until update() uses them.
     private double forward, right, clockwise;
-    private boolean slowMode = false;
     private boolean fieldCentric = true;
     private boolean isRed = false;
     private boolean headingResetRequested = false;
@@ -89,9 +88,6 @@ public class Drive {
         this.right = deadzone(right);
         this.clockwise = deadzone(clockwise);
     }
-
-    /** Slow mode = smaller speeds for precise driving. */
-    public void setSlowMode(boolean slowMode) { this.slowMode = slowMode; }
 
     /** "The robot faces away from the drivers now." Fixes drift; turns field-centric back on. */
     public void resetHeading() { headingResetRequested = true; }
@@ -136,12 +132,8 @@ public class Drive {
 
         switch (state) {
             case DRIVER_CONTROL:
-                double moveScale = DriveConfig.SPEED_NORMAL;                                   // DO
-                double turnScale = DriveConfig.TURN_SPEED_NORMAL;
-                if (slowMode) {
-                    moveScale = DriveConfig.SPEED_SLOW;
-                    turnScale = DriveConfig.TURN_SPEED_SLOW;
-                }
+                double moveScale = DriveConfig.DRIVE_SPEED;                                    // DO
+                double turnScale = DriveConfig.TURN_SPEED;
                 driveBase.driveManual(forward * moveScale, right * moveScale, clockwise * turnScale,
                         fieldCentric, getDriverHeadingDeg());
                 break;                                                     // (commands leave this state)
@@ -214,7 +206,6 @@ public class Drive {
         log.addTo(t, "Drive", state, timer, isBusy());
         String mode = "FIELD-centric";
         if (!fieldCentric) mode = "ROBOT-centric";
-        if (slowMode) mode = mode + ", SLOW";
         t.addData("Drive mode", mode);
         t.addData("Pose x / y / heading", String.format("%.1f in / %.1f in / %.1f deg",
                 getX(), getY(), getHeadingDegrees()));
