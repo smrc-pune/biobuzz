@@ -2,7 +2,7 @@
 
 Oct 19, 2026 · @Girish
 
-**Version 2.0**
+**Version 2.1**
 
 ## Contents
 
@@ -268,7 +268,7 @@ The design is explained in `docs/HLD.md` (why) and `docs/LLD.md` (each class). T
 
 These come from the BIOBUZZ Competition Manual TU05. Rule numbers (G…, R…) are the manual's. TODO(BioBuzz) items need the built robot or a team decision (see `docs/DESIGN-REVIEW.md`).
 
-**Match and scoring.** AUTO 30 s, then an 8 s transition, then TELEOP 2:00. Points: LEAVE 3 (auto), PARK in the LOADING ZONE 5 (auto and end of match), HIVE TIP 20, element left in an upward CELL 2, GARDEN 1, FLOWER points in the last 60 s. RP: SWARM (LEAVE + PARK ≥ 16 per alliance), POLLINATOR (4 and 7 TIPS). FLOWER scoring is not planned: the robot has no FLOWER placer (TODO(BioBuzz): confirm).
+**Match and scoring.** AUTO 30 s, then an 8 s transition, then TELEOP 2:00. Points: LEAVE 3 (auto), PARK in the LOADING ZONE 5 (auto and end of match), HIVE TIP 20, element left in an upward CELL 2, GARDEN 1, FLOWER points in the last 60 s. RP: SWARM (LEAVE + PARK ≥ 16 per alliance), POLLINATOR (4 and 7 TIPS). FLOWER scoring is not planned: the robot has no FLOWER placer (agreed in review, Q3).
 
 | # | Requirement | From |
 | --- | --- | --- |
@@ -281,10 +281,10 @@ These come from the BIOBUZZ Competition Manual TU05. Rule numbers (G…, R…) a
 | GR7 | The launch spot (S2 assist) and the aim heading MUST follow the upward CELL. The launcher speed MUST depend on the element type (POLLEN 2.8 in, NECTAR 3.6 in) and the distance to the upward CELL, from tables in `LauncherConfig` | 9.6, 9.8 |
 | GR8 | Every auto path MUST be checked at INIT: it stays on our side of the field (columns A–C red, D–F blue) and out of the HIVE footprint plus `FieldConfig` margin. A failing path shows a red warning on the INIT screen | G402, G409, G417 |
 | GR9 | Start positions MUST be a fixed list in `FieldConfig` (touching the wall, our side, not in the LOADING ZONE), picked in the INIT menu | G304 |
-| GR10 | Poses are written for BLUE. RED poses MUST be the BLUE pose turned 180° about the field centre (72, 72), because the field is rotationally symmetric. TODO(BioBuzz): confirm on Figure 9-2 or the CAD | 9.3 |
+| GR10 | Poses are written for BLUE. RED poses MUST be the BLUE pose turned 180° about the field centre (72, 72), because the field is rotationally symmetric (agreed, Q7). `FieldPaths.forAlliance` does it by chaining both reflections: `PoseFactory` `mirrorX(72.0).mirrorY(72.0)` | 9.3 |
 | GR11 | TeleOp MUST rumble both gamepads at 1:00 left (NECTAR may be entered, FLOWERS open) and gamepad 1 at 0:20 left (time to PARK). The header shows how many NECTAR the human player may enter (one per TIP before 1:00 left) | G410, G426 |
 | GR12 | The robot MUST stay within 8 motors and 8 servos, one Control Hub and at most one Expansion Hub. `HardwareNames` keeps the count in its header | R503, R701 |
-| GR13 | The HuskyLens (I2C) looks up at the AprilTags under the CELLS. It MUST be read no more often than `CameraConfig.SAMPLE_MS`. Its learned IDs map to CELLS in `CameraConfig`. It is used for "which CELL is up" and the aim offset; it does not set the pose | 9.9 |
+| GR13 | Two HuskyLens cameras (agreed, Q9). The **HIVE camera** looks up at the AprilTags under the CELLS (tag mode): which CELL is up, and the aim offset. The **front camera** identifies field AprilTags, POLLEN and NECTAR: it switches between tag and colour mode, because a HuskyLens runs one algorithm at a time. Both have the same fixed I2C address (0x32), so each MUST be on its own I2C bus. Each is read no more often than `CameraConfig.SAMPLE_MS`; learned IDs map to tags and colours in `CameraConfig`. Neither sets the pose | 9.9 |
 
 ## Driving (R1, R2)
 
@@ -294,7 +294,7 @@ The robot MUST always drive field-centric: pushing the stick away from the drive
 
 - Field-centric MUST be the normal mode. DecodeBot's `DriveConfig.ROBOT_CENTRIC` switch is removed. Robot-centric is used only as a safeguard fallback (Pinpoint not `READY`, or a heading jump) or when the driver presses X, and every switch is written to the match log (see Troubleshooting C).
 - In field-centric mode, `Drive.driveWithSticks(forward, right, clockwise)` MUST call Pedro's `ManualDrive.fieldCentric(powers, heading, offset)` every loop. The heading comes from the Pinpoint through the Pedro follower. In robot-centric mode (the fallback, or X) the stick powers go to the follower without the rotation.
-- `offset` is the alliance's driver-facing angle. It comes from `DriveConfig.BLUE_DRIVER_HEADING_DEG` and `DriveConfig.RED_DRIVER_HEADING_DEG`, picked by the alliance chosen in the INIT menu (kept in `MatchInfo`; BLUE until chosen). This means "away from the drivers" is correct on both alliances without a heading reset. In our field frame (the field image as drawn, origin bottom-left, red ALLIANCE AREA on the left wall) red drivers face 0° and blue drivers face 180°. TODO(BioBuzz): confirm on the field.
+- `offset` is the alliance's driver-facing angle. It comes from `DriveConfig.BLUE_DRIVER_HEADING_DEG` and `DriveConfig.RED_DRIVER_HEADING_DEG`, picked by the alliance chosen in the INIT menu (kept in `MatchInfo`; BLUE until chosen). This means "away from the drivers" is correct on both alliances without a heading reset. In our field frame (the field image as drawn, origin bottom-left, red ALLIANCE AREA on the left wall; agreed, Q8) red drivers face 0° and blue drivers face 180°, so today's `DriveConfig` values are swapped when the code is restructured.
 - **Pose hand-off:** auto saves its Pedro pose in `helpers/PoseMemory.java` every loop and in `stop()`. TeleOp `start()` MUST start from that pose, and the pose is then **known**. If no auto ran in this app session, TeleOp starts as **S1**: it assumes the robot faces away from the drivers (heading only, pose **not** known) and shows `"No auto pose: S1 only. Press Y facing away from drivers"`.
 - **Heading reset:** gamepad 1 **Y** sets "the way the robot faces now = away from the drivers". This fixes drift during a match and turns field-centric back on after a fallback. Each reset MUST be written to the match log.
 - Stick input passes through a deadband (`DriveConfig.STICK_DEADZONE`, applied in `GamepadInput`), then goes to Pedro at full scale (no speed multiplier).
@@ -309,7 +309,7 @@ The robot MUST always drive field-centric: pushing the stick away from the drive
 | S3 Autonomous | The robot | `auto/BioBuzzAuto.java` | The start pose |
 
 - An assist is one button, one fixed destination in `FieldConfig`, and one straight line or curve from where the robot is now, built by `game/FieldPaths`. **Moving any stick takes the robot back in the same loop**, even in the middle of a path. No mode or toggle is needed.
-- An assist is refused with a warning (and the event `ASSIST_REFUSED`) while the pose is not known: no auto pose, or after a Pinpoint fault. "Set pose here" (D-pad left, held 1 s, robot backed into our LOADING ZONE corner) makes the pose known again. TODO(BioBuzz): confirm this button (review Q4).
+- An assist is refused with a warning (and the event `ASSIST_REFUSED`) while the pose is not known: no auto pose, or after a Pinpoint fault. "Set pose here" (D-pad left, held 1 s, robot backed into our LOADING ZONE corner) makes the pose known again (agreed, Q4).
 - `Drive` has no states. It has driver operations (`driveWithSticks`, `driveWithSticksAimedAt`, `resetHeading`, `switchDriveMode`) and path operations (`followPath`, `isDrivingItself`, `isPathDone`, `holdHere`, `stopDrivingItself`). The OpMode decides which to use.
 
 **Gamepad 1 map** (only the driver's controls; changes go in `teleop/` and the cheat sheet)
@@ -378,12 +378,12 @@ Autonomous (stage S3) is a step list that drives the same `Robot` as teleop. It 
 **Pre-match selection**
 
 - During INIT, gamepad 1 uses one menu, `helpers/InitMenu.java`, instead of a button per setting. D-pad up/down moves between rows; D-pad left/right changes the value in that row, wrapping round at the ends. The OpMode reads the D-pad and passes the presses to the menu.
-- Auto's INIT rows: **Alliance** (BLUE / RED), **Start** position, **Routine**, **Delay** (0 to 10 s, for alliance partner coordination), **Match type** (P / Q / E), **Match number**, **Battery** label (A to H) and **Logging** (on / off). A routine is one value of an `enum Routine`. TODO(BioBuzz): the first routines (review Q10), for example NEAR (launch 4, collect our GARDEN, launch, park) and FAR (launch 4, park).
+- Auto's INIT rows: **Alliance** (BLUE / RED), **Start** position, **Routine**, **Delay** (0 to 10 s, for alliance partner coordination), **Match type** (P / Q / E), **Match number**, **Battery** label (A to H) and **Logging** (on / off). A routine is one value of an `enum Routine`. The first routines (agreed, Q10): NEAR (launch 4, collect our GARDEN, launch, park) and FAR (launch 4, park).
 - TeleOp's INIT shows the rows it needs (alliance, match type and number, battery, logging), starting from what was entered in Auto's INIT (`MatchInfo`).
 - The choices show on telemetry and are written to the match log header.
 - The `AutoConfig` and `LogConfig` values are the defaults, so the robot still works if nobody presses anything.
 
-**Vision** (HuskyLens, GR13). `mechanisms/Camera.java` answers questions only: is a learned tag in view, how far it is from the image centre, its size. Robot decides whether to use an answer. The camera does not correct the Pedro pose in this version (see `docs/LLD.md`, Future improvements). `docs/CAMERA_GUIDE.md` explains mounting and training the HuskyLens on the CELL tags.
+**Vision** (two HuskyLens cameras, GR13). `mechanisms/Camera.java` is built twice, once per camera, and answers questions only: is a learned tag or colour in view, how far it is from the image centre, its size. Robot decides whether to use an answer. The camera does not correct the Pedro pose in this version (see `docs/LLD.md`, Future improvements). `docs/CAMERA_GUIDE.md` explains mounting both cameras, their I2C buses, and training them on the tags and on POLLEN and NECTAR colours.
 
 ## Telemetry and dashboard (R6)
 
@@ -724,7 +724,7 @@ The conflicts, misalignments and game gaps found when the design changed, how ea
 | `docs/TUNING.md` | What order do I tune in, and what does good look like? |
 | `docs/MATCH_DAY.md` | What do I check before and between matches, and what is the field check? |
 | `docs/MATCH_LOGS.md` | How do I get logs off the robot, read them, and find the cause of a bad match? |
-| `docs/CAMERA_GUIDE.md` | How do I mount the HuskyLens, train it on the CELL tags, and check it with `Test: Camera`? |
+| `docs/CAMERA_GUIDE.md` | How do I mount the two HuskyLens cameras, put each on its own I2C bus, train them on the tags and the element colours, and check them with `Test: Camera`? |
 | `docs/GLOSSARY.md` | What do the words mean? Mechanism, state machine, state, hook, FAULTED, pose, pose known, field-centric, assist, S1/S2/S3, loop, deadband, PIDF, and each design pattern's name. The game words (POLLEN, NECTAR, CELL, TIP, …). |
 | `docs/UPDATING_PEDRO.md` | How do I merge a new Quickstart release, resolve a Constants.java conflict, test the result and record it in UPSTREAM.md? |
 
@@ -738,16 +738,16 @@ The team MUST give the AI the facts below before it writes BioBuzz-specific code
 
 - [x] BIOBUZZ game manual (TU05)
 - [x] BioBuzz field image (`TeamCode/src/main/assets/images/field-biobuzz.png`)
-- [ ] Mechanism hardware: Intake, Storage (with feeder) and Launcher are planned; their motors, servos and sensors, especially how Storage counts elements and reads colour (Q5)
+- [ ] Mechanism hardware: Intake, Storage (with feeder) and Launcher are planned; their motors, servos and sensors, especially how Storage counts elements and reads colour (Q5: deferred until the robot design evolves)
 - [ ] Robot configuration names from the Control Hub, for `HardwareNames`
-- [ ] Field frame, rotational symmetry and driver headings confirmed (Q7, Q8)
+- [x] Field frame, rotational symmetry and driver headings agreed (Q7, Q8)
 - [ ] Field poses: start positions, launch spots for each CELL, LOADING ZONE approach and park, GARDEN line, LOADING ZONE corner
 - [ ] Odometry: Pinpoint pod type and offsets (DecodeBot uses Pinpoint with goBILDA 4-bar pods)
-- [ ] HuskyLens mounting and the learned tag IDs (Q9)
-- [ ] Which CELL is up: operator button only, or the camera as well (Q2)
+- [ ] Two HuskyLens cameras (Q9 agreed): mounting, I2C bus for each, learned tag IDs and element colours; when the front camera uses tag mode and when colour mode
+- [x] Which CELL is up: operator button first, camera may confirm later (Q2)
 - [ ] Gamepad 2 map confirmed, once the mechanisms are built
-- [ ] Autonomous routines for the first competition (Q10)
-- [ ] FLOWER scoring: planned or not (Q3)
+- [x] Autonomous routines for the first competition: NEAR and FAR (Q10)
+- [x] FLOWER scoring: not planned (Q3)
 
 **Acceptance checklist** (mentor signs off)
 
@@ -773,6 +773,7 @@ The team MUST give the AI the facts below before it writes BioBuzz-specific code
 
 | Version | Date | Changes |
 | --- | --- | --- |
+| 2.1 | 2026-10-19 | Team decisions from the design review: Q1–Q4, Q6–Q8 and Q10 agreed as recommended; Q5 (Storage sensing) deferred; Q9 changed to two HuskyLens cameras (HIVE camera for the CELL tags, front camera for field tags, POLLEN and NECTAR). RED poses via `mirrorX(72).mirrorY(72)`. |
 | 2.0 | 2026-10-19 | New architecture, and the BIOBUZZ game. Mechanisms are operation classes (no states) that extend one plain base class, `Mechanism` (Template Method; R3 amended); tasks that take time are standalone state machines in `statemachines/`; `parts/` and `subsystems/` are replaced by `drive/`, `mechanisms/`, `statemachines/` and `game/` (R10 amended). `Drive` has no states. Robot is the one menu of robot actions and cancels state machines that share a mechanism (Mediator). Driving grows in three stages (S1 manual, S2 assisted with fixed-path buttons, S3 autonomous); with no auto pose TeleOp runs as S1. New Game requirements section (GR1–GR13) from the Competition Manual TU05, including rotational symmetry for RED. Vision is a HuskyLens. Design patterns are named. HLD, LLD and DESIGN-REVIEW drafted. |
 | 1.4 | 2026-10-19 | Removed `HardwareLookup`: parts call `hardwareMap.get(...)` directly with `HardwareNames` constants, and a missing device stops at INIT with the SDK's message. `HardwareNames` records each device's hub and port (Control Hub and Expansion Hub). Bulk reads are off and moved to a new LLD section, Future improvements. Removed slow mode (gamepad 1 left trigger is free) and the stick speed multipliers: sticks drive at full scale after the deadzone. Speed limits come from Pedro's `ForesightConfig` (paths and holding only). |
 | 1.3 | 2026-10-18 | Renamed the file to `BioBuzz-Requirements.md`; the version lives in the document only. `Constants.java` and `Tuning.java` stay as Quickstart stubs until tuning, then get a one-time structural fill-in recorded in `UPSTREAM.md`; `Constants` imports `HardwareNames`. Only OpModes read gamepads (through `GamepadInput`). One INIT menu (`InitMenu`, D-pad rows) replaces the separate INIT buttons. Field drawing goes through `helpers/FieldDrawing.java` with a BioBuzz field image asset. Field Check 07 carries its own copy of Pedro's deceleration method. Added `LogSummary`, `GamepadInput` held reads, the field-centric wording fix, and the LLD's Known implementation challenges (Pinpoint access first). |

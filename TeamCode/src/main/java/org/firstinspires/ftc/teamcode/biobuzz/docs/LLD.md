@@ -1,6 +1,6 @@
 # BioBuzz Software – Low-Level Design (LLD)
 
-Oct 19, 2026 · **Draft for review** · goes with Requirements v2.0 and `HLD.md`
+Oct 19, 2026 · **Draft for review** · goes with Requirements v2.1 and `HLD.md`
 
 This document describes each class: its job, its public methods, its config values and how it fits with the others. Code sketches show the **shape** of each class for review. They are not final code: names may change while building, and this document is then updated in the same commit.
 
@@ -29,7 +29,7 @@ This document describes each class: its job, its public methods, its config valu
 
 - **Units:** inches, degrees, milliseconds, RPM. The unit is in every constant's name (`_IN`, `_DEG`, `_MS`, `_RPM`).
 - **Field frame** (TODO(BioBuzz): confirm, review Q8): the field image as drawn, origin at the bottom-left corner (red GARDEN corner), x to the right, y up, 0 to 144 in. The audience is along the bottom wall. Red ALLIANCE AREA is on the left wall, blue on the right. Heading 0° points along +x, counter-clockwise is positive (Pedro).
-- **Alliances:** every pose is written once, for BLUE, in `FieldConfig`. RED = BLUE turned 180° about (72, 72) (`x → 144 − x`, `y → 144 − y`, `heading → heading + 180°`), done in one method, `FieldPaths.forAlliance(pose, isRed)`.
+- **Alliances:** every pose is written once, for BLUE, in `FieldConfig`. RED = BLUE turned 180° about (72, 72) (`x → 144 − x`, `y → 144 − y`, `heading → heading + 180°`), done in one method, `FieldPaths.forAlliance(pose, isRed)`, by chaining both reflections: `mirrorX(72.0).mirrorY(72.0)` (agreed, Q7).
 - **Telemetry words:** state names in CAPITALS; every value has its unit.
 
 ---
@@ -90,7 +90,8 @@ public class Robot {
     private final Intake intake;              // mechanisms: only through Robot methods
     private final Storage storage;
     private final Launcher launcher;
-    private final Camera camera;
+    private final Camera hiveCamera;          // looks up at the CELL tags
+    private final Camera frontCamera;         // looks ahead: field tags, POLLEN, NECTAR
     private final Mechanism[] mechanisms;     // update, stop, telemetry and log loop over this
 
     private final HiveState hive;
@@ -102,8 +103,9 @@ public class Robot {
         intake = new Intake(hardwareMap);
         storage = new Storage(hardwareMap);
         launcher = new Launcher(hardwareMap);
-        camera = new Camera(hardwareMap);
-        mechanisms = new Mechanism[] { intake, storage, launcher, camera };   // ADD A MECHANISM HERE
+        hiveCamera = new Camera(hardwareMap, HardwareNames.HUSKYLENS_HIVE, "hive_camera");
+        frontCamera = new Camera(hardwareMap, HardwareNames.HUSKYLENS_FRONT, "front_camera");
+        mechanisms = new Mechanism[] { intake, storage, launcher, hiveCamera, frontCamera };   // ADD A MECHANISM HERE
 
         hive = new HiveState();
         collect = new CollectStateMachine(intake, storage);                    // given what it uses
@@ -148,7 +150,8 @@ public void update() {
 
     // 4. ALWAYS-ON RULES: see this loop's fresh pose and sensors
     // health.update(...)   step 4: battery, loop time, Pinpoint, heading jump -> ALERTs, robot-centric
-    // hive confirm from camera: optional, Q2
+    // front camera mode: COLOUR while collecting, TAGS otherwise (frontCamera.useColourMode() / useTagMode())
+    // hive confirm from the HIVE camera: optional, Q2
 }
 ```
 
@@ -264,16 +267,23 @@ TODO(BioBuzz): device lists depend on the built robot (review Q5). The shapes be
 | Speed table | `LauncherConfig.DISTANCE_IN = {36, 48, 60, 72, 84}`, `POLLEN_RPM = {...}`, `NECTAR_RPM = {...}`; straight-line interpolation between neighbours, clamped at the ends (a counted `for` loop) |
 | Log | `launcher_rpm`, `launcher_target_rpm` (also on the Dashboard graph) |
 
-### 5.4 Camera (HuskyLens)
+### 5.4 Camera (two HuskyLens cameras, one class)
+
+One class, built twice: `new Camera(hardwareMap, deviceName, name)`. The device name still comes from `HardwareNames` (`HUSKYLENS_HIVE`, `HUSKYLENS_FRONT`); this is the one mechanism that is given its name, because there are two of it.
 
 | | |
 | --- | --- |
-| Devices | `HUSKYLENS` (I2C), `selectAlgorithm(TAG_RECOGNITION)` in the constructor (not an actuator) |
-| Verbs | none |
-| Questions | `seesTag(learnedId)`, `getTagOffsetX(learnedId)` (pixels from the image centre, + = right), `getTagWidthPx(learnedId)`, `getAgeMs()` |
-| `update()` | Every `CameraConfig.SAMPLE_MS` (default 100), read `blocks()` and keep them with their time |
-| Config | `SAMPLE_MS`, the HuskyLens's learned ID for each CELL's tags (`BLUE_NEAR_CELL_ID`, …), mounting angle |
-| Log | `camera_tag_id`, `camera_offset_px`, `camera_age_ms` |
+| Devices | One HuskyLens (I2C). Each camera on **its own I2C bus**: both units have the fixed address 0x32 |
+| Verbs | `useTagMode()`, `useColourMode()` (`selectAlgorithm`; not an actuator, so allowed in INIT) |
+| Questions | `seesTag(learnedId)`, `getTagOffsetX(learnedId)` (pixels from the image centre, + = right), `getTagWidthPx(learnedId)`, `seesElement(element)`, `getElementOffsetX(element)`, `getMode()`, `getAgeMs()` |
+| `update()` | Every `CameraConfig.SAMPLE_MS` (default 100), read `blocks()` and keep them with their time; after a mode change, ignore results for `MODE_SETTLE_MS` |
+| Config | `SAMPLE_MS`, `MODE_SETTLE_MS`, learned IDs: each CELL's tags (`BLUE_CELL_A_ID`, …) and each colour (`POLLEN_COLOUR_ID`, `RED_NECTAR_COLOUR_ID`, `BLUE_NECTAR_COLOUR_ID`), mounting angles |
+| Log | `<name>_mode`, `<name>_seen_id`, `<name>_offset_px`, `<name>_age_ms` |
+
+| Camera | Mode | Used by |
+| --- | --- | --- |
+| HIVE camera (looks up) | Tags, always | `HiveState` confirm (optional, Q2), the aim heading |
+| Front camera (looks ahead) | Colour while `CollectStateMachine` runs, tags otherwise (Robot rule) | Collect aim; opponent NECTAR warning before the intake (G408); field tags when in view |
 
 ---
 
@@ -369,7 +379,7 @@ The distance comes from `drive.getPose()` and `hive.getUpCellPose(isRed)`. After
 
 | Method | Path |
 | --- | --- |
-| `forAlliance(bluePose, isRed)` | RED = BLUE turned 180° about (72, 72) (`PoseFactory.mirrorAroundPoint`) |
+| `forAlliance(bluePose, isRed)` | RED = BLUE turned 180° about (72, 72): `PoseFactory` `mirrorX(72.0).mirrorY(72.0)` |
 | `startPose(start, isRed)` | One of `FieldConfig.START_*` |
 | `toLaunchSpot(from, isRed, upCell)` | Straight line to `FieldConfig.LAUNCH_SPOT_A/B` (one per CELL) |
 | `toLoadingZone(from, isRed)` | Curve through `LOADING_APPROACH` to `LOADING_PARK` |
@@ -463,7 +473,8 @@ Park-by guard: `if (MatchClock.autoSeconds() > AutoConfig.PARK_BY_S && step is b
 | OpMode | Builds | Buttons |
 | --- | --- | --- |
 | `Test: Drive` | `new Drive(hardwareMap)` | sticks, Y, X, A/B assists (pose set to the field centre at start) |
-| `Test: Intake`, `Test: Storage`, `Test: Launcher`, `Test: Camera` | that mechanism only | one button per verb; telemetry shows every question's answer |
+| `Test: Intake`, `Test: Storage`, `Test: Launcher` | that mechanism only | one button per verb; telemetry shows every question's answer |
+| `Test: Camera` | both cameras | X / Y switch the front camera's mode; shows what each camera sees |
 | `Test: Collect`, `Test: Launch` | `Robot` | start / cancel, shows state and history |
 | `Test: Parts` | nothing but `hardwareMap` | D-pad picks a motor or servo from `HardwareNames.ALL_DEVICES`, sticks move it |
 
@@ -499,7 +510,7 @@ Park-by guard: `if (MatchClock.autoSeconds() > AutoConfig.PARK_BY_S && step is b
 | `IntakeConfig` | `COLLECT_POWER`, `REVERSE_POWER`, `COLLECT_TIMEOUT_MS`, `REJECT_MS`, stall values |
 | `StorageConfig` | `MAX_HELD = 4`, colour thresholds, `FEED_POWER`, `SENSE_MS` |
 | `LauncherConfig` | PIDF, `IDLE_RPM`, `SPEED_TOLERANCE_RPM`, speed tables, `SPIN_UP_TIMEOUT_MS`, `FEED_MS`, `RECOVER_MS`, `TIP_PAUSE_MS` |
-| `CameraConfig` | `SAMPLE_MS`, learned tag IDs, mounting angle |
+| `CameraConfig` | `SAMPLE_MS`, `MODE_SETTLE_MS`, learned tag and colour IDs, mounting angles |
 | `ControlsConfig` | `TRIGGER_THRESHOLD`, rumble lengths, the button list as comments |
 
 ---
@@ -551,7 +562,8 @@ Park-by guard: `if (MatchClock.autoSeconds() > AutoConfig.PARK_BY_S && step is b
 | **Pinpoint access.** Pedro's `PinpointLocalizer` keeps its driver private; safeguards need status, rate and `recalibrateIMU()` | A second handle from `hardwareMap` in `Drive`; reflection (forbidden); a team localizer class | Second handle, read-only except a recalibrate when the robot is still; record the risks (two objects on one device, reset during a path) |
 | **Dashboard field background** | `TelemetryPacket(false)` + `drawImage("/images/field-biobuzz.png", 0, 0, 144, 144)`; flicker between packets | Already in `FieldDrawing`; the image is at `TeamCode/src/main/assets/images/field-biobuzz.png`; check flicker on the robot |
 | **Constants depends on team code** | `pedro/Constants.java` imports `HardwareNames` | Keep; record in `UPSTREAM.md` |
-| **HuskyLens is 2D** | Box size → rough distance; tag learned IDs must be trained on each unit; one algorithm at a time; I2C read takes a few ms | Read every 100 ms; use for "which CELL" and aim offset only; document training in `CAMERA_GUIDE.md` |
+| **HuskyLens is 2D** | Box size → rough distance; tag learned IDs must be trained on each unit; one algorithm at a time; I2C read takes a few ms | Read every 100 ms; use for "which CELL", aim offsets and element colour only; document training in `CAMERA_GUIDE.md` |
+| **Two HuskyLens units** | Same fixed I2C address (0x32), so they cannot share a bus; the front camera must switch algorithms, and a switch takes time; two I2C reads per sample | One I2C bus each (the Pinpoint is on a third); front camera mode set by one Robot rule, with `MODE_SETTLE_MS`; measure the loop time with both cameras on |
 | **Counting held elements** | One colour sensor at the mouth (count in/out); a sensor per slot; flywheel speed dip to count shots | Wait for the Storage design (Q5); the count must never be above the real number by more than one |
 | **Which CELL is up** | Operator button; camera; counting launched elements | Operator button first (Q2) |
 | **Detecting a disconnected device** | The SDK seldom throws; a motor on an unplugged hub keeps "working" | Watch `LynxModule` health and motor current; mark FAULTED; acceptance test: pull a cable |

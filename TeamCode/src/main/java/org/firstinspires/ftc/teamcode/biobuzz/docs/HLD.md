@@ -1,6 +1,6 @@
 # BioBuzz Software – High-Level Design (HLD)
 
-Oct 19, 2026 · **Draft for review** · goes with Requirements v2.0 and `LLD.md`
+Oct 19, 2026 · **Draft for review** · goes with Requirements v2.1 and `LLD.md`
 
 This document explains how the BioBuzz robot software is put together, and why. It is written for students: read it from top to bottom once, then use `LLD.md` for the details of each class.
 
@@ -56,7 +56,8 @@ Words in CAPITALS (POLLEN, CELL, …) are game words from the BIOBUZZ Competitio
 | **Intake** | Picks up POLLEN from the tiles and the FLOWER Retrieval Opening, and NECTAR from the LOADING ZONE | TODO(BioBuzz): roller motor |
 | **Storage** (with feeder) | Holds up to 4 elements, counts them, knows their colour, feeds one at a time to the launcher | TODO(BioBuzz): feeder motor or servo; colour and distance sensors (Q5) |
 | **Launcher** | Flywheel that launches POLLEN or NECTAR into the upward CELL | TODO(BioBuzz): flywheel motor(s) with encoder |
-| **Camera** | HuskyLens looking up at the AprilTags under the CELLS | DFRobot HuskyLens on I2C |
+| **HIVE camera** | Looks up at the AprilTags under the CELLS: which CELL is up, and the aim offset | DFRobot HuskyLens, I2C (own bus) |
+| **Front camera** | Identifies field AprilTags, POLLEN and NECTAR ahead of the intake, so collecting can aim and opponent NECTAR can be avoided | DFRobot HuskyLens, I2C (own bus) |
 
 Limits (R503, R701): at most 8 motors and 8 servos, a Control Hub and at most one Expansion Hub. The drive uses 4 motors.
 
@@ -230,21 +231,22 @@ FAR routine
   WAIT_DELAY -> DRIVE_TO_LAUNCH -> LAUNCH_PRELOADS -> PARK -> DONE
 ```
 
-Poses are written once for BLUE in `FieldConfig`; RED is the same pose turned 180° about the field centre (the field is rotationally symmetric, Q7). Every path is checked at INIT: it must stay on our side (G402) and out of the HIVE footprint (G409, G417).
+Poses are written once for BLUE in `FieldConfig`; RED is the same pose turned 180° about the field centre (the field is rotationally symmetric; `mirrorX(72).mirrorY(72)`). Every path is checked at INIT: it must stay on our side (G402) and out of the HIVE footprint (G409, G417).
 
 ---
 
-## 9. Vision (HuskyLens)
+## 9. Vision (two HuskyLens cameras)
 
-The AprilTags are under the CELLS, facing down, so the HuskyLens looks up at the HIVE. The HuskyLens gives boxes on its 320 × 240 image with IDs it learned itself; it does not give a 3D pose.
+Each HuskyLens gives boxes on its 320 × 240 image with IDs it learned itself; it does not give a 3D pose, and it runs one algorithm at a time. The AprilTags are under the CELLS, facing down.
 
-| Use | Plan |
-| --- | --- |
-| Which CELL is up | First from the operator's TIP button (`HiveState`); the camera may confirm later (Q2) |
-| Aim: is the upward CELL left or right of centre? | `camera.getTagOffsetX()` while aiming |
-| Fix the robot's x/y | Not planned at first: a 2D box gives a rough distance only. "Set pose here" is the recovery (Q4) |
+| Camera | Mode | Use |
+| --- | --- | --- |
+| HIVE camera (looks up) | Tags | Which CELL is up (the operator's TIP button stays the first source, the camera confirms); aim: is the upward CELL left or right of centre |
+| Front camera (looks ahead) | Colour while collecting, tags otherwise | POLLEN and NECTAR ahead: aim the collection and avoid opponent NECTAR before the intake takes it (G408); field AprilTags when in view |
 
-The camera is an ordinary mechanism (`Camera extends Mechanism`): it only answers questions. Robot decides whether to use an answer.
+Fixing the robot's x/y from a camera is not planned at first: a 2D box gives a rough distance only. "Set pose here" is the recovery.
+
+Both cameras are the same class, `Camera extends Mechanism`, built twice with different device names. They only answer questions; Robot decides whether to use an answer and which mode the front camera is in. Both HuskyLens units have the same fixed I2C address, so each is on its own I2C bus.
 
 ---
 

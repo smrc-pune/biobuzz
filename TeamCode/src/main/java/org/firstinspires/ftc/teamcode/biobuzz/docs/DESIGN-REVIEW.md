@@ -75,7 +75,7 @@ Build order: S1 (exists) → S3 (autonomous, proves paths and pose) → S2 (reus
 | M1 | Driving: default alliance is `AutoConfig.ALLIANCE_RED` | `MatchInfo` defaults to BLUE, and the INIT menu is now the only alliance choice | Default is `MatchInfo.alliance`, BLUE until chosen. `AutoConfig.ALLIANCE_RED` removed |
 | M2 | Driving: with no auto pose, TeleOp "uses the alliance's default start pose" | The code starts at (0, 0, driver heading), and a guessed x/y would send assist paths to the wrong place | No auto pose → TeleOp starts as **S1**: field-centric works (it needs the heading only), and assist buttons are refused until the pose is known. See question Q1 |
 | M3 | Autonomous: `setStartingPose(...)` in `init()` | Alliance and start position are chosen in `init_loop()`, after `init()` | The start pose is set in `start()`, from the menu choices |
-| M4 | Autonomous: RED poses are mirrored (`mirrorX` or `mirrorY`) | The BIOBUZZ field is **rotationally symmetric**: red's GARDEN, LOADING ZONE, FLOWERS and CELLS are blue's turned 180° about the field centre. A mirror would put red paths in the wrong places | RED = BLUE rotated 180° about (72, 72): `PoseFactory.mirrorAroundPoint(72, 72)` (Pedro 3.0.1). Confirm on Figure 9-2 / CAD (Q7) |
+| M4 | Autonomous: RED poses are mirrored (`mirrorX` or `mirrorY`) | The BIOBUZZ field is **rotationally symmetric**: red's GARDEN, LOADING ZONE, FLOWERS and CELLS are blue's turned 180° about the field centre. A single mirror would put red paths in the wrong places | RED = BLUE rotated 180° about (72, 72): both reflections chained, `mirrorX(72.0).mirrorY(72.0)` (agreed, Q7) |
 | M5 | `DriveConfig.BLUE_DRIVER_HEADING_DEG = 0`, `RED = 180` | With our field frame (image as drawn, origin bottom-left, red ALLIANCE AREA on the left wall), red drivers face +x (0°) and blue drivers face −x (180°): the values look swapped | Still TODO, now with the frame written down. Confirm on the field (Q8) |
 | M6 | Field image | Committed at `TeamCode/src/assets/images/field-biobuzz.png`. The Dashboard serves only `TeamCode/src/main/assets/images/` | **Done:** moved to `TeamCode/src/main/assets/images/field-biobuzz.png` |
 | M7 | Telemetry header shows "match time left" | Nothing in the design keeps match time | New `helpers/MatchClock.java` (also needed for game timing, section 3) |
@@ -138,15 +138,19 @@ Each pattern below is a standard one. The HLD names it where it is used, so stud
 
 ## 5. Questions for the team
 
-| # | Question | Recommendation |
-| --- | --- | --- |
-| Q1 | "Always start with S1": did you mean (a) with no auto pose, TeleOp starts as S1 and assists are refused until the pose is known, or (b) TeleOp always starts as S1, even after Auto, and assists are turned on some other way? | (a), written that way in v2.0 |
-| Q2 | Which CELL is up: how should the robot know? (a) the operator presses a button at each TIP, (b) the HuskyLens, (c) both | (a) first: simple and reliable. The camera can confirm later. Written as (a) with the camera as optional |
-| Q3 | FLOWER scoring (Bottom NECTAR Bonus, owned FLOWER) is not possible without a placer. Should the software plan for it at all? | No, for now. Leave a TODO |
-| Q4 | Without a camera pose fix, the only way to recover x/y in TeleOp is a "set pose here" button pressed with the robot backed into a known corner (for example the LOADING ZONE corner). Add it? | Yes: one gamepad-1 button and one `FieldConfig` pose |
-| Q5 | Storage sensing: which sensors count the elements held and read their colour (one colour sensor at the intake mouth, a distance sensor per slot, …)? | Needed before Storage can be designed; TODO in the LLD |
-| Q6 | Confirm: no button may command both driving and mechanisms (section 2.3) | Yes |
-| Q7 | Confirm the field is rotationally symmetric (red = blue turned 180° about the centre), from Figure 9-2 or the CAD | Our field image shows rotation, not a mirror |
-| Q8 | Confirm the field frame: the field image as drawn, origin at the bottom-left corner (red GARDEN corner), x to the right, y up, audience at the bottom. Then red drivers face 0° and blue drivers face 180° | Yes |
-| Q9 | HuskyLens: one unit looking up at the HIVE (tags), or also one looking forward for element colour? It runs one algorithm at a time | One, looking up, tag mode only |
-| Q10 | Which auto routines for the first event? For example "near: launch 4, collect GARDEN, launch, park" and "far: launch 4, park" | Start with these two |
+Team decisions were entered in the shared review doc on Oct 19, 2026 and applied in Requirements v2.1.
+
+| # | Question | Recommendation | Team decision |
+| --- | --- | --- | --- |
+| Q1 | "Always start with S1": did you mean (a) with no auto pose, TeleOp starts as S1 and assists are refused until the pose is known, or (b) TeleOp always starts as S1, even after Auto, and assists are turned on some other way? | (a), written that way in v2.0 | Agreed: (a) |
+| Q2 | Which CELL is up: how should the robot know? (a) the operator presses a button at each TIP, (b) the HuskyLens, (c) both | (a) first: simple and reliable. The camera can confirm later. Written as (a) with the camera as optional | Agreed: (a) |
+| Q3 | FLOWER scoring (Bottom NECTAR Bonus, owned FLOWER) is not possible without a placer. Should the software plan for it at all? | No, for now. Leave a TODO | Agreed: not planned |
+| Q4 | Without a camera pose fix, the only way to recover x/y in TeleOp is a "set pose here" button pressed with the robot backed into a known corner (for example the LOADING ZONE corner). Add it? | Yes: one gamepad-1 button and one `FieldConfig` pose | Agreed |
+| Q5 | Storage sensing: which sensors count the elements held and read their colour (one colour sensor at the intake mouth, a distance sensor per slot, …)? | Needed before Storage can be designed; TODO in the LLD | **Deferred:** "this will come later once the design is evolved" |
+| Q6 | Confirm: no button may command both driving and mechanisms (section 2.3) | Yes | Agreed: gamepad 1 for drive, gamepad 2 for operator |
+| Q7 | Confirm the field is rotationally symmetric (red = blue turned 180° about the centre), from Figure 9-2 or the CAD | Our field image shows rotation, not a mirror | Agreed: chain both reflections, `mirrorX(72.0).mirrorY(72.0)` |
+| Q8 | Confirm the field frame: the field image as drawn, origin at the bottom-left corner (red GARDEN corner), x to the right, y up, audience at the bottom. Then red drivers face 0° and blue drivers face 180° | Yes | Agreed |
+| Q9 | HuskyLens: one unit looking up at the HIVE (tags), or also one looking forward for element colour? It runs one algorithm at a time | One, looking up, tag mode only | **Changed:** add a 2nd camera for field AprilTags, POLLEN and NECTAR |
+| Q10 | Which auto routines for the first event? For example "near: launch 4, collect GARDEN, launch, park" and "far: launch 4, park" | Start with these two | Agreed |
+
+**Follow-ups from Q9.** Both HuskyLens units have the same fixed I2C address (0x32), so each needs its own I2C bus on the Control Hub (the Pinpoint is on a third). The front camera must switch between tag and colour mode, because a HuskyLens runs one algorithm at a time; v2.1 proposes colour while collecting and tags otherwise. Two cameras add I2C reads each loop, so the loop time is measured with both on.
