@@ -132,9 +132,8 @@ public class Drive {
 
         switch (state) {
             case DRIVER_CONTROL:
-                double moveScale = DriveConfig.DRIVE_SPEED;                                    // DO
-                double turnScale = DriveConfig.TURN_SPEED;
-                driveBase.driveManual(forward * moveScale, right * moveScale, clockwise * turnScale,
+                driveBase.driveManual(forward * DriveConfig.DRIVE_SPEED,                       // DO
+                        right * DriveConfig.DRIVE_SPEED, clockwise * DriveConfig.TURN_SPEED,
                         fieldCentric, getDriverHeadingDeg());
                 break;                                                     // (commands leave this state)
 
