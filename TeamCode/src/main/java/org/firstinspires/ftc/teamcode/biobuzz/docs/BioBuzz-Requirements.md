@@ -405,7 +405,7 @@ Every OpMode MUST send the same telemetry to the Driver Station and FTC Dashboar
 
 - Every `*Config` class MUST be `@Config` with `public static` (not `final`) fields, so values can be changed live at `http://192.168.43.1:8080/dash`. Each config file's header MUST say that live edits are lost on restart and good values must be typed back into the file.
 - The Dashboard field view MUST draw the robot pose, the current path (auto and assists) and the upward CELL, through `helpers/FieldDrawing.java` (the Dashboard canvas). Pedro 3's tuning package has no drawing helper to reuse.
-- The field view SHOULD use the BioBuzz field as its background, from `TeamCode/src/main/assets/images/field-biobuzz.png` (the Dashboard serves that folder at `/images/`; it does not serve other asset folders), so poses and paths can be checked against field elements. The image is in the repository, but at `TeamCode/src/assets/images/`: it MUST be moved to `TeamCode/src/main/assets/images/` before step 7. How Dashboard 0.6 loads a custom background is checked during implementation and written up in the LLD.
+- The field view SHOULD use the BioBuzz field as its background, from `TeamCode/src/main/assets/images/field-biobuzz.png` (the Dashboard serves that folder at `/images/`; it does not serve other asset folders), so poses and paths can be checked against field elements. How Dashboard 0.6 loads a custom background is checked during implementation and written up in the LLD.
 - The Dashboard graph SHOULD plot the key numbers: flywheel (or similar) target vs. actual velocity, loop time, and battery voltage. Add them with `TelemetryPacket.put(...)` in `helpers/` and in no other folder.
 
 **Performance:** telemetry MUST NOT push the loop time over its budget (see Troubleshooting). Driver Station telemetry SHOULD be sent no more than every 100 ms (`telemetry.setMsTransmissionInterval`).
@@ -737,7 +737,7 @@ The team MUST give the AI the facts below before it writes BioBuzz-specific code
 **Open items (team to supply)** – see `docs/DESIGN-REVIEW.md`, section 5, for the full questions
 
 - [x] BIOBUZZ game manual (TU05)
-- [x] BioBuzz field image (`field-biobuzz.png`): committed; it MUST move to `TeamCode/src/main/assets/images/`
+- [x] BioBuzz field image (`TeamCode/src/main/assets/images/field-biobuzz.png`)
 - [ ] Mechanism hardware: Intake, Storage (with feeder) and Launcher are planned; their motors, servos and sensors, especially how Storage counts elements and reads colour (Q5)
 - [ ] Robot configuration names from the Control Hub, for `HardwareNames`
 - [ ] Field frame, rotational symmetry and driver headings confirmed (Q7, Q8)

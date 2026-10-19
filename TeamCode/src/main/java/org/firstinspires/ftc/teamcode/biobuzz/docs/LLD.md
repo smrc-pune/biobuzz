@@ -549,7 +549,7 @@ Park-by guard: `if (MatchClock.autoSeconds() > AutoConfig.PARK_BY_S && step is b
 | Challenge | Options | Plan |
 | --- | --- | --- |
 | **Pinpoint access.** Pedro's `PinpointLocalizer` keeps its driver private; safeguards need status, rate and `recalibrateIMU()` | A second handle from `hardwareMap` in `Drive`; reflection (forbidden); a team localizer class | Second handle, read-only except a recalibrate when the robot is still; record the risks (two objects on one device, reset during a path) |
-| **Dashboard field background** | `TelemetryPacket(false)` + `drawImage("/images/field-biobuzz.png", 0, 0, 144, 144)`; flicker between packets | Already in `FieldDrawing`; move the image to `TeamCode/src/main/assets/images/` (review M6); check flicker on the robot |
+| **Dashboard field background** | `TelemetryPacket(false)` + `drawImage("/images/field-biobuzz.png", 0, 0, 144, 144)`; flicker between packets | Already in `FieldDrawing`; the image is at `TeamCode/src/main/assets/images/field-biobuzz.png`; check flicker on the robot |
 | **Constants depends on team code** | `pedro/Constants.java` imports `HardwareNames` | Keep; record in `UPSTREAM.md` |
 | **HuskyLens is 2D** | Box size → rough distance; tag learned IDs must be trained on each unit; one algorithm at a time; I2C read takes a few ms | Read every 100 ms; use for "which CELL" and aim offset only; document training in `CAMERA_GUIDE.md` |
 | **Counting held elements** | One colour sensor at the mouth (count in/out); a sensor per slot; flywheel speed dip to count shots | Wait for the Storage design (Q5); the count must never be above the real number by more than one |
