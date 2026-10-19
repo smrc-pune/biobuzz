@@ -8,6 +8,11 @@ yet: every file starts with a comment that says what it does in plain English.
 > section here in the same commit. The "What is built so far" table at the end says
 > what exists today.
 
+> **A new design is in review.** `docs/HLD.md`, `docs/LLD.md` and
+> `docs/DESIGN-REVIEW.md` (Requirements v2.0) replace "brains" with mechanisms (no
+> states), state machines for tasks, and a Drive without states. This guide still
+> describes the code as it is today; it changes when the code is restructured.
+
 ---
 
 ## 1. The big idea in 60 seconds
