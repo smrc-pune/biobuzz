@@ -226,6 +226,38 @@ public class Drive {
     /** Show a short message on telemetry, for example "assist refused: position unknown". */
     public void warn(String message) { log.warn(message); }
 
+    // ==================== FIELD CHECKS ONLY (fieldchecks/) ====================
+
+    /**
+     * Read the Pinpoint WITHOUT letting Pedro set motor powers. Field Checks use this instead of
+     * update() while the crew pushes the robot by hand: an idle follower brakes the motors
+     * every update(), which would fight the push.
+     */
+    public void updatePoseOnly() { follower.localizer.update(); }
+
+    /** Field Checks: "here is (0, 0), facing 0 deg", so a push or a path is measured from here. */
+    public void zeroPose() {
+        follower.setPose(new Pose(0, 0, 0));
+        headingSetCount++;
+    }
+
+    /** Field Check 07: drive the motors directly (forward +, left +), no path, no field-centric. */
+    public void driveDirectly(double forward, double left) {
+        follower.drivetrain.drive(new DrivePowers(forward, left, 0), false);
+    }
+
+    /** Field Check 07: let the wheels coast (no braking), the same call Pedro's deceleration tuner uses. */
+    public void coast() { follower.drivetrain.stop(false); }
+
+    /** Speed along the robot's own front (in/s, + = forward), from the localizer. */
+    public double getForwardSpeedInPerS() { return follower.localizer.twist().toVector2D().x(); }
+
+    /** Speed toward the robot's own left (in/s, + = left), from the localizer. */
+    public double getLeftSpeedInPerS() { return follower.localizer.twist().toVector2D().y(); }
+
+    /** How fast the robot is moving, any direction (in/s). */
+    public double getSpeedInPerS() { return Math.hypot(follower.velocity().vx, follower.velocity().vy); }
+
     // ==================== EVERY LOOP ====================
 
     /** Pedro must be updated EVERY loop: it reads the Pinpoint and sets the motor powers. */

@@ -91,6 +91,7 @@ teamcode/
       LogConfig.java          match log on/off, rows per second, how many files to keep
       TelemetryConfig.java    what shows on screen
       TemplateConfig.java     numbers for the templates (copy it with them)
+      FieldCheckConfig.java   field name, home baseline and tolerances for the Field Checks
     drive/
       Drive.java              the drivetrain: sticks, paths, pose (talks to Pedro)
       FieldPaths.java         every path the robot drives by itself
@@ -114,6 +115,7 @@ teamcode/
       LogViewer.java          "Log Viewer" – summaries of the last 10 match logs
       IntakeTest.java, FeederTest.java, LauncherTest.java, CameraTest.java   one mechanism each
       LaunchTest.java         "Test: Launch" – the launch state machine with real balls
+    fieldchecks/            "Field Check 01" ... "Field Check 13": is our tuning still good on THIS field?
     template/               files to COPY when you add something new
       TemplateMechanism.java      a mechanism with one motor
       TemplateStateMachine.java   a state machine with the four sections
@@ -121,8 +123,6 @@ teamcode/
     helpers/                tools (see section 8)
     docs/                   requirements, design documents, guides
 ```
-
-Coming later (see section 9): `fieldchecks/`.
 
 **How a mechanism finds its devices.** The robot has two hubs: the **Control Hub**
 (drive motors, Pinpoint) and the **Expansion Hub** (most mechanism motors). Each
@@ -334,6 +334,7 @@ for the `ADD A MECHANISM HERE` and `ADD A STATE MACHINE HERE` comments.
 | `Alerts` | `Alerts.raise("text", urgent)`: shows under the header, goes in the log; urgent = rumble |
 | `MatchLogger` | Writes every run to a CSV file (see below) |
 | `LogSummary` | Reads one log file and sums it up (for Log Viewer) |
+| `FieldCheckHelper` | What every Field Check shares: PASS / WARN / FAIL grades, results kept for the Summary, FIELDCHECK events in the log |
 
 **The match log.** Every run of BioBuzz TeleOp writes a file to
 `/sdcard/FIRST/data/biobuzz-logs/` on the Control Hub, named by time, OpMode and alliance,
@@ -359,7 +360,7 @@ true only on the one loop when the button goes from up to down. Read each button
 | 3 | New design (Requirements v2.3): Robot, Drive, FieldPaths, Mechanism, BioBuzzTeleOp with S1 and S2, Test: Drive | Done (not yet run on the robot; FieldConfig places are first guesses) |
 | 4 | Match log, match clock, ALERTs; health checks: loop time, low battery, Pinpoint, heading jump (Requirements v2.6) | Done (not yet run on the robot) |
 | 5 | Robot Check, Test: Parts, Log Viewer, templates | Done (not yet run on the robot) |
-| 6 | Field Checks 01–13 | Planned |
+| 6 | Field Checks 01–13, FieldCheckHelper, FieldCheckConfig | Done (no home baseline recorded yet) |
 | 7 | Autonomous (S3): BioBuzzAuto, AutoConfig, start positions, GARDEN and auto paths, own-side and HIVE checks at INIT, park-by guard | Done (places in FieldConfig are guesses from the field picture) |
 | 8 | Mechanisms: Intake, Feeder, Launcher, HIVE camera, front camera; LaunchStateMachine; aim button; gamepad 2 map; one test each | Done (device names, ports and numbers are first guesses: TODO(BioBuzz)) |
 | 9 | The other student guides | Planned |
@@ -376,6 +377,11 @@ true only on the one loop when the button goes from up to down. Read each button
 ---
 
 ## 10. When something goes wrong
+
+**On a new field** (the first practice slot at an event), run **Field Check 01** to **12**
+in order (group "Field Checks"), then **Field Check 13: Summary**. Each one says on screen
+what the crew does. PASS = fine, WARN = look at it, FAIL = fix it before matches. They
+compare with our **home baseline** in `FieldCheckConfig`, so record one at home first.
 
 **Before every match**, run **Robot Check** (group "Tests"): battery, Pinpoint, a 10 s
 still-test of the gyro, each drive wheel, and the match log. It ends with

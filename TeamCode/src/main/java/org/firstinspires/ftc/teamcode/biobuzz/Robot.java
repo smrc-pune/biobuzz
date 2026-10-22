@@ -193,6 +193,19 @@ public class Robot {
 
     public boolean isLaunching() { return launch.isBusy(); }
 
+    public boolean isLauncherUpToSpeed() { return launcher.isUpToSpeed(); }
+
+    public double getLauncherRpm() { return launcher.getRpm(); }
+
+    /** The names of every FAULTED mechanism, for example "intake launcher", or "" if none. */
+    public String getFaultedMechanisms() {
+        String names = "";
+        for (Mechanism mechanism : mechanisms) {
+            if (mechanism.isFaulted()) names += mechanism.getName() + " ";
+        }
+        return names.trim();
+    }
+
     /** The heading that points the launcher at the upward CELL from where we are (aim button). */
     public double getAimHeadingDeg() { return FieldPaths.aimHeadingDeg(drive.getPose(), MatchInfo.isRed()); }
 

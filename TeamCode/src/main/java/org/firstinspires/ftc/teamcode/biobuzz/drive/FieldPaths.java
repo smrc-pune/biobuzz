@@ -129,6 +129,29 @@ public class FieldPaths {
         return leaveWall(from, isRed);
     }
 
+    // ==================== FIELD CHECK PATHS (fieldchecks/): they start wherever the robot is ====================
+
+    /** Field Check 08: straight ahead (the way the robot faces) for distanceIn, same heading. */
+    public static Path straightAhead(Pose from, double distanceIn) {
+        Pose to = new Pose(from.x() + distanceIn * Math.cos(from.heading()),
+                from.y() + distanceIn * Math.sin(from.heading()), from.heading());
+        return Paths.line(from, to).constant(from.heading());
+    }
+
+    /** Field Check 09: a square (ahead, left, back, right) back to the start, same heading. */
+    public static Path square(Pose from, double sideIn) {
+        double cos = Math.cos(from.heading());
+        double sin = Math.sin(from.heading());
+        Pose ahead = new Pose(from.x() + sideIn * cos, from.y() + sideIn * sin, from.heading());
+        Pose aheadLeft = new Pose(ahead.x() - sideIn * sin, ahead.y() + sideIn * cos, from.heading());
+        Pose left = new Pose(from.x() - sideIn * sin, from.y() + sideIn * cos, from.heading());
+        return Paths.path(
+                Paths.line(from, ahead).constant(from.heading()),
+                Paths.line(ahead, aheadLeft).constant(from.heading()),
+                Paths.line(aheadLeft, left).constant(from.heading()),
+                Paths.line(left, from).constant(from.heading()));
+    }
+
     // ==================== CHECKS ====================
 
     /**
