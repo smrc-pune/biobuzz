@@ -1,6 +1,6 @@
 # BioBuzz Software – High-Level Design (HLD)
 
-Oct 19, 2026 · **Draft for review** · goes with Requirements v2.6 and `LLD.md`
+Oct 22, 2026 · **Matches the code (steps 1–9 built, not yet run on the robot)** · goes with Requirements v2.7 and `LLD.md`
 
 This document explains how the BioBuzz robot software fits together. It is written for our team: 7th graders who are new to Java. Read it once from top to bottom. Use `LLD.md` when you need the details of one file.
 
@@ -53,15 +53,15 @@ Words in CAPITALS (POLLEN, CELL, …) are game words from the BIOBUZZ Competitio
 | Part of the robot | Job in the game | Hardware |
 | --- | --- | --- |
 | **Drive** | Mecanum drivetrain; field-centric driving; Pedro Pathing paths | 4 drive motors (Control Hub), goBILDA Pinpoint odometry |
-| **Intake** | Picks up POLLEN from the tiles and the FLOWER Retrieval Opening, and NECTAR from the LOADING ZONE | TODO(BioBuzz): roller motor |
-| **Feeder** | Pushes one ball at a time from the hopper into the launcher | TODO(BioBuzz): motor or servo |
-| **Launcher** | Flywheel that launches POLLEN or NECTAR into the upward CELL | TODO(BioBuzz): flywheel motor(s) with encoder |
+| **Intake** | Picks up POLLEN from the tiles and the FLOWER Retrieval Opening, and NECTAR from the LOADING ZONE | One roller motor (Expansion Hub). TODO(BioBuzz): confirm |
+| **Feeder** | Pushes one ball at a time from the hopper into the launcher | One servo (Expansion Hub). TODO(BioBuzz): servo or motor |
+| **Launcher** | Flywheel that launches POLLEN or NECTAR into the upward CELL | One flywheel motor with encoder (Expansion Hub). TODO(BioBuzz): a second motor? |
 | **HIVE camera** | Looks up at the AprilTags under the CELLS: which CELL is up, and where to aim | DFRobot HuskyLens, I2C |
 | **Front camera** | Sees field AprilTags, POLLEN and NECTAR in front of the robot | Logitech USB webcam |
 
 The hopper (where up to 4 balls wait) has no sensors, so the robot does not know how many balls it holds or their colours. A Storage mechanism with sensors is a future improvement.
 
-Limits (R503, R701): at most 8 motors and 8 servos, a Control Hub and at most one Expansion Hub. The drive uses 4 motors.
+Limits (R503, R701): at most 8 motors and 8 servos, a Control Hub and at most one Expansion Hub. Today: 6 motors (4 drive, intake, launcher) and 1 servo (feeder); `HardwareNames` keeps the count.
 
 ---
 
@@ -152,7 +152,7 @@ for (Mechanism mechanism : mechanisms) {
 
 Everywhere else, a mechanism is used by its name: `intake.collect()`.
 
-**Every mechanism extends `Mechanism`.** You only fill in up to four methods; `Mechanism` (mentor zone) does the safety around them:
+**Every mechanism extends `Mechanism`.** You only fill in up to five methods; `Mechanism` (mentor zone) does the safety around them:
 
 ```
 What you write in your mechanism         What Mechanism does around it
@@ -160,6 +160,7 @@ What you write in your mechanism         What Mechanism does around it
   stop()          safe state (motors off)  catches any error
   addDetails(t)   your telemetry lines     shows "FAULTED: reason" instead, when faulted
   addLogValues()  your match-log values    adds the faulted flag
+  isTelemetryOn() your TelemetryConfig switch  hides your lines when it is off (FAULTED always shows)
 ```
 
 If something goes wrong inside a mechanism (for example a cable comes out), that mechanism is marked **FAULTED**, stops, and an ALERT names it. The rest of the robot keeps running.
@@ -188,7 +189,7 @@ The intake needs no state machine: the operator turns it on and off.
 
 S1 and S2 are the same TeleOp: assists are just buttons. **TeleOp starts as S1 when there is no position from Auto** (the robot restarted, or no Auto ran): assist buttons say "position unknown" until the driver uses "set pose here".
 
-We build the stages in this order: S1 (works today), then S3 (Auto proves the paths and the position), then S2 (reuses Auto's paths).
+All three stages are built. S2's assists and S3's Auto use the same `FieldPaths` and `FieldConfig` places, so a place fixed for Auto is fixed for the assists too.
 
 ---
 
@@ -208,7 +209,7 @@ We build the stages in this order: S1 (works today), then S3 (Auto proves the pa
 | Back / Share | Mark a moment in the match log |
 | D-pad left/right (INIT only) | Switch alliance RED / BLUE |
 
-**Gamepad 2 (operator)** – mechanisms only. TODO(BioBuzz): confirm once the robot is built.
+**Gamepad 2 (operator)** – mechanisms only. Built as below; TODO(BioBuzz): confirm once the robot is built. Printable diagram: `docs/CONTROLS.md`.
 
 | Control | Action |
 | --- | --- |
@@ -232,8 +233,10 @@ There are no launch zones, so the robot launches its preloads right after it lea
 LAUNCH_PARK
   WAIT_DELAY -> LEAVE -> LAUNCH_PRELOADS -> PARK -> DONE
 LAUNCH_COLLECT_PARK
-  WAIT_DELAY -> LEAVE -> LAUNCH_PRELOADS -> COLLECT_GARDEN -> LAUNCH_AGAIN -> PARK -> DONE
+  WAIT_DELAY -> LEAVE -> LAUNCH_PRELOADS -> COLLECT_GARDEN -> DRIVE_TO_LAUNCH -> LAUNCH_AGAIN -> PARK -> DONE
 ```
+
+LEAVE ends at our launch spot already facing the upward CELL. After collecting, DRIVE_TO_LAUNCH goes back there, so the second launch faces the CELL too. A step that runs out of time writes `TIMEOUT` to the match log and moves on. How to change poses and steps: `docs/AUTO_GUIDE.md`.
 
 Every position is written once, **for RED**, in `FieldConfig`. For BLUE, `FieldPaths` turns it 180° around the middle of the field (`mirrorX(72).mirrorY(72)`), because the field looks the same from both sides after a half turn. Every path is checked at INIT: it must stay on our side (G402) and away from the HIVE (G409, G417).
 
@@ -265,7 +268,7 @@ Each camera is a mechanism (`HiveCamera`, `FrontCamera`). Cameras only answer qu
  drive team (screen, rumble)      pits (Log Viewer)      laptop (plot tool)
 ```
 
-The first telemetry line always shows: alliance, time left, loop time, battery, FIELD or ROBOT driving with the heading, and S1 only / S2 ready (intake, launcher and the upward CELL join it with the mechanisms). The newest ALERT shows right under it. Gamepads rumble for an urgent ALERT, at 1:00 left (both) and at 0:20 left (gamepad 1: time to PARK).
+The first telemetry line always shows: alliance, time left, loop time, battery, FIELD or ROBOT driving with the heading, and S1 only / S2 ready. The second line shows the game: intake on or off, launcher READY, the upward CELL, TIPS, and how many NECTAR the human player may enter. The newest ALERT shows right under it. Gamepads rumble for an urgent ALERT, at 1:00 left (both) and at 0:20 left (gamepad 1: time to PARK).
 
 ---
 
@@ -279,6 +282,8 @@ The first telemetry line always shows: alliance, time left, loop time, battery, 
 | An auto step | One name in the `Step` list and one `case`, with its timeout in `AutoConfig` |
 
 ---
+
+**Before and after matches** (details in `docs/TROUBLESHOOTING.md`): Field Checks 01–13 on a new field, Robot Check before every match, Log Viewer in the pits, `tools/plot_match.py` on a laptop.
 
 ## 11. Risks and fallbacks
 

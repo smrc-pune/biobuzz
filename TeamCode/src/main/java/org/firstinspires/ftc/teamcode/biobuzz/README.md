@@ -121,7 +121,7 @@ teamcode/
       TemplateStateMachine.java   a state machine with the four sections
       TemplateMechanismTest.java  a test OpMode for one mechanism (hidden with @Disabled)
     helpers/                tools (see section 8)
-    docs/                   requirements, design documents, guides
+    docs/                   requirements, design documents, guides (see section 12)
 ```
 
 **How a mechanism finds its devices.** The robot has two hubs: the **Control Hub**
@@ -363,7 +363,7 @@ true only on the one loop when the button goes from up to down. Read each button
 | 6 | Field Checks 01–13, FieldCheckHelper, FieldCheckConfig | Done (no home baseline recorded yet) |
 | 7 | Autonomous (S3): BioBuzzAuto, AutoConfig, start positions, GARDEN and auto paths, own-side and HIVE checks at INIT, park-by guard | Done (places in FieldConfig are guesses from the field picture) |
 | 8 | Mechanisms: Intake, Feeder, Launcher, HIVE camera, front camera; LaunchStateMachine; aim button; gamepad 2 map; one test each | Done (device names, ports and numbers are first guesses: TODO(BioBuzz)) |
-| 9 | The other student guides | Planned |
+| 9 | Guides (section 12), TROUBLESHOOTING.md, HLD/LLD updated, UPSTREAM.md, tools/plot_match.py | Done |
 
 > **Important:** Pedro's `pedro/Constants.java` is still the empty Quickstart file.
 > Until it is filled in at drive tuning, every BioBuzz OpMode that drives stops at INIT
@@ -439,3 +439,29 @@ cleanly.
 | Dashboard | FTC Dashboard, a web page at `http://192.168.43.1:8080/dash` |
 | Config | A file of numbers you can change live in the Dashboard |
 | enum | A fixed list of names, like `AllianceColor { RED, BLUE }`; a typo is caught when the code is built |
+
+---
+
+## 12. The guides in `docs/`
+
+| Guide | Read it when you want to... |
+| --- | --- |
+| `GETTING_STARTED.md` | install Android Studio, build, deploy, run an OpMode, open the Dashboard |
+| `FIRST_CHANGES.md` | do five small exercises: a speed, a button, a telemetry line, a state, an auto step |
+| `CONTROLS.md` | know what every button does (print it for the drive team) |
+| `HOW_TO_ADD_A_MECHANISM.md` | add a mechanism or a state machine from the templates |
+| `AUTO_GUIDE.md` | measure poses, change Autonomous, add a step or a start position |
+| `TUNING.md` | tune the drive (Pedro) and the mechanisms, in the right order |
+| `MATCH_DAY.md` | check the robot on a new field, before and between matches; recovery buttons |
+| `MATCH_LOGS.md` | copy and read match logs; use Log Viewer and `tools/plot_match.py` |
+| `DEBUGGING.md` | find out what is wrong: the 6 questions, every ALERT, a symptom table |
+| `TROUBLESHOOTING.md` | see the four troubleshooting stages on one page |
+| `CAMERA_GUIDE.md` | mount, train and tune the HuskyLens and the webcam |
+| `GLOSSARY.md` | look up a word (code words, design patterns, game words) |
+| `UPDATING_PEDRO.md` | merge a new Pedro Pathing Quickstart release |
+| `HLD.md`, `LLD.md` | the design: big picture, then every class |
+| `BioBuzz-Requirements.md`, `DESIGN-REVIEW.md` | the rules the code follows, and why |
+
+Changes to Quickstart files (outside `biobuzz/`) are listed in `UPSTREAM.md` at the
+repository root.
+

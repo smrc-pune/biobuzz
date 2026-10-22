@@ -1,8 +1,8 @@
 # BioBuzz Robot Software – Requirements
 
-Oct 19, 2026 · @Girish
+Oct 22, 2026 · @Girish
 
-**Version 2.6**
+**Version 2.7**
 
 ## Contents
 
@@ -183,6 +183,7 @@ teamcode/biobuzz/
     LogConfig.java        match-log switches and rate
     HealthConfig.java     alert, heading-safeguard and battery thresholds
     FieldCheckConfig.java Field Check home baseline + tolerances
+    TemplateConfig.java   the numbers for template/ (copied with it)
     <Mechanism>Config.java  one per mechanism: IntakeConfig, FeederConfig, LauncherConfig, CameraConfig
   drive/                  Drive.java: driving over Pedro (sticks, paths, pose); FieldPaths.java: every path
   mechanisms/             Mechanism.java (the one base class) + one class per mechanism: operations, no states
@@ -271,7 +272,7 @@ The design is explained in `docs/HLD.md` (why) and `docs/LLD.md` (each class). T
 
 **Mechanism rules**
 
-- Every mechanism extends `mechanisms/Mechanism.java` and overrides only its hooks: `update()` (every loop; never waits), `stop()` (safe state), `addDetails(t)` (telemetry) and `addLogValues()` (up to 8 log values). Robot and tests call the fixed methods `runUpdate()`, `runStop()`, `addTelemetry(t)` and `addLogData()`.
+- Every mechanism extends `mechanisms/Mechanism.java` and overrides only its hooks: `update()` (every loop; never waits), `stop()` (safe state), `addDetails(t)` (telemetry), `addLogValues()` (up to 8 log values) and `isTelemetryOn()` (its `TelemetryConfig` switch). Robot and tests call the fixed methods `runUpdate()`, `runStop()`, `addTelemetry(t)` and `addLogData()`.
 - An error inside a mechanism marks it FAULTED with a reason (shown on telemetry, logged, ALERT). A faulted mechanism ignores its verbs; the rest of the robot keeps running.
 - Robot keeps the mechanisms in one list written by name, `Mechanism[] mechanisms = { intake, feeder, launcher, hiveCamera, frontCamera };`, and goes through it with a "for each" loop (`for (Mechanism mechanism : mechanisms)`), so no index numbers appear anywhere. Robot and OpModes use each mechanism by its own field name (`intake.collect()`), never by its place in the list. Adding a mechanism is two edits in Robot: a field, and its name in the list.
 
@@ -307,7 +308,7 @@ These come from the BIOBUZZ Competition Manual TU05. Rule numbers (G…, R…) a
 | GR7 | BIOBUZZ has no launch zones: the robot may launch from anywhere. The aim heading MUST follow the upward CELL, and the launcher speed MUST depend on the distance to the upward CELL, from a table in `LauncherConfig`. The robot does not know which ball is next (POLLEN 2.8 in or NECTAR 3.6 in), so one table serves both; separate tables per ball type are a future improvement | 9.6, 9.8 |
 | GR8 | Every auto path MUST be checked at INIT: it stays on our side of the field (columns A–C red, D–F blue) and out of the HIVE footprint plus `FieldConfig` margin. A failing path shows a red warning on the INIT screen | G402, G409, G417 |
 | GR9 | Start positions MUST be a fixed list in `FieldConfig` (touching the wall, our side, not in the LOADING ZONE); the one used is set in `AutoConfig.START` before the match | G304 |
-| GR10 | Poses are written for RED, the default alliance. BLUE poses MUST be the RED pose turned 180° about the field centre (72, 72), because the field is rotationally symmetric (agreed, Q7). `FieldPaths.forAlliance` does it by chaining both reflections: `PoseFactory` `mirrorX(72.0).mirrorY(72.0)` | 9.3 |
+| GR10 | Poses are written for RED, the default alliance. BLUE poses MUST be the RED pose turned 180° about the field centre (72, 72), because the field is rotationally symmetric (agreed, Q7). `FieldPaths.place(...)` (named `forAlliance` in earlier versions) does it by chaining both reflections: `PoseFactory` `mirrorX(72.0).mirrorY(72.0)` | 9.3 |
 | GR11 | TeleOp MUST rumble both gamepads at 1:00 left (NECTAR may be entered, FLOWERS open) and gamepad 1 at 0:20 left (time to PARK). The header shows how many NECTAR the human player may enter (one per TIP before 1:00 left) | G410, G426 |
 | GR12 | The robot MUST stay within 8 motors and 8 servos, one Control Hub and at most one Expansion Hub. `HardwareNames` keeps the count in its header | R503, R701 |
 | GR13 | Two cameras (Q9). The **HIVE camera** is a HuskyLens (I2C) looking up at the AprilTags under the CELLS: which CELL is up, and the aim offset. It is read no more often than `CameraConfig.HIVE_SAMPLE_MS`, and its learned IDs map to CELLS in `CameraConfig`. The **front camera** is a Logitech USB webcam with the SDK's `VisionPortal`, running an `AprilTagProcessor` (real AprilTag IDs and a tag pose) and a colour-blob processor for POLLEN and NECTAR at the same time. Vision runs on its own thread; the live preview is off in matches. Neither camera sets the Pedro pose in this version | 9.9, R707, R708 |
@@ -403,7 +404,7 @@ Autonomous (stage S3) is a step list that drives the same `Robot` as teleop. It 
 
 - **Only the alliance is picked at the field.** It changes every match (the schedule assigns it), so it is picked during INIT on the Driver Station, in both Auto and TeleOp: gamepad 1 D-pad left or right switches RED / BLUE, and the INIT screen shows it. It is kept in `MatchInfo`, so TeleOp starts with what Auto had.
 - **Everything else is decided before the match**, when working out the plan with the alliance partner, and set in `configurations/AutoConfig.java`: `ROUTINE` (an `enum Routine`), `START` (one of the start positions in `FieldConfig`) and `START_DELAY_S` (0 to 10 s, to stay out of a partner's way). They are changed in the pits, through FTC Dashboard or by editing the file and deploying; Dashboard edits are lost when the app restarts, so values meant to last are typed into the file. There is no INIT menu.
-- BIOBUZZ has no launch zones, so routines are named by what they do. The first routines (Q10): `LAUNCH_PARK` (leave the wall, launch the 4 preloads, park) and `LAUNCH_COLLECT_PARK` (leave, launch 4, collect our GARDEN, launch, park).
+- BIOBUZZ has no launch zones, so routines are named by what they do. The first routines (Q10): `LAUNCH_PARK` (leave the wall, launch the 4 preloads, park) and `LAUNCH_COLLECT_PARK` (leave, launch 4, collect our GARDEN, drive back to the launch spot facing the upward CELL, launch, park).
 - The INIT screen shows the alliance and, in Auto, the routine, start and delay from `AutoConfig`, so the drive team can check them before PLAY. They are written to the match log header.
 
 **Vision** (two cameras, GR13). `mechanisms/HiveCamera.java` (HuskyLens) and `mechanisms/FrontCamera.java` (Logitech webcam, `VisionPortal`) answer questions only: which tags or elements are in view, where they are in the image, and for the webcam the tag's pose relative to the camera. Robot decides whether to use an answer. The camera does not correct the Pedro pose in this version (see `docs/LLD.md`, Future improvements). `docs/CAMERA_GUIDE.md` explains mounting both cameras, training the HuskyLens on the CELL tags, calibrating the webcam (resolution, exposure, lens) and tuning the POLLEN and NECTAR colour ranges.
@@ -788,6 +789,7 @@ The team MUST give the AI the facts below before it writes BioBuzz-specific code
 
 | Version | Date | Changes |
 | --- | --- | --- |
+| 2.7 | 2026-10-22 | Steps 5–9 built. Step 5: Robot Check, Test: Parts, Log Viewer (`LogSummary`), templates (+ `TemplateConfig`). Step 8: Intake, Feeder (a servo, first guess), Launcher (speed table as Dashboard arrays), HiveCamera, FrontCamera (mentor zone: SDK 12 `AprilTagSingleDetection`), `LaunchStateMachine` (spin-up timeout is an urgent ALERT), aim button (`ManualDrive.headingLock`), gamepad 2 map, `GamepadInput.wasXReleased()`, a `Mechanism.isTelemetryOn()` hook for the per-mechanism switches, the game header line. Step 7: `BioBuzzAuto`, `AutoConfig` (`enum Routine`, `enum Start`), a `DRIVE_TO_LAUNCH` step before `LAUNCH_AGAIN`, INIT path checks. Step 6: Field Checks 01–13 (`FieldCheckHelper`, `FieldCheckConfig`); hand-push checks read the localizer only, because an idle Pedro follower brakes; Field Check 12 compares the tag range. Step 9: guides, `TROUBLESHOOTING.md`, `UPSTREAM.md`, `tools/plot_match.py`. |
 | 2.6 | 2026-10-19 | Step 4 kept to the core: `MatchLogger` (CSV, no background thread: buffered writes from the loop, saved every `LogConfig.FLUSH_S`; newest 100 files kept), `MatchClock` (owned by Robot), `Alerts` (newest ALERT on screen, EVENT row, urgent rumble), and `HealthMonitor` with loop time, low battery, Pinpoint not READY and heading jump (`LoopMonitor` merged into it). Snap-to-90°, gyro recalibrate and INIT drift checks, gamepad-disconnect, pose-jump and stall detection, LED colours, the config snapshot and dropped-row counting moved to Future improvements. EVENT types simplified to `CHANGE`, `WARN`, `ALERT`, `PINPOINT`, `ASSIST`, `MARK`. |
 | 2.5 | 2026-10-19 | No INIT menu: `InitMenu` removed. Only the alliance is picked at the field (gamepad 1 D-pad left/right in INIT, Auto and TeleOp). Auto's routine, start position and start delay are decided before the match and set in `AutoConfig`; the Field Check field name in `FieldCheckConfig`; logging on/off in `LogConfig`. |
 | 2.4 | 2026-10-19 | Removed the Match type, Match number and Battery label rows from the INIT menu and `MatchInfo` (only Alliance is picked). Match logs are named by start time, OpMode and alliance; an Auto file and the TeleOp file that starts within 180 s after it are one match. Battery voltage is still measured and logged. |

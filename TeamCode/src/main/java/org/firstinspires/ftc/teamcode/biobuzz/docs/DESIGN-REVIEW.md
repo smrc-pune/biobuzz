@@ -4,7 +4,7 @@ Oct 19, 2026 · for mentor review before any code changes
 
 This review compares three things: the requirements (v1.4), the new design the team agreed on in discussion, and the BIOBUZZ Competition Manual (TU05). It lists every conflict, misalignment and gap found, with the fix applied in Requirements v2.0, `HLD.md` and `LLD.md`, and the questions that only the team can answer.
 
-**How to read it.** Section 1 is the design in one page, as it stands now (Requirements v2.3). Section 2 lists problems inside the old requirements. Section 3 lists what the game adds. Section 4 lists the design patterns used. Section 5 lists the questions and the team's answers. Sections 6 and 7 list the changes from the second and third review rounds; where a fix in sections 2–3 names `game/`, BLUE poses or NEAR/FAR, sections 6 and 7 replace it. Nothing in the code has changed yet.
+**How to read it.** Section 1 is the design in one page, as it stands now (Requirements v2.3). Section 2 lists problems inside the old requirements. Section 3 lists what the game adds. Section 4 lists the design patterns used. Section 5 lists the questions and the team's answers. Sections 6 and 7 list the changes from the second and third review rounds; where a fix in sections 2–3 names `game/`, BLUE poses or NEAR/FAR, sections 6 and 7 replace it. (Sections 1–7 were written before the code changed; section 8 lists what was found while building it.)
 
 ---
 
@@ -181,3 +181,22 @@ Team decisions were entered in the shared review doc on Oct 19, 2026 and applied
 | R3-1 | What is `Element.java` for? Rename to `GameElement` if really needed | Not needed: it told the launcher which ball was next and spotted opponent NECTAR, and both need Storage sensors we don't have. Removed; the front camera uses plain questions (`seesPollen()`, `seesRedNectar()`, `seesBlueNectar()`) |
 | R3-2 | Should Robot call the mechanisms' `update()` when state machines sit between them in the diagram? | Yes. A layer may call any layer below it. Every mechanism needs its `update()` once per loop even when no state machine uses it (cameras, launcher speed), and a shared mechanism must be updated exactly once. State machines only command mechanisms. The diagrams now show the Robot → mechanisms arrow and say why |
 | R3-3 | No sensors to count balls: keep Storage for the future | No Storage mechanism now (future improvement, with `CollectStateMachine`). A separate `Feeder` mechanism pushes balls into the launcher. The intake is manual (gamepad 2 A on/off, B hold reverse). G407 is met by the hopper holding 4; G408 is the drive team's job. `LaunchStateMachine` feeds `count` times; launcher speed by distance only |
+
+---
+
+## 8. Found while building steps 5–9 (Oct 22, 2026, Requirements v2.7)
+
+These came up while writing the code. Each is resolved as below; details in `LLD.md`, section 13.
+
+| # | Found | Resolved by |
+| --- | --- | --- |
+| B1 | SDK 12's `AprilTagProcessor.getDetections()` returns a base class without `id` | `FrontCamera` reads `AprilTagSingleDetection`; the cameras are mentor-zone files |
+| B2 | An idle Pedro follower brakes the motors in every `update()`, which fights a hand push | Hand-push Field Checks and the brake test read the localizer only (`Drive.updatePoseOnly()`) |
+| B3 | The GARDEN path ends facing away from the HIVE, so "launch from the end of the GARDEN path" would miss | New Auto step `DRIVE_TO_LAUNCH` before `LAUNCH_AGAIN` |
+| B4 | One telemetry switch per mechanism, while Robot walks one list | A `Mechanism.isTelemetryOn()` hook: adding a mechanism is still two edits in Robot |
+| B5 | Field Check 12 "camera position vs Pinpoint" needs the SDK's centred field frame and BIOBUZZ tags in its library | Compare the measured tag range with the expected range from a placed pose |
+| B6 | The Quickstart remote is named `pedro` in this repository, not `quickstart` | Guides and `UPSTREAM.md` use `pedro` |
+| B7 | FTC Dashboard lines were inline in `build.dependencies.gradle` | Moved into one `// ---- BioBuzz additions ----` block at the end |
+| B8 | Every OpMode that builds `Robot` needs every mechanism device in the robot configuration | Intended; until the mechanisms exist, drive with Test: Drive |
+
+**Still open for the team** (unchanged): mechanism hardware, configuration names, field poses, odometry pods, camera details, the gamepad 2 map (Open items in the Requirements).
