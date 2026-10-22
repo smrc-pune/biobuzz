@@ -26,4 +26,14 @@ public class HealthConfig {
     // ---- Heading jump (field-centric safeguard) ----
     public static double MAX_TURN_DEG_PER_S = 720;    // faster than any FTC robot really turns
     public static double HEADING_JUMP_MARGIN_DEG = 10;
+
+    // ---- Robot Check (testing/RobotCheck.java), before every match ----
+    public static double CHECK_BATTERY_MIN_V = 12.5;      // resting voltage to start a match
+    public static double CHECK_BATTERY_S = 2;             // measure the resting voltage this long
+    public static double CHECK_PINPOINT_S = 2;            // watch the Pinpoint's update rate this long
+    public static double CHECK_PINPOINT_HZ = 0;           // the rate noted on the first run (0 = not noted yet)
+    public static double CHECK_PINPOINT_HZ_TOLERANCE = 0.2;   // 0.2 = within 20% of the noted rate
+    public static double CHECK_STILL_S = 10;              // gyro still-test length, hands off the robot
+    public static double CHECK_STILL_MAX_DEG = 1;         // the heading may creep at most this much
+    public static double CHECK_MIN_FREE_MB = 50;          // free storage for the match logs
 }

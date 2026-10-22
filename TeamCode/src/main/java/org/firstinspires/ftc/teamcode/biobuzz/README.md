@@ -85,6 +85,7 @@ teamcode/
       HealthConfig.java       limits for ALERTs: low battery, slow loop, heading jump
       LogConfig.java          match log on/off, rows per second, how many files to keep
       TelemetryConfig.java    what shows on screen
+      TemplateConfig.java     numbers for the templates (copy it with them)
     drive/
       Drive.java              the drivetrain: sticks, paths, pose (talks to Pedro)
       FieldPaths.java         every path the robot drives by itself
@@ -94,12 +95,19 @@ teamcode/
       BioBuzzTeleOp.java      the match TeleOp: both gamepad maps (S1 and S2)
     testing/
       DriveTest.java          "Test: Drive" – drive only, to check the drivetrain
+      PartsTest.java          "Test: Parts" – move one motor or servo at a time (wiring, direction)
+      RobotCheck.java         "Robot Check" – the one-minute check before every match
+      LogViewer.java          "Log Viewer" – summaries of the last 10 match logs
+    template/               files to COPY when you add something new
+      TemplateMechanism.java      a mechanism with one motor
+      TemplateStateMachine.java   a state machine with the four sections
+      TemplateMechanismTest.java  a test OpMode for one mechanism (hidden with @Disabled)
     helpers/                tools (see section 8)
     docs/                   requirements, design documents, guides
 ```
 
 Coming later (see section 9): the mechanisms (Intake, Feeder, Launcher, cameras),
-`statemachines/`, `auto/`, `fieldchecks/`, `template/`, and more helpers.
+`statemachines/`, `auto/`, `fieldchecks/`, and more helpers.
 
 **How a mechanism finds its devices.** The robot has two hubs: the **Control Hub**
 (drive motors, Pinpoint) and the **Expansion Hub** (most mechanism motors). Each
@@ -260,6 +268,7 @@ for the `ADD A MECHANISM HERE` and `ADD A STATE MACHINE HERE` comments.
 | `HealthMonitor` | Watches loop time, battery, the Pinpoint and the heading every loop, and raises ALERTs |
 | `Alerts` | `Alerts.raise("text", urgent)`: shows under the header, goes in the log; urgent = rumble |
 | `MatchLogger` | Writes every run to a CSV file (see below) |
+| `LogSummary` | Reads one log file and sums it up (for Log Viewer) |
 
 **The match log.** Every run of BioBuzz TeleOp writes a file to
 `/sdcard/FIRST/data/biobuzz-logs/` on the Control Hub, named by time, OpMode and alliance,
@@ -284,7 +293,7 @@ true only on the one loop when the button goes from up to down. Read each button
 | 2 | Helpers: StateTimer, StateLog, GamepadInput, AllianceColor, MatchInfo, PoseMemory, DashboardTelemetry, FieldDrawing | Done |
 | 3 | New design (Requirements v2.3): Robot, Drive, FieldPaths, Mechanism, BioBuzzTeleOp with S1 and S2, Test: Drive | Done (not yet run on the robot; FieldConfig places are first guesses) |
 | 4 | Match log, match clock, ALERTs; health checks: loop time, low battery, Pinpoint, heading jump (Requirements v2.6) | Done (not yet run on the robot) |
-| 5 | Robot Check, Test: Parts, Log Viewer, templates | Next |
+| 5 | Robot Check, Test: Parts, Log Viewer, templates | Done (not yet run on the robot) |
 | 6 | Field Checks 01–13 | Planned |
 | 7 | Autonomous (S3) | Planned |
 | 8 | Mechanisms: Intake, Feeder, Launcher, HIVE camera, front camera; LaunchStateMachine | When the robot's mechanisms are built |
@@ -297,6 +306,13 @@ true only on the one loop when the button goes from up to down. Read each button
 ---
 
 ## 10. When something goes wrong
+
+**Before every match**, run **Robot Check** (group "Tests"): battery, Pinpoint, a 10 s
+still-test of the gyro, each drive wheel, and the match log. It ends with
+**READY FOR MATCH** only if every step passes. **Test: Parts** moves one motor or servo
+at a time, to check a cable or a direction. **Log Viewer** shows the last 10 runs: how
+long each ran, its ALERTs, the worst loop time, the lowest battery, and whether it ended
+cleanly.
 
 1. **Read the telemetry first.** The header line shows alliance, time left, loop time,
    battery voltage, drive mode, heading and "S1 only" or "S2 ready". Any ALERT is right

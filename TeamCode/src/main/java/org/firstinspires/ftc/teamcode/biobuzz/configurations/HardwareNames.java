@@ -62,4 +62,26 @@ public class HardwareNames {
     // TODO(BioBuzz): one block per mechanism, once the mechanism list is known.
     // Most mechanism motors go on the Expansion Hub, for example:
     //   public static final String MOTOR_INTAKE = "intake";             // Expansion Hub, motor port 0
+
+    // ==================== TEMPLATE (template/ only, never on the robot) ====================
+    public static final String MOTOR_TEMPLATE = "templateMotor";     // rename when you copy the template
+
+    // ==================== EVERY DEVICE ====================
+    // Test: Parts, Robot Check and Field Check 01 go through this list. When you add a
+    // device above, ADD ITS NAME HERE TOO. Motors and servos are moved by Test: Parts.
+    public static final String[] ALL_DEVICES = {
+            MOTOR_DRIVE_LEFT_FRONT,
+            MOTOR_DRIVE_RIGHT_FRONT,
+            MOTOR_DRIVE_LEFT_BACK,
+            MOTOR_DRIVE_RIGHT_BACK,
+            PINPOINT,
+    };
+
+    // The four drive motors, for Robot Check (it spins each one, one at a time).
+    public static final String[] DRIVE_MOTORS = {
+            MOTOR_DRIVE_LEFT_FRONT,
+            MOTOR_DRIVE_RIGHT_FRONT,
+            MOTOR_DRIVE_LEFT_BACK,
+            MOTOR_DRIVE_RIGHT_BACK,
+    };
 }

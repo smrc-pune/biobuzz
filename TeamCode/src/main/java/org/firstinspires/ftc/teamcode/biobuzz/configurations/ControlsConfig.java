@@ -42,4 +42,12 @@ public class ControlsConfig {
     // MATCH-TIME WARNINGS (seconds left in TeleOp)
     public static double ONE_MINUTE_WARNING_S = 60;   // NECTAR may go into the FLOWERS from here
     public static double PARK_WARNING_S = 20;         // leave enough time to drive to the LOADING ZONE
+
+    // TEST: PARTS (testing/PartsTest.java)
+    public static double PARTS_TEST_MAX_POWER = 0.5;    // full stick = this motor power (gentle on a new robot)
+    public static double PARTS_TEST_SERVO_STEP = 0.005; // servo position change per loop at full stick
+
+    // ROBOT CHECK (testing/RobotCheck.java)
+    public static double ROBOT_CHECK_MOTOR_POWER = 0.3; // each drive motor spins at this power ...
+    public static double ROBOT_CHECK_MOTOR_MS = 500;    // ... for this long
 }

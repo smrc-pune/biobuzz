@@ -123,6 +123,16 @@ public class MatchLogger {
         close();
     }
 
+    /** The folder the log files go in (LogSummary reads them from here). */
+    public static File getFolder() { return FOLDER; }
+
+    /** @return free storage on the Control Hub, in MB (Robot Check wants more than 50). */
+    public static double getFreeStorageMb() {
+        File place = FOLDER;
+        if (!place.isDirectory()) place = AppUtil.FIRST_FOLDER;
+        return place.getUsableSpace() / (1024.0 * 1024.0);
+    }
+
     // ==================== inside the logger ====================
 
     private static void writeColumnNamesOnce() {
