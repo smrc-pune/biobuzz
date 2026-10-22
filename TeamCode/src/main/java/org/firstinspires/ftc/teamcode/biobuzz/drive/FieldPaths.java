@@ -6,6 +6,8 @@ import com.pedropathing.math.Pose;
 import com.pedropathing.paths.Path;
 
 import org.firstinspires.ftc.teamcode.biobuzz.configurations.FieldConfig;
+import org.firstinspires.ftc.teamcode.biobuzz.configurations.LauncherConfig;
+import org.firstinspires.ftc.teamcode.biobuzz.helpers.MatchInfo;
 
 /**
  * STUDENTS: you will change this file.
@@ -59,6 +61,25 @@ public class FieldPaths {
     public static Pose resetCorner(boolean isRed) {
         return place(FieldConfig.RESET_CORNER_X_IN, FieldConfig.RESET_CORNER_Y_IN,
                 FieldConfig.RESET_CORNER_HEADING_DEG, isRed);
+    }
+
+    /** The CELL that faces up now (MatchInfo knows which), turned for BLUE. Heading is not used. */
+    public static Pose upCellPose(boolean isRed) {
+        if (MatchInfo.isCellAUp()) return place(FieldConfig.CELL_A_X_IN, FieldConfig.CELL_A_Y_IN, 0, isRed);
+        return place(FieldConfig.CELL_B_X_IN, FieldConfig.CELL_B_Y_IN, 0, isRed);
+    }
+
+    /** Inches from the robot's centre to the upward CELL (the launcher's speed depends on it). */
+    public static double distanceToUpCellIn(Pose robot, boolean isRed) {
+        Pose cell = upCellPose(isRed);
+        return Math.hypot(cell.x() - robot.x(), cell.y() - robot.y());
+    }
+
+    /** The heading (degrees) that points the launcher at the upward CELL from this spot. */
+    public static double aimHeadingDeg(Pose robot, boolean isRed) {
+        Pose cell = upCellPose(isRed);
+        double towardCellDeg = Math.toDegrees(Math.atan2(cell.y() - robot.y(), cell.x() - robot.x()));
+        return towardCellDeg + LauncherConfig.AIM_OFFSET_DEG;
     }
 
     // ==================== PATHS ====================

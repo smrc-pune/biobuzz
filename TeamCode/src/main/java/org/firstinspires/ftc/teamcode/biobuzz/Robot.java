@@ -4,6 +4,8 @@ import com.pedropathing.paths.Path;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
+import org.firstinspires.ftc.teamcode.biobuzz.configurations.ControlsConfig;
+import org.firstinspires.ftc.teamcode.biobuzz.configurations.LauncherConfig;
 import org.firstinspires.ftc.teamcode.biobuzz.configurations.TelemetryConfig;
 import org.firstinspires.ftc.teamcode.biobuzz.drive.Drive;
 import org.firstinspires.ftc.teamcode.biobuzz.drive.FieldPaths;
@@ -14,7 +16,13 @@ import org.firstinspires.ftc.teamcode.biobuzz.helpers.HealthMonitor;
 import org.firstinspires.ftc.teamcode.biobuzz.helpers.MatchClock;
 import org.firstinspires.ftc.teamcode.biobuzz.helpers.MatchInfo;
 import org.firstinspires.ftc.teamcode.biobuzz.helpers.MatchLogger;
+import org.firstinspires.ftc.teamcode.biobuzz.mechanisms.Feeder;
+import org.firstinspires.ftc.teamcode.biobuzz.mechanisms.FrontCamera;
+import org.firstinspires.ftc.teamcode.biobuzz.mechanisms.HiveCamera;
+import org.firstinspires.ftc.teamcode.biobuzz.mechanisms.Intake;
+import org.firstinspires.ftc.teamcode.biobuzz.mechanisms.Launcher;
 import org.firstinspires.ftc.teamcode.biobuzz.mechanisms.Mechanism;
+import org.firstinspires.ftc.teamcode.biobuzz.statemachines.LaunchStateMachine;
 
 /**
  * STUDENTS: you will change the marked "ADD ... HERE" spots in this file.
@@ -26,8 +34,8 @@ import org.firstinspires.ftc.teamcode.biobuzz.mechanisms.Mechanism;
  *   OpMode (buttons or Auto steps)
  *        |  robot.driveToLaunchSpot(), robot.stopMechanisms(), robot.drive...
  *        v
- *      Robot  ----> state machines (tasks that take time)        TODO(BioBuzz): Launch
- *        |    ----> mechanisms (Intake, Feeder, Launcher, ...)   TODO(BioBuzz)
+ *      Robot  ----> state machines (tasks that take time)        LaunchStateMachine
+ *        |    ----> mechanisms                                  Intake, Feeder, Launcher, HiveCamera, FrontCamera
  *        |    ----> drive (Drive + FieldPaths)  ----> Pedro Pathing (off the shelf)
  *
  * WHAT ROBOT DOES: builds everything; has one method for each thing the robot can do;
@@ -46,21 +54,33 @@ public class Robot {
     public final MatchClock clock = new MatchClock();   // match time left, started by startMatch()
     private final HealthMonitor health;     // loop time, battery, Pinpoint, heading jumps -> ALERTs
 
-    // ---- MECHANISMS: one field each. ADD A MECHANISM HERE (for example: private final Intake intake;)
+    // ---- MECHANISMS: one field each. ADD A MECHANISM HERE
+    private final Intake intake;            // the roller that picks up balls
+    private final Feeder feeder;            // pushes one ball into the launcher
+    private final Launcher launcher;        // the flywheel
+    private final HiveCamera hiveCamera;    // HuskyLens, looks up at the CELL tags
+    private final FrontCamera frontCamera;  // webcam: field tags, POLLEN, NECTAR
     private final Mechanism[] mechanisms;   // every mechanism, by name, for update / stop / telemetry
 
     // ---- STATE MACHINES: one field each. ADD A STATE MACHINE HERE
+    private final LaunchStateMachine launch;
 
     public Robot(HardwareMap hardwareMap) {
         drive = new Drive(hardwareMap);
         battery = new BatteryMonitor(hardwareMap);
         health = new HealthMonitor(drive, battery);
 
-        // ADD A MECHANISM HERE: build it, for example  intake = new Intake(hardwareMap);
-        mechanisms = new Mechanism[] { };   // ... and add its name to this list: { intake, feeder, launcher }
+        // Each mechanism finds its own devices by name. Nothing moves here (rule G304.H).
+        intake = new Intake(hardwareMap);
+        feeder = new Feeder(hardwareMap);
+        launcher = new Launcher(hardwareMap);
+        hiveCamera = new HiveCamera(hardwareMap);
+        frontCamera = new FrontCamera(hardwareMap);
+        // ADD A MECHANISM HERE: build it above, and add its name to this list.
+        mechanisms = new Mechanism[] { intake, feeder, launcher, hiveCamera, frontCamera };
 
-        // ADD A STATE MACHINE HERE: build it with the mechanisms it uses,
-        // for example  launch = new LaunchStateMachine(feeder, launcher, drive);
+        // State machines get the mechanisms they use. ADD A STATE MACHINE HERE
+        launch = new LaunchStateMachine(feeder, launcher, drive);
     }
 
     // ==================== START AND END OF A RUN ====================
@@ -121,15 +141,62 @@ public class Robot {
     }
 
     // ==================== MECHANISMS ====================
-    // ADD A ROBOT METHOD HERE for each mechanism action, for example:
-    //   public void reverseIntake() { intake.reverse(); }
+    // One method for each thing the operator (or Auto) can ask for. ADD A ROBOT METHOD HERE.
+    // If a state machine also uses that mechanism, cancel it first (Robot is the "Mediator").
+
+    /** Intake on if it was off, off if it was on (operator's A). */
+    public void toggleIntake() {
+        if (intake.isCollecting()) intake.runStop();
+        else intake.collect();
+    }
+
+    public void startIntake() { intake.collect(); }
+
+    public void stopIntake() { intake.runStop(); }
+
+    /** Spit balls out while the operator holds B (also how opponent NECTAR goes back out, G408). */
+    public void reverseIntake() { intake.reverse(); }
+
+    /** Launch this many balls, from wherever we are. Feeding an empty slot does no harm. */
+    public void startLaunching(int count) {
+        // No other state machine uses the Feeder or Launcher yet. When one does, cancel it here.
+        launch.start(count);
+    }
+
+    public void stopLaunching() { launch.cancel(); }
+
+    /** Spin the flywheel up early, for the distance to the upward CELL from here (operator's Y). */
+    public void spinUpLauncher() {
+        if (launch.isBusy()) return;   // the state machine already controls the speed
+        launcher.spinUpFor(getDistanceToUpCellIn());
+    }
+
+    /** Our HIVE just TIPPED (operator's left bumper): the other CELL faces up now. */
+    public void markHiveTipped() { MatchInfo.markHiveTipped(); }
+
+    /** Auto INIT only: hold the 4 preloaded balls (the only move allowed before PLAY, G304). */
+    public void holdPreloads() { feeder.hold(); }
 
     /** Put every mechanism in its safe state. OpModes call this in stop(); gamepad 2 D-pad down calls it. */
     public void stopMechanisms() {
-        // ADD A STATE MACHINE HERE: its cancel(), for example  launch.cancel();
+        launch.cancel();   // ADD A STATE MACHINE HERE: its cancel()
         for (Mechanism mechanism : mechanisms) {
             mechanism.runStop();
         }
+    }
+
+    // ---- Questions for OpModes ----
+    public boolean isIntakeOn() { return intake.isCollecting(); }
+
+    public boolean isLaunching() { return launch.isBusy(); }
+
+    /** The heading that points the launcher at the upward CELL from where we are (aim button). */
+    public double getAimHeadingDeg() { return FieldPaths.aimHeadingDeg(drive.getPose(), MatchInfo.isRed()); }
+
+    /** Inches to the upward CELL, or LauncherConfig.DEFAULT_DISTANCE_IN when the pose is unknown (S1). */
+    public double getDistanceToUpCellIn() {
+        if (!drive.isPoseKnown()) return LauncherConfig.DEFAULT_DISTANCE_IN;
+        return FieldPaths.distanceToUpCellIn(drive.getPose(), MatchInfo.isRed());
     }
 
     // ==================== EVERY LOOP ====================
@@ -138,7 +205,8 @@ public class Robot {
     public void update() {
         clock.update();
 
-        // 1. STATE MACHINES decide and give mechanisms commands.  ADD A STATE MACHINE HERE: launch.update();
+        // 1. STATE MACHINES decide and give mechanisms commands.
+        launch.update();   // ADD A STATE MACHINE HERE
 
         // 2. MECHANISMS: every one, once, whether or not a state machine is using it.
         for (Mechanism mechanism : mechanisms) {
@@ -159,7 +227,9 @@ public class Robot {
             for (Mechanism mechanism : mechanisms) {
                 mechanism.addLogData();
             }
-            // ADD A STATE MACHINE HERE: its state, for example  MatchLogger.value("launch_state", launch.getState().ordinal());
+            launch.addLogData();   // ADD A STATE MACHINE HERE
+            MatchLogger.value("up_cell_a", MatchInfo.isCellAUp());
+            MatchLogger.value("tip_count", MatchInfo.getTipCount());
             MatchLogger.endRow();
         }
     }
@@ -167,9 +237,10 @@ public class Robot {
     // ==================== TELEMETRY ====================
 
     /**
-     * The first line, always shown, for example
+     * The first two lines, always shown, for example
      *   RED | 1:42 left | 18 ms | 12.6 V | FIELD 3 deg | S2 ready
-     * and under it the newest ALERT, if there is one.
+     *   intake ON | launcher READY | up CELL A | tips 2 | NECTAR +2
+     * and under them the newest ALERT, if there is one.
      */
     public void addHeader(Telemetry t) {
         String driveMode = "FIELD";
@@ -181,6 +252,16 @@ public class Robot {
         t.addData("Match", MatchInfo.alliance + timeLeft
                 + String.format(" | %.0f ms | %.1f V | %s %.0f deg | ", health.getLoopMs(),
                         battery.getVoltage(), driveMode, drive.getHeadingDegrees()) + stage);
+        String intakeText = "intake off";
+        if (intake.isCollecting()) intakeText = "intake ON";
+        String launcherText = "launcher -";
+        if (launcher.isUpToSpeed()) launcherText = "launcher READY";
+        else if (launcher.getTargetRpm() > 0) launcherText = "launcher spinning";
+        // NECTAR: the human player may enter one per TIP, and any with 1:00 left (G426).
+        String nectarText = "NECTAR +" + MatchInfo.getNectarAllowed();
+        if (clock.isTeleOp() && clock.secondsLeft() <= ControlsConfig.ONE_MINUTE_WARNING_S) nectarText = "NECTAR open";
+        t.addData("Game", intakeText + " | " + launcherText + " | up CELL " + MatchInfo.getUpCellName()
+                + " | tips " + MatchInfo.getTipCount() + " | " + nectarText);
         String alert = Alerts.getMessage();
         if (!alert.isEmpty()) t.addData("ALERT", alert);
     }
@@ -189,10 +270,16 @@ public class Robot {
     public void addTelemetry(Telemetry t) {
         addHeader(t);
         if (TelemetryConfig.DRIVE) drive.addTelemetry(t);
+        if (TelemetryConfig.LAUNCH) launch.addTelemetry(t);   // ADD A STATE MACHINE HERE (with its switch)
         for (Mechanism mechanism : mechanisms) {
-            mechanism.addTelemetry(t);
+            mechanism.addTelemetry(t);   // each one checks its own TelemetryConfig switch
         }
         drive.addDrawing();
+        FieldDrawing.drawCell(FieldPaths.upCellPose(MatchInfo.isRed()));
+        FieldDrawing.graph("launcher_rpm", launcher.getRpm());
+        FieldDrawing.graph("launcher_target_rpm", launcher.getTargetRpm());
+        FieldDrawing.graph("loop_ms", health.getLoopMs());
+        FieldDrawing.graph("battery_v", battery.getVoltage());
         FieldDrawing.send();
     }
 }

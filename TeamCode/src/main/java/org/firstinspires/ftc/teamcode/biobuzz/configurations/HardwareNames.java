@@ -35,6 +35,10 @@ package org.firstinspires.ftc.teamcode.biobuzz.configurations;
  *   3. Still missing? Check the device's cable, and for Expansion Hub devices the
  *      hub's power and RS-485 cable.
  *
+ * THE LIMITS (game rules R503, R701): at most 8 motors, 8 servos, one Control Hub and
+ * one Expansion Hub. Count after every change:
+ *   motors: 4 drive + intake + launcher = 6 of 8        servos: feeder = 1 of 8
+ *
  * These are "final" on purpose: names are not tuned live, so this is not a @Config file.
  */
 public class HardwareNames {
@@ -59,9 +63,23 @@ public class HardwareNames {
     public static final String PINPOINT = "pinpoint";                    // Control Hub, I2C bus 1
 
     // ==================== MECHANISMS ====================
-    // TODO(BioBuzz): one block per mechanism, once the mechanism list is known.
-    // Most mechanism motors go on the Expansion Hub, for example:
-    //   public static final String MOTOR_INTAKE = "intake";             // Expansion Hub, motor port 0
+    // Most mechanism motors go on the Expansion Hub.
+    // TODO(BioBuzz): names, ports and directions are first guesses until the mechanisms are built.
+
+    // Intake: the roller that picks up POLLEN and NECTAR
+    public static final String MOTOR_INTAKE = "intake";                // Expansion Hub, motor port 0
+    public static final boolean MOTOR_INTAKE_REVERSED = false;
+
+    // Launcher: the flywheel (a motor with an encoder, so we can control its speed)
+    public static final String MOTOR_LAUNCHER = "launcher";            // Expansion Hub, motor port 1
+    public static final boolean MOTOR_LAUNCHER_REVERSED = false;
+
+    // Feeder: the servo that pushes one ball from the hopper into the launcher
+    public static final String SERVO_FEEDER = "feeder";                // Expansion Hub, servo port 0
+
+    // Cameras
+    public static final String HUSKYLENS_HIVE = "hiveCamera";          // Control Hub, I2C bus 2 (looks UP at the HIVE)
+    public static final String WEBCAM_FRONT = "Webcam 1";              // USB port (Logitech webcam, looks ahead)
 
     // ==================== TEMPLATE (template/ only, never on the robot) ====================
     public static final String MOTOR_TEMPLATE = "templateMotor";     // rename when you copy the template
@@ -75,6 +93,11 @@ public class HardwareNames {
             MOTOR_DRIVE_LEFT_BACK,
             MOTOR_DRIVE_RIGHT_BACK,
             PINPOINT,
+            MOTOR_INTAKE,
+            MOTOR_LAUNCHER,
+            SERVO_FEEDER,
+            HUSKYLENS_HIVE,
+            WEBCAM_FRONT,
     };
 
     // The four drive motors, for Robot Check (it spins each one, one at a time).

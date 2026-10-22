@@ -21,6 +21,7 @@ import org.firstinspires.ftc.teamcode.biobuzz.configurations.DriveConfig;
  *   isAPressed()  EDGE-DETECTED: true on the ONE loop where A goes from up to down.
  *                 Holding A does not keep returning true. Use it for "do this once".
  *   isAHeld()     true on every loop while A is down. Use it for "while held".
+ *   wasAReleased() true on the ONE loop where A comes back up. Use it for "stop when let go".
  *   isDpadLeftHeldFor(1000)  true ONCE, when the button has been held for that many ms.
  *                 Use it for actions that must not happen by accident.
  * The loop runs far faster than a person can let go of a button, so without edge
@@ -60,6 +61,7 @@ public class GamepadInput {
     private static final int RIGHT_STICK_BUTTON = 15;
     private static final int BUTTON_COUNT = 16;
     private final boolean[] wasDown = new boolean[BUTTON_COUNT];
+    private final boolean[] wasDownForRelease = new boolean[BUTTON_COUNT];   // its own memory, for "released"
 
     // For "held for" reads: when each button went down, and whether its hold was already reported.
     private final ElapsedTime[] heldTime = new ElapsedTime[BUTTON_COUNT];
@@ -80,6 +82,13 @@ public class GamepadInput {
         boolean newPress = isDownNow && !wasDown[button];
         wasDown[button] = isDownNow;
         return newPress;
+    }
+
+    /** Release detection: true only if the button is up now AND was down last time we asked. */
+    private boolean isNewRelease(int button, boolean isDownNow) {
+        boolean newRelease = !isDownNow && wasDownForRelease[button];
+        wasDownForRelease[button] = isDownNow;
+        return newRelease;
     }
 
     /** Held for: true ONCE, on the loop where the button has been down for the given time. */
@@ -150,6 +159,14 @@ public class GamepadInput {
     public boolean isRightTriggerHeld() { return gamepad.right_trigger > ControlsConfig.TRIGGER_THRESHOLD; }
     public boolean isLeftStickButtonHeld()  { return gamepad.left_stick_button; }
     public boolean isRightStickButtonHeld() { return gamepad.right_stick_button; }
+
+    // ========== RELEASED: true once, on the loop the button comes back up ==========
+    public boolean wasAReleased() { return isNewRelease(A, gamepad.a); }
+    public boolean wasBReleased() { return isNewRelease(B, gamepad.b); }
+    public boolean wasXReleased() { return isNewRelease(X, gamepad.x); }
+    public boolean wasYReleased() { return isNewRelease(Y, gamepad.y); }
+    public boolean wasLeftBumperReleased()  { return isNewRelease(LEFT_BUMPER, gamepad.left_bumper); }
+    public boolean wasRightBumperReleased() { return isNewRelease(RIGHT_BUMPER, gamepad.right_bumper); }
 
     // ========== HELD FOR: true once, after the button has been held this long ==========
     public boolean isDpadLeftHeldFor(double milliseconds) {

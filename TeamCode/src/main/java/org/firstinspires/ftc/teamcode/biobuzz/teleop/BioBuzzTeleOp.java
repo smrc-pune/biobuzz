@@ -38,8 +38,18 @@ import org.firstinspires.ftc.teamcode.biobuzz.helpers.PoseMemory;
  * EVERY LOOP: 1) read the gamepads and give commands  2) robot.update()  3) rumbles  4) telemetry
  * Rumbles: urgent ALERT = both gamepads, 1:00 left = both, 0:20 left (time to PARK) = gamepad 1.
  *
- * CONTROLS: the full list is in configurations/ControlsConfig.java.
- *   INIT: gamepad 1 D-pad left/right = switch alliance RED / BLUE.
+ * CONTROLS (the same list is in ControlsConfig, TelemetryConfig.GAMEPAD*_HELP and docs/CONTROLS.md):
+ *   GAMEPAD 1 (driver)    left stick = move (field-centric)   right stick X = turn
+ *                         Y = reset heading (facing away)     X = field-centric / robot-centric
+ *                         A = drive to our launch spot (S2)   B = drive to our LOADING ZONE (S2)
+ *                         right bumper (hold) = aim at the upward CELL while driving
+ *                         D-pad left (hold 1 s) = set pose here (robot in our reset corner)
+ *                         Back/Share = mark a moment in the match log
+ *                         INIT: D-pad left/right = switch alliance RED / BLUE
+ *   GAMEPAD 2 (operator)  A = intake on/off                   B (hold) = spit out (reverse intake)
+ *                         right trigger = launch 4            Y = spin the launcher up early
+ *                         left bumper = "our HIVE just TIPPED"
+ *                         D-pad down = STOP ALL mechanisms    Back/Share = mark a moment in the match log
  *
  * TO CHANGE A BUTTON: edit its line in handleDriver() or handleOperator() below, then the
  * list in ControlsConfig and the cheat sheet in TelemetryConfig.GAMEPAD*_HELP.
@@ -160,6 +170,7 @@ public class BioBuzzTeleOp extends OpMode {
         boolean goToLoadingZone = driver.isBPressed();
         boolean setPoseHere = driver.isDpadLeftHeldFor(ControlsConfig.SET_POSE_HOLD_MS);   // true once, after 1 s
         boolean mark = driver.isBackPressed();
+        boolean aim = driver.isRightBumperHeld();        // true on every loop while held
         boolean sticksMoved = driver.areSticksMoved();   // any driving stick pushed past the deadzone?
 
         // STEP 2: COMMANDS. Each button calls one method.
@@ -184,8 +195,14 @@ public class BioBuzzTeleOp extends OpMode {
         // assist, in this same loop. While a path runs and no stick is touched, we skip
         // this line and let Pedro drive.
         // Sticks: up = +forward, right = +right / +clockwise. Drive handles Pedro's signs.
-        if (sticksMoved || !robot.drive.isDrivingItself()) {
-            robot.drive.driveWithSticks(driver.getLeftStickY(), driver.getLeftStickX(), driver.getRightStickX());
+        // Holding the right bumper AIMS: the driver still moves with the left stick, and Pedro
+        // turns the robot to face the upward CELL. Aiming needs to know where we are (S2).
+        if (sticksMoved || aim || !robot.drive.isDrivingItself()) {
+            if (aim && robot.drive.isPoseKnown()) {
+                robot.drive.driveWithSticksAimedAt(driver.getLeftStickY(), driver.getLeftStickX(), robot.getAimHeadingDeg());
+            } else {
+                robot.drive.driveWithSticks(driver.getLeftStickY(), driver.getLeftStickX(), driver.getRightStickX());
+            }
         }
 
         // Y: the driver says "the robot faces away from us right now". This fixes a heading
@@ -201,20 +218,29 @@ public class BioBuzzTeleOp extends OpMode {
         }
         // Back: "something odd just happened" - find this moment in the match log afterwards.
         if (mark) MatchLogger.event("MARK", "driver");
-        // TODO(BioBuzz): right bumper (hold) = aim at the upward CELL, once the launcher exists.
     }
 
     // ==================== GAMEPAD 2: MECHANISMS ====================
 
     private void handleOperator() {
-        // Same pattern as handleDriver(): read every button ONCE, then one command per button.
+        // Same pattern as handleDriver(): read every button ONCE, then one Robot method per button.
+        // TODO(BioBuzz): confirm this map once the robot is built.
+        boolean intakeOnOff = operator.isAPressed();
+        boolean spitOut = operator.isBHeld();             // every loop while held
+        boolean spitOutReleased = operator.wasBReleased();   // the one loop B comes back up
+        boolean launchAll = operator.isRightTriggerPressed();
+        boolean spinUp = operator.isYPressed();
+        boolean tipped = operator.isLeftBumperPressed();
         boolean stopAll = operator.isDpadDownPressed();
         boolean mark = operator.isBackPressed();
-        // TODO(BioBuzz): one boolean per mechanism button, then one Robot method each below.
-        // For example:   boolean intakeOnOff = operator.isAPressed();
-        //                if (intakeOnOff) robot.toggleIntake();
 
-        if (stopAll) robot.stopMechanisms();   // the emergency button: every mechanism stops
+        if (intakeOnOff) robot.toggleIntake();
+        if (spitOut) robot.reverseIntake();          // also how opponent NECTAR goes back out (G408)
+        if (spitOutReleased) robot.stopIntake();
+        if (launchAll) robot.startLaunching(4);      // we can launch from anywhere
+        if (spinUp) robot.spinUpLauncher();
+        if (tipped) robot.markHiveTipped();          // the other CELL faces up now: aim and speed follow it
+        if (stopAll) robot.stopMechanisms();         // the emergency button: every mechanism stops
         if (mark) MatchLogger.event("MARK", "operator");
     }
 

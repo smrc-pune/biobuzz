@@ -19,6 +19,8 @@ import org.firstinspires.ftc.teamcode.biobuzz.configurations.TelemetryConfig;
  * HOW IT IS USED (Drive does this every loop, then the OpMode sends it):
  *   FieldDrawing.drawRobot(x, y, headingDeg);
  *   FieldDrawing.drawPath(path);             // only while a path is followed
+ *   FieldDrawing.drawCell(cellPose);         // the upward CELL (Robot does this)
+ *   FieldDrawing.graph("loop_ms", 18);       // a number for the Dashboard's Graph view
  *   FieldDrawing.send();                     // once per loop, after telemetry
  *
  * COORDINATES: Pedro's field frame, in inches. The Dashboard field is 0 to 144 inches
@@ -37,6 +39,7 @@ public class FieldDrawing {
     private static final double FIELD_SIZE_IN = 144;
     private static final int GRID_LINES = 7;           // one line every 24 in tile
     private static final int PATH_POINTS = 20;         // a path is drawn as this many straight pieces
+    private static final double CELL_RADIUS_IN = 5;
 
     private static TelemetryPacket packet = newPacket();
     private static final ElapsedTime sinceSent = new ElapsedTime();
@@ -70,9 +73,29 @@ public class FieldDrawing {
         canvas.strokePolyline(xIn, yIn);
     }
 
-    /** Send this loop's drawing, at most every TelemetryConfig.DS_TRANSMIT_INTERVAL_MS. */
+    /** Draw the upward CELL (the place the launcher aims at) as a small orange circle. */
+    public static void drawCell(Pose cell) {
+        if (!TelemetryConfig.FIELD_DRAWING) return;
+        Canvas canvas = packet.fieldOverlay();
+        canvas.setStroke("#FF9800");
+        canvas.setStrokeWidth(2);
+        canvas.strokeCircle(cell.x(), cell.y(), CELL_RADIUS_IN);
+    }
+
+    /** Draw a small dot, for example a place the camera sees. */
+    public static void drawPoint(double xIn, double yIn) {
+        if (!TelemetryConfig.FIELD_DRAWING) return;
+        Canvas canvas = packet.fieldOverlay();
+        canvas.setFill("#E91E63");
+        canvas.fillCircle(xIn, yIn, 1.5);
+    }
+
+    /** A number for the Dashboard's Graph view (launcher speed, loop time, battery). */
+    public static void graph(String name, double value) { packet.put(name, value); }
+
+    /** Send this loop's drawing and graph numbers, at most every TelemetryConfig.DS_TRANSMIT_INTERVAL_MS. */
     public static void send() {
-        if (TelemetryConfig.FIELD_DRAWING && sinceSent.milliseconds() >= TelemetryConfig.DS_TRANSMIT_INTERVAL_MS) {
+        if (sinceSent.milliseconds() >= TelemetryConfig.DS_TRANSMIT_INTERVAL_MS) {
             FtcDashboard.getInstance().sendTelemetryPacket(packet);
             sinceSent.reset();
         }

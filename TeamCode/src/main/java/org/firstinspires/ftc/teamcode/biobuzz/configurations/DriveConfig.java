@@ -26,4 +26,9 @@ public class DriveConfig {
     // RED drivers stand along the left wall, so "away" is toward +x (0 deg); BLUE is the opposite.
     public static double RED_DRIVER_HEADING_DEG = 0;
     public static double BLUE_DRIVER_HEADING_DEG = 180;
+
+    // AIM (driver holds the right bumper): Pedro turns the robot to face the upward CELL.
+    // Too slow to turn -> raise AIM_P. Wobbles around the target -> lower AIM_P or raise AIM_D.
+    public static double AIM_P = 1.0;
+    public static double AIM_D = 0.05;
 }

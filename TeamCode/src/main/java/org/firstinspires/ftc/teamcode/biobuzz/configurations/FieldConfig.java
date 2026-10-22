@@ -59,6 +59,15 @@ public class FieldConfig {
     public static double RESET_CORNER_Y_IN = 135;
     public static double RESET_CORNER_HEADING_DEG = 0;
 
+    // ---- Our two CELLS on the HIVE (the middle of each, where the launcher aims). The HIVE
+    //      tips over, so one CELL faces up at a time; MatchInfo knows which (operator's TIP button).
+    //      Measured from field-biobuzz.png: CELL A is the one nearer the audience (lower y). ----
+    public static double CELL_A_X_IN = 59;
+    public static double CELL_A_Y_IN = 61;
+    public static double CELL_B_X_IN = 59;
+    public static double CELL_B_Y_IN = 88;
+    public static boolean START_CELL_A_UP = true;   // which CELL faces up when the match starts (field setup)
+
     // ---- The HIVE in the middle, made bigger by half a robot, so the robot's CENTRE must stay
     //      outside this box (rules G409, G417). It is the same for both alliances. ----
     public static double HIVE_KEEP_OUT_MIN_X_IN = 38;

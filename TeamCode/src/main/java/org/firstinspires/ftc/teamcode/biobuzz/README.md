@@ -82,7 +82,11 @@ teamcode/
       DriveConfig.java        stick deadzone, "away from drivers" headings
       FieldConfig.java        every place we drive to (written for RED)
       ControlsConfig.java     trigger threshold, hold times, rumble lengths, button list
-      HealthConfig.java       limits for ALERTs: low battery, slow loop, heading jump
+      HealthConfig.java       limits for ALERTs (low battery, slow loop, heading jump) and Robot Check
+      IntakeConfig.java       intake powers
+      FeederConfig.java       the feeder servo's two positions
+      LauncherConfig.java     flywheel speed control, the speed table, launch timing, aim offset
+      CameraConfig.java       both cameras: HuskyLens tag ids, webcam size, exposure, colours
       LogConfig.java          match log on/off, rows per second, how many files to keep
       TelemetryConfig.java    what shows on screen
       TemplateConfig.java     numbers for the templates (copy it with them)
@@ -91,6 +95,13 @@ teamcode/
       FieldPaths.java         every path the robot drives by itself
     mechanisms/
       Mechanism.java          what every mechanism has in common (FAULTED safety)
+      Intake.java             the roller that picks up balls
+      Feeder.java             the servo that pushes one ball into the flywheel
+      Launcher.java           the flywheel, with the speed-by-distance table
+      HiveCamera.java         HuskyLens looking up at the CELL tags (answers questions only)
+      FrontCamera.java        Logitech webcam: field tags, POLLEN, NECTAR (answers questions only)
+    statemachines/
+      LaunchStateMachine.java "launch 4": spin up, feed, recover, repeat
     teleop/
       BioBuzzTeleOp.java      the match TeleOp: both gamepad maps (S1 and S2)
     testing/
@@ -98,6 +109,8 @@ teamcode/
       PartsTest.java          "Test: Parts" – move one motor or servo at a time (wiring, direction)
       RobotCheck.java         "Robot Check" – the one-minute check before every match
       LogViewer.java          "Log Viewer" – summaries of the last 10 match logs
+      IntakeTest.java, FeederTest.java, LauncherTest.java, CameraTest.java   one mechanism each
+      LaunchTest.java         "Test: Launch" – the launch state machine with real balls
     template/               files to COPY when you add something new
       TemplateMechanism.java      a mechanism with one motor
       TemplateStateMachine.java   a state machine with the four sections
@@ -106,8 +119,7 @@ teamcode/
     docs/                   requirements, design documents, guides
 ```
 
-Coming later (see section 9): the mechanisms (Intake, Feeder, Launcher, cameras),
-`statemachines/`, `auto/`, `fieldchecks/`, and more helpers.
+Coming later (see section 9): `auto/` and `fieldchecks/`.
 
 **How a mechanism finds its devices.** The robot has two hubs: the **Control Hub**
 (drive motors, Pinpoint) and the **Expansion Hub** (most mechanism motors). Each
@@ -158,6 +170,21 @@ BioBuzzTeleOp.loop()
 4. Each loop after that, the sticks are not used while the robot drives itself...
 5. ...until the driver moves **any** stick: then `driveWithSticks(...)` runs again and
    the driver has the robot back, in the same loop.
+
+### "The operator pulls the right trigger" (launch 4)
+
+```
+BioBuzzTeleOp.handleOperator()
+ |     operator.isRightTriggerPressed()                 READ (once per pull)
+ |     robot.startLaunching(4)                          COMMAND
+ |        launch.start(4)                               the state machine: IDLE -> SPINNING_UP
+ |-- robot.update()
+ |     1. launch.update()       SPINNING_UP: launcher.spinUpFor(distance to the upward CELL)
+ |                              ... up to speed -> FEEDING: feeder.feedOne()
+ |                              ... FEED_MS -> RECOVERING: feeder.hold() ... 4 times, then IDLE
+ |     2. every mechanism's runUpdate()   the launcher reads its speed; the cameras read
+ |     3. drive.update()
+```
 
 ### "The driver presses Y"
 
@@ -220,9 +247,16 @@ for 1 second. The gamepad buzzes and the header says "S2 ready".
 
 | Gamepad 2 | Action |
 | --- | --- |
+| A | Intake on / off |
+| B (hold) | Spit out (reverse the intake); also how opponent NECTAR goes back out |
+| Right trigger | Launch 4 balls, from wherever the robot is |
+| Y | Spin the launcher up early |
+| Left bumper | "Our HIVE just TIPPED": the other CELL faces up now |
 | D-pad down | Stop all mechanisms |
 | Back / Share | Mark this moment in the match log |
-| (mechanisms) | Coming with the mechanisms |
+
+Gamepad 1 also has **right bumper (hold) = aim**: keep moving with the left stick while
+the robot turns to face the upward CELL (needs S2: the position must be known).
 
 **Rumbles:** a long buzz on both gamepads = an urgent ALERT (read the screen). Both buzz
 at 1:00 left; gamepad 1 buzzes at 0:20 left: time to PARK.
@@ -232,7 +266,7 @@ All places are written **for RED** in `configurations/FieldConfig.java`. For BLU
 
 ---
 
-## 7. Mechanisms and state machines (coming next)
+## 7. Mechanisms and state machines
 
 **A mechanism** is one file in `mechanisms/` that `extends Mechanism`. It has action
 words and questions, and fills in up to three methods: `update()` (every loop),
@@ -246,7 +280,13 @@ has the same four sections: 1. the list of states, 2. commands (`start()`, `canc
 telemetry). It waits with a `StateTimer` (`timer.isTimeUp(500)`), never by sleeping, and
 every waiting state has a timeout.
 
-**To add one**, follow the checklist in `docs/LLD.md`, section 11. In `Robot.java`, look
+**Today's robot:** Intake, Feeder, Launcher, HiveCamera and FrontCamera are mechanisms;
+`LaunchStateMachine` is the one state machine. Each has its own test OpMode in `testing/`.
+Each mechanism's telemetry has an on/off switch in `TelemetryConfig` (its `isTelemetryOn()`).
+**Which CELL is up:** `MatchInfo` remembers it; the operator's left bumper flips it at each
+TIP. The launcher's speed and the aim button both follow the upward CELL.
+
+**To add one**, copy the files in `template/` and follow the checklist in `docs/LLD.md`, section 11. In `Robot.java`, look
 for the `ADD A MECHANISM HERE` and `ADD A STATE MACHINE HERE` comments.
 
 ---
@@ -257,12 +297,12 @@ for the `ADD A MECHANISM HERE` and `ADD A STATE MACHINE HERE` comments.
 | --- | --- |
 | `StateTimer` | Stopwatch for "how long have we been in this state?" |
 | `StateLog` | Remembers changes and warnings; shows them on telemetry |
-| `GamepadInput` | Reads one gamepad. `isAPressed()` = once per press, `isAHeld()` = every loop while held, `isDpadLeftHeldFor(1000)` = once after holding 1 s. Sticks have the deadzone applied |
+| `GamepadInput` | Reads one gamepad. `isAPressed()` = once per press, `isAHeld()` = every loop while held, `wasBReleased()` = once when let go, `isDpadLeftHeldFor(1000)` = once after holding 1 s. Sticks have the deadzone applied |
 | `AllianceColor` | The two alliances as an `enum`: `AllianceColor.RED`, `AllianceColor.BLUE` |
-| `MatchInfo` | `MatchInfo.alliance` (RED until chosen) – kept from Auto INIT into TeleOp |
+| `MatchInfo` | `MatchInfo.alliance` (RED until chosen), and the HIVE: which CELL is up, TIPS – kept from Auto into TeleOp |
 | `PoseMemory` | Carries the robot's position from Autonomous into TeleOp |
 | `DashboardTelemetry` | One telemetry that shows on the Driver Station AND FTC Dashboard |
-| `FieldDrawing` | Draws the robot and its path on the Dashboard field |
+| `FieldDrawing` | Draws the robot, its path and the upward CELL on the Dashboard field (BioBuzz field picture); `graph(...)` adds numbers to the Dashboard graph |
 | `BatteryMonitor` | The battery's real voltage, measured by the hubs (the lowest of the two), read at most every 100 ms |
 | `MatchClock` | Match time left. Robot owns one: `robot.clock.getTimeLeftText()` = "1:42" |
 | `HealthMonitor` | Watches loop time, battery, the Pinpoint and the heading every loop, and raises ALERTs |
@@ -296,12 +336,17 @@ true only on the one loop when the button goes from up to down. Read each button
 | 5 | Robot Check, Test: Parts, Log Viewer, templates | Done (not yet run on the robot) |
 | 6 | Field Checks 01–13 | Planned |
 | 7 | Autonomous (S3) | Planned |
-| 8 | Mechanisms: Intake, Feeder, Launcher, HIVE camera, front camera; LaunchStateMachine | When the robot's mechanisms are built |
+| 8 | Mechanisms: Intake, Feeder, Launcher, HIVE camera, front camera; LaunchStateMachine; aim button; gamepad 2 map; one test each | Done (device names, ports and numbers are first guesses: TODO(BioBuzz)) |
 | 9 | The other student guides | Planned |
 
 > **Important:** Pedro's `pedro/Constants.java` is still the empty Quickstart file.
-> Until it is filled in at drive tuning, every BioBuzz OpMode stops at INIT with the
-> message "DRIVE NOT SET UP". That is expected.
+> Until it is filled in at drive tuning, every BioBuzz OpMode that drives stops at INIT
+> with the message "DRIVE NOT SET UP". That is expected.
+>
+> **Also:** BioBuzz TeleOp (and every OpMode that builds `Robot`) now needs EVERY device
+> in `HardwareNames`, including the mechanisms and both cameras. A missing one stops INIT
+> with "Unable to find a hardware device...". Until the mechanisms are built and in the
+> robot configuration, drive with "Test: Drive".
 
 ---
 

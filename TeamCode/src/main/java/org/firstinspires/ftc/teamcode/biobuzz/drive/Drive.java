@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.biobuzz.drive;
 
+import com.pedropathing.controllers.PIDController;
 import com.pedropathing.drivetrain.DrivePowers;
 import com.pedropathing.follower.Follower;
 import com.pedropathing.follower.ManualDrive;
@@ -27,6 +28,7 @@ import org.firstinspires.ftc.teamcode.pedro.Constants;
  *
  * Drive has NO states. The OpMode decides who drives:
  *   driveWithSticks(...)          the driver drives               (S1)
+ *   driveWithSticksAimedAt(...)   the driver drives, Pedro keeps it facing the upward CELL
  *   followPath(...)               the robot drives a path itself  (S2 assists, S3 Auto)
  * Moving a stick while a path runs simply calls driveWithSticks(), which takes the robot back.
  *
@@ -57,6 +59,7 @@ public class Drive {
     private Path currentPath = null;                  // kept so the Dashboard can draw it
     private int headingSetCount = 0;                  // +1 each time WE set the heading (not a "jump")
     private double stickForward = 0, stickRight = 0, stickClockwise = 0;   // for the match log
+    private final PIDController aimController = new PIDController(DriveConfig.AIM_P, 0, DriveConfig.AIM_D);
 
     public Drive(HardwareMap hardwareMap) {
         follower = Constants.create(hardwareMap);
@@ -103,6 +106,29 @@ public class Drive {
             powers = ManualDrive.fieldCentric(powers, follower.pose().heading(),
                     -Math.toRadians(getDriverHeadingDeg()));
         }
+        follower.manual(powers);
+        currentPath = null;
+    }
+
+    /**
+     * Drive with the left stick while Pedro turns the robot to face targetHeadingDeg (the aim
+     * button). Pedro's ManualDrive.headingLock() replaces the turn power. In robot-centric mode
+     * the heading can't be trusted, so the robot just drives without turning.
+     */
+    public void driveWithSticksAimedAt(double forward, double right, double targetHeadingDeg) {
+        if (!fieldCentric) {
+            driveWithSticks(forward, right, 0);
+            return;
+        }
+        if (follower.following()) MatchLogger.event("ASSIST_CANCELLED", "aim");
+        stickForward = forward;
+        stickRight = right;
+        stickClockwise = 0;
+        aimController.kP = DriveConfig.AIM_P;   // so Dashboard edits count at once
+        aimController.kD = DriveConfig.AIM_D;
+        DrivePowers powers = ManualDrive.fieldCentric(new DrivePowers(forward, -right, 0),
+                follower.pose().heading(), -Math.toRadians(getDriverHeadingDeg()));
+        powers = ManualDrive.headingLock(follower, aimController, powers, Math.toRadians(targetHeadingDeg));
         follower.manual(powers);
         currentPath = null;
     }

@@ -39,6 +39,9 @@ public class MatchClock {
 
     public boolean hasStarted() { return lengthS > 0; }
 
+    /** true when this clock was started for TeleOp (2:00). */
+    public boolean isTeleOp() { return lengthS == TELEOP_S; }
+
     public double secondsSinceStart() { return sinceStart.seconds(); }
 
     public double secondsLeft() { return leftS; }

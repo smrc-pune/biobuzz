@@ -19,6 +19,11 @@ import com.acmerobotics.dashboard.config.Config;
 public class TelemetryConfig {
     // ---- One switch per part ----
     public static boolean DRIVE = true;                // drive mode, who is driving, pose, warnings
+    public static boolean INTAKE = true;               // intake power
+    public static boolean FEEDER = true;               // feeder position
+    public static boolean LAUNCHER = true;             // flywheel speed and target
+    public static boolean CAMERAS = true;              // what the HIVE camera and the front camera see
+    public static boolean LAUNCH = true;               // LaunchStateMachine: state, launched count, history
 
     // ---- Extra detail ----
     public static boolean HISTORY = true;              // the last change (and WHY) of each part and state machine
@@ -26,8 +31,8 @@ public class TelemetryConfig {
     public static boolean GAMEPAD_HELP = true;         // the controls cheat sheet (the two lines below)
 
     // The controls cheat sheet. Keep it the same as BioBuzzTeleOp's header and docs/CONTROLS.md.
-    public static String GAMEPAD1_HELP = "GP1: sticks=drive  Y=face-away  X=field/robot  A=launch spot  B=loading zone  Dpad-left(hold)=set pose  Back=mark";
-    public static String GAMEPAD2_HELP = "GP2: Dpad-down=STOP ALL  Back=mark  (mechanisms: TODO)";
+    public static String GAMEPAD1_HELP = "GP1: sticks=drive  Y=face-away  X=field/robot  A=launch spot  B=loading zone  RB(hold)=aim  Dpad-left(hold)=set pose  Back=mark";
+    public static String GAMEPAD2_HELP = "GP2: A=intake on/off  B(hold)=spit out  RT=launch 4  Y=spin up  LB=HIVE tipped  Dpad-down=STOP ALL  Back=mark";
 
     // ---- Timing ----
     public static double WARNING_SHOW_S = 4;           // seconds a log.warn(...) message stays on screen
@@ -36,7 +41,7 @@ public class TelemetryConfig {
 
     // ---- Dashboard field view ----
     public static boolean FIELD_DRAWING = true;        // draw the robot and its path on the Dashboard field
-    public static boolean FIELD_IMAGE = false;         // TODO(BioBuzz): true once the BioBuzz field image exists
+    public static boolean FIELD_IMAGE = true;          // the BioBuzz field picture behind the drawing (false = Dashboard's own)
     // The Dashboard serves pictures from TeamCode/src/main/assets/images/ at the web path /images/...
     public static String FIELD_IMAGE_PATH = "/images/field-biobuzz.png";
 }

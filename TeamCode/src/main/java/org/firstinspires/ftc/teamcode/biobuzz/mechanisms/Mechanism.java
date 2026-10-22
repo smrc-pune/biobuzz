@@ -8,7 +8,7 @@ import org.firstinspires.ftc.teamcode.biobuzz.helpers.MatchLogger;
  * MENTORS: you do not need to change this file.
  *
  * Mechanism.java  -  what every mechanism has in common.                       ROLE: base class
- * PATTERN: Template Method. Your mechanism fills in up to three methods; this class
+ * PATTERN: Template Method. Your mechanism fills in up to five methods; this class
  * does the safety around them.
  *
  *   public class Intake extends Mechanism {
@@ -17,6 +17,7 @@ import org.firstinspires.ftc.teamcode.biobuzz.helpers.MatchLogger;
  *       @Override protected void stop() { ... }                 // safe state: motors off
  *       @Override protected void addDetails(Telemetry t) { ... } // your telemetry lines
  *       @Override protected void addLogValues() { ... }          // match-log columns (optional)
+ *       @Override protected boolean isTelemetryOn() { return TelemetryConfig.INTAKE; }  // its switch
  *   }
  *
  * Robot calls runUpdate(), runStop(), addTelemetry() and addLogData() on every mechanism.
@@ -54,6 +55,9 @@ public class Mechanism {
      */
     protected void addLogValues() { }
 
+    /** Your switch in TelemetryConfig, so a student can hide these lines. A FAULTED line always shows. */
+    protected boolean isTelemetryOn() { return true; }
+
     // ==================== FIXED: Robot and test OpModes call these ====================
 
     public final void runUpdate() {
@@ -75,7 +79,7 @@ public class Mechanism {
 
     public final void addTelemetry(Telemetry t) {
         if (faulted) t.addData(name, "FAULTED: " + faultReason);
-        else addDetails(t);
+        else if (isTelemetryOn()) addDetails(t);
     }
 
     /** Robot calls this for each match-log DATA row. */
