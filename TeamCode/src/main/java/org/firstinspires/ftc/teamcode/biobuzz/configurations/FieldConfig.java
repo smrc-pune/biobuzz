@@ -40,6 +40,27 @@ public class FieldConfig {
     // The middle of the field. RED places are turned around this point for BLUE.
     public static double FIELD_CENTRE_IN = 72;
 
+    // ---- Start positions for Autonomous (AutoConfig.START picks one). Rule G304: touching
+    //      the wall, on our side, not in the LOADING ZONE, touching the 4 preloaded POLLEN. ----
+    public static double START_NEAR_GARDEN_X_IN = 9;      // back on the left wall
+    public static double START_NEAR_GARDEN_Y_IN = 36;
+    public static double START_NEAR_GARDEN_HEADING_DEG = 0;
+    public static double START_MIDDLE_X_IN = 9;
+    public static double START_MIDDLE_Y_IN = 84;
+    public static double START_MIDDLE_HEADING_DEG = 0;
+
+    // ---- Our GARDEN (4 POLLEN in a line along the audience wall, bottom-left corner).
+    //      Auto drives from GARDEN_START to GARDEN_END with the intake on. ----
+    public static double GARDEN_START_X_IN = 36;
+    public static double GARDEN_START_Y_IN = 12;
+    public static double GARDEN_END_X_IN = 12;
+    public static double GARDEN_END_Y_IN = 12;
+    public static double GARDEN_HEADING_DEG = 180;        // intake toward the GARDEN corner
+
+    // ---- Our side of the field for Autonomous (rule G402: columns A-C are RED). The robot's
+    //      CENTRE must stay this far from the middle line, so no part of it crosses. ----
+    public static double OWN_SIDE_MARGIN_IN = 9;
+
     // ---- Our favourite launch spot (driver's A button). We can launch from anywhere;
     //      this is just one known good spot with a clear view of the HIVE. ----
     public static double LAUNCH_SPOT_X_IN = 30;

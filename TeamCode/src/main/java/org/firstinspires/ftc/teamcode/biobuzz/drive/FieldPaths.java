@@ -5,6 +5,7 @@ import com.pedropathing.api.Paths;
 import com.pedropathing.math.Pose;
 import com.pedropathing.paths.Path;
 
+import org.firstinspires.ftc.teamcode.biobuzz.configurations.AutoConfig;
 import org.firstinspires.ftc.teamcode.biobuzz.configurations.FieldConfig;
 import org.firstinspires.ftc.teamcode.biobuzz.configurations.LauncherConfig;
 import org.firstinspires.ftc.teamcode.biobuzz.helpers.MatchInfo;
@@ -23,6 +24,7 @@ import org.firstinspires.ftc.teamcode.biobuzz.helpers.MatchInfo;
  *   new Pose(x, y, heading)          a place and the way the robot faces (heading in RADIANS)
  *   Paths.line(from, to)             a straight line
  *   Paths.curve(from, middle, to)    a smooth curve pulled toward the middle point
+ *   Paths.through(a, b, c)           a path that passes through every point
  *   .linear(from, to)                turn smoothly from the start heading to the end heading
  * Every Pedro path MUST say how the robot turns (.linear here), or Pedro stops with an error.
  *
@@ -63,6 +65,16 @@ public class FieldPaths {
                 FieldConfig.RESET_CORNER_HEADING_DEG, isRed);
     }
 
+    /** Where Autonomous starts (AutoConfig.START), turned for BLUE. */
+    public static Pose startPose(AutoConfig.Start start, boolean isRed) {
+        if (start == AutoConfig.Start.WALL_MIDDLE) {
+            return place(FieldConfig.START_MIDDLE_X_IN, FieldConfig.START_MIDDLE_Y_IN,
+                    FieldConfig.START_MIDDLE_HEADING_DEG, isRed);
+        }
+        return place(FieldConfig.START_NEAR_GARDEN_X_IN, FieldConfig.START_NEAR_GARDEN_Y_IN,
+                FieldConfig.START_NEAR_GARDEN_HEADING_DEG, isRed);
+    }
+
     /** The CELL that faces up now (MatchInfo knows which), turned for BLUE. Heading is not used. */
     public static Pose upCellPose(boolean isRed) {
         if (MatchInfo.isCellAUp()) return place(FieldConfig.CELL_A_X_IN, FieldConfig.CELL_A_Y_IN, 0, isRed);
@@ -96,7 +108,42 @@ public class FieldPaths {
         return Paths.curve(from, loadingApproach(isRed), to).linear(from, to);
     }
 
+    /** Autonomous LEAVE: off the wall to our launch spot, turning to face the upward CELL. */
+    public static Path leaveWall(Pose start, boolean isRed) {
+        Pose spot = launchSpot(isRed);
+        Pose to = new Pose(spot.x(), spot.y(), Math.toRadians(aimHeadingDeg(spot, isRed)));
+        return Paths.line(start, to).linear(start, to);
+    }
+
+    /** Autonomous collect: to the start of our GARDEN line, then along it (the intake is on). */
+    public static Path throughGarden(Pose from, boolean isRed) {
+        Pose gardenStart = place(FieldConfig.GARDEN_START_X_IN, FieldConfig.GARDEN_START_Y_IN,
+                FieldConfig.GARDEN_HEADING_DEG, isRed);
+        Pose gardenEnd = place(FieldConfig.GARDEN_END_X_IN, FieldConfig.GARDEN_END_Y_IN,
+                FieldConfig.GARDEN_HEADING_DEG, isRed);
+        return Paths.through(from, gardenStart, gardenEnd).linear(from, gardenEnd);
+    }
+
+    /** Back from the GARDEN to the launch spot, facing the upward CELL (second launch). */
+    public static Path gardenToLaunchSpot(Pose from, boolean isRed) {
+        return leaveWall(from, isRed);
+    }
+
     // ==================== CHECKS ====================
+
+    /**
+     * true if the robot's centre stays on our half of the field along the whole path
+     * (rule G402: in AUTO, RED stays in columns A-C, the left half; BLUE in D-F, the right half).
+     */
+    public static boolean isOnOwnSide(Path path, boolean isRed) {
+        double middle = FieldConfig.FIELD_CENTRE_IN;
+        for (int i = 0; i <= CHECK_POINTS; i++) {
+            Pose point = path.get((double) i / CHECK_POINTS);
+            if (isRed && point.x() > middle - FieldConfig.OWN_SIDE_MARGIN_IN) return false;
+            if (!isRed && point.x() < middle + FieldConfig.OWN_SIDE_MARGIN_IN) return false;
+        }
+        return true;
+    }
 
     /** true if the robot's centre stays out of the HIVE keep-out box along the whole path. */
     public static boolean avoidsHive(Path path) {

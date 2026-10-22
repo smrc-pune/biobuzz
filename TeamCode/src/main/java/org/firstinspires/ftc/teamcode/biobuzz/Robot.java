@@ -86,11 +86,14 @@ public class Robot {
     // ==================== START AND END OF A RUN ====================
 
     /** PLAY: start the match clock, the health checks and the match log. */
-    public void startMatch(String opModeName, double matchLengthS) {
+    public void startMatch(String opModeName, double matchLengthS) { startMatch(opModeName, matchLengthS, ""); }
+
+    /** The same, with one more line at the top of the match log (Auto writes its plan there). */
+    public void startMatch(String opModeName, double matchLengthS, String logHeader) {
         Alerts.clear();
         clock.start(matchLengthS);
         health.start();
-        MatchLogger.start(opModeName, battery.getVoltage());
+        MatchLogger.start(opModeName, battery.getVoltage(), logHeader);
     }
 
     /** STOP: every mechanism to its safe state, then close the match log. */

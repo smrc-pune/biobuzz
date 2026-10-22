@@ -80,7 +80,8 @@ teamcode/
     configurations/         numbers and names only
       HardwareNames.java      every device name, and the hub and port it plugs into
       DriveConfig.java        stick deadzone, "away from drivers" headings
-      FieldConfig.java        every place we drive to (written for RED)
+      FieldConfig.java        every place we drive to (written for RED): starts, launch spot, CELLS, GARDEN
+      AutoConfig.java         the Autonomous plan (routine, start, delay), step time limits, PARK_BY_S
       ControlsConfig.java     trigger threshold, hold times, rumble lengths, button list
       HealthConfig.java       limits for ALERTs (low battery, slow loop, heading jump) and Robot Check
       IntakeConfig.java       intake powers
@@ -104,6 +105,8 @@ teamcode/
       LaunchStateMachine.java "launch 4": spin up, feed, recover, repeat
     teleop/
       BioBuzzTeleOp.java      the match TeleOp: both gamepad maps (S1 and S2)
+    auto/
+      BioBuzzAuto.java        the match Autonomous (S3): a list of steps
     testing/
       DriveTest.java          "Test: Drive" – drive only, to check the drivetrain
       PartsTest.java          "Test: Parts" – move one motor or servo at a time (wiring, direction)
@@ -119,7 +122,7 @@ teamcode/
     docs/                   requirements, design documents, guides
 ```
 
-Coming later (see section 9): `auto/` and `fieldchecks/`.
+Coming later (see section 9): `fieldchecks/`.
 
 **How a mechanism finds its devices.** The robot has two hubs: the **Control Hub**
 (drive motors, Pinpoint) and the **Expansion Hub** (most mechanism motors). Each
@@ -226,7 +229,7 @@ own front. Used only when the driver presses X, or when the heading can't be tru
 | --- | --- |
 | **S1 Manual** | The driver, with the sticks |
 | **S2 Assisted** | The driver, plus A and B: the robot drives itself to a fixed place. **Any stick takes the robot back** |
-| S3 Autonomous | The robot (coming later) |
+| S3 Autonomous | The robot, in BioBuzz Auto (section 6a) |
 
 S2 needs to know where the robot is. After Autonomous it does. If Autonomous did not run,
 TeleOp starts as **S1 only** (the header says so). To turn the assists on: drive into our
@@ -263,6 +266,28 @@ at 1:00 left; gamepad 1 buzzes at 0:20 left: time to PARK.
 
 All places are written **for RED** in `configurations/FieldConfig.java`. For BLUE,
 `FieldPaths.place(...)` turns them half a turn around the middle of the field.
+
+---
+
+## 6a. Autonomous (S3)
+
+`auto/BioBuzzAuto.java` is a list of steps, written like a state machine:
+
+```
+WAIT_DELAY -> LEAVE -> LAUNCH_PRELOADS -> PARK -> DONE                         (LAUNCH_PARK)
+WAIT_DELAY -> LEAVE -> LAUNCH_PRELOADS -> COLLECT_GARDEN -> DRIVE_TO_LAUNCH
+           -> LAUNCH_AGAIN -> PARK -> DONE                                     (LAUNCH_COLLECT_PARK)
+```
+
+Each step starts something on its first loop (a path, a launch), waits until it is done,
+and gives up after its time limit in `AutoConfig` (a `TIMEOUT` line in the match log).
+At `AutoConfig.PARK_BY_S` (26 s) the robot goes to PARK whatever it is doing.
+
+**Before the match** set `AutoConfig.ROUTINE`, `START` and `START_DELAY_S` with your
+alliance partner. **In INIT** pick the alliance with gamepad 1 D-pad left/right, and read
+the screen: it shows the plan and a **PATH WARNING** if a path would leave our side or hit
+the HIVE. The paths are drawn on the Dashboard field. Place the robot exactly at its start.
+At the end, Auto saves its pose, so TeleOp starts in S2.
 
 ---
 
@@ -335,7 +360,7 @@ true only on the one loop when the button goes from up to down. Read each button
 | 4 | Match log, match clock, ALERTs; health checks: loop time, low battery, Pinpoint, heading jump (Requirements v2.6) | Done (not yet run on the robot) |
 | 5 | Robot Check, Test: Parts, Log Viewer, templates | Done (not yet run on the robot) |
 | 6 | Field Checks 01–13 | Planned |
-| 7 | Autonomous (S3) | Planned |
+| 7 | Autonomous (S3): BioBuzzAuto, AutoConfig, start positions, GARDEN and auto paths, own-side and HIVE checks at INIT, park-by guard | Done (places in FieldConfig are guesses from the field picture) |
 | 8 | Mechanisms: Intake, Feeder, Launcher, HIVE camera, front camera; LaunchStateMachine; aim button; gamepad 2 map; one test each | Done (device names, ports and numbers are first guesses: TODO(BioBuzz)) |
 | 9 | The other student guides | Planned |
 

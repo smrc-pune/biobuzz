@@ -52,7 +52,10 @@ public class MatchLogger {
     private static int rowCount = 0;
 
     /** PLAY: open a new file (if LogConfig.ENABLED) and write the # lines. */
-    public static void start(String opModeName, double batteryVolts) {
+    public static void start(String opModeName, double batteryVolts) { start(opModeName, batteryVolts, ""); }
+
+    /** The same, with one more # line, for example "routine=LAUNCH_PARK start=WALL_MIDDLE delay_s=0". */
+    public static void start(String opModeName, double batteryVolts, String extraHeader) {
         close();
         if (!LogConfig.ENABLED) return;
         row.setLength(0);
@@ -69,6 +72,7 @@ public class MatchLogger {
             writeLine("# field=" + MatchInfo.fieldName);
             writeLine("# battery_at_play_v=" + round(batteryVolts));
             writeLine("# started_epoch_ms=" + System.currentTimeMillis());
+            if (!extraHeader.isEmpty()) writeLine("# " + clean(extraHeader));
         } catch (IOException e) {
             turnOff(e);
         }
