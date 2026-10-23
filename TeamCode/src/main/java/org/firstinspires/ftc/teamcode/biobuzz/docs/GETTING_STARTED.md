@@ -39,7 +39,8 @@ On the Driver Station: the **TeleOp** list (or **Autonomous** list) → pick an 
 | Tests | Test: Drive, Test: Parts, Test: Intake, Feeder, Launcher, Camera, Launch, Robot Check, Log Viewer |
 | Field Checks | Field Check 01 ... 13 |
 
-First time on a new robot: **Test: Parts** (each motor and servo), then **Test: Drive**.
+First time on a new robot: follow **`NEW_ROBOT_CHECKLIST.md`**, step by step. It starts with
+**Test: Parts** (each motor and servo) and **Robot Check**.
 
 ## 5. FTC Dashboard
 

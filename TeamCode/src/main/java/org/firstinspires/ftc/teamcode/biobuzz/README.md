@@ -427,6 +427,9 @@ true only on the one loop when the button goes from up to down. Read each button
 > Until it is filled in at drive tuning, every BioBuzz OpMode that drives stops at INIT
 > with the message "DRIVE NOT SET UP". That is expected.
 >
+> **The robot is built? Start with `docs/NEW_ROBOT_CHECKLIST.md`.** It goes step by step
+> from the wiring list to a match-ready robot, and says which step clears each `TODO(BioBuzz)`.
+>
 > **Also:** BioBuzz TeleOp (and every OpMode that builds `Robot`) now needs EVERY device
 > in `HardwareNames`, including the mechanisms and both cameras. A missing one stops INIT
 > with "Unable to find a hardware device...". Until the mechanisms are built and in the
@@ -506,6 +509,7 @@ cleanly.
 | Guide | Read it when you want to... |
 | --- | --- |
 | `GETTING_STARTED.md` | install Android Studio, build, deploy, run an OpMode, open the Dashboard |
+| `NEW_ROBOT_CHECKLIST.md` | go from a newly built robot to a match-ready one, step by step (wiring, tests, tuning, cameras, field places, Auto, baseline) |
 | `FIRST_CHANGES.md` | do five small exercises: a speed, a button, a telemetry line, a state, an auto step |
 | `CONTROLS.md` | know what every button does (print it for the drive team) |
 | `HOW_TO_ADD_A_MECHANISM.md` | add a mechanism or a state machine from the templates |

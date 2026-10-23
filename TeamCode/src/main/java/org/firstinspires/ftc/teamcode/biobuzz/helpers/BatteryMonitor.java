@@ -23,8 +23,8 @@ import java.util.List;
  *   double volts = battery.getVoltage();      // for example 12.6
  *
  * A full battery reads about 13 V or more at rest; it drops while the motors work hard.
- * TODO(BioBuzz) step 4: resting voltage at INIT, lowest since PLAY, low-battery ALERTs,
- * and the voltage in every match-log row.
+ * The lowest voltage since PLAY, the low-battery ALERTs and the battery_v log column are in
+ * helpers/HealthMonitor.java, which uses this class.
  *
  * TRACING A BUG: "0.0 V" means no hub reported a voltage (check the hub is configured).
  */
