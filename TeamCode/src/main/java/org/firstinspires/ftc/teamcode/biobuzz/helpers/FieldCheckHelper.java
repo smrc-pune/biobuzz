@@ -44,21 +44,31 @@ public class FieldCheckHelper {
     /** Grade an error against a tolerance: PASS, WARN (up to 2x) or FAIL. */
     public static String grade(double error, double tolerance) {
         double size = Math.abs(error);
-        if (size <= tolerance) return PASS;
-        if (size <= 2 * tolerance) return WARN;
+        if (size <= tolerance) {
+            return PASS;
+        }
+        if (size <= 2 * tolerance) {
+            return WARN;
+        }
         return FAIL;
     }
 
     /** Grade a measurement against the home baseline (tolerance is a fraction, 0.15 = 15%). */
     public static String gradeAgainstBaseline(double measured, double baseline, double toleranceFraction) {
-        if (baseline <= 0) return WARN;   // no baseline yet: look at it, and record one at home
+        if (baseline <= 0) {
+            return WARN;   // no baseline yet: look at it, and record one at home
+        }
         return grade((measured - baseline) / baseline, toleranceFraction);
     }
 
     /** The worse of two grades. */
     public static String worse(String a, String b) {
-        if (a.equals(FAIL) || b.equals(FAIL)) return FAIL;
-        if (a.equals(WARN) || b.equals(WARN)) return WARN;
+        if (a.equals(FAIL) || b.equals(FAIL)) {
+            return FAIL;
+        }
+        if (a.equals(WARN) || b.equals(WARN)) {
+            return WARN;
+        }
         return PASS;
     }
 
@@ -66,7 +76,9 @@ public class FieldCheckHelper {
     public static void record(int number, String grade, String text) {
         if ((number == 7 || number == 8 || number == 9) && batteryDiffers) {
             text += " (battery differs from baseline)";
-            if (grade.equals(FAIL)) grade = WARN;
+            if (grade.equals(FAIL)) {
+                grade = WARN;
+            }
         }
         grades[number] = grade;
         texts[number] = text;
@@ -74,12 +86,16 @@ public class FieldCheckHelper {
     }
 
     public static String getGrade(int number) {
-        if (grades[number] == null) return "not run";
+        if (grades[number] == null) {
+            return "not run";
+        }
         return grades[number];
     }
 
     public static String getText(int number) {
-        if (texts[number] == null) return "";
+        if (texts[number] == null) {
+            return "";
+        }
         return texts[number];
     }
 
@@ -96,8 +112,12 @@ public class FieldCheckHelper {
     }
 
     public static void noteDrivingBattery(double volts) {
-        if (volts <= 0) return;
-        if (lowestDrivingBatteryV == 0 || volts < lowestDrivingBatteryV) lowestDrivingBatteryV = volts;
+        if (volts <= 0) {
+            return;
+        }
+        if (lowestDrivingBatteryV == 0 || volts < lowestDrivingBatteryV) {
+            lowestDrivingBatteryV = volts;
+        }
     }
 
     public static double getRestingBatteryV() { return restingBatteryV; }

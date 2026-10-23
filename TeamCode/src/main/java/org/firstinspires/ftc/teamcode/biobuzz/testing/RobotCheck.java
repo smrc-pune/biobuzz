@@ -76,9 +76,14 @@ public class RobotCheck extends OpMode {
                 HardwareNames.MOTOR_DRIVE_LEFT_BACK_REVERSED, HardwareNames.MOTOR_DRIVE_RIGHT_BACK_REVERSED };
         for (int i = 0; i < driveMotors.length; i++) {
             driveMotors[i] = hardwareMap.tryGet(DcMotorEx.class, HardwareNames.DRIVE_MOTORS[i]);
-            if (driveMotors[i] == null) continue;
-            if (reversed[i]) driveMotors[i].setDirection(DcMotor.Direction.REVERSE);
-            else driveMotors[i].setDirection(DcMotor.Direction.FORWARD);
+            if (driveMotors[i] == null) {
+                continue;
+            }
+            if (reversed[i]) {
+                driveMotors[i].setDirection(DcMotor.Direction.REVERSE);
+            } else {
+                driveMotors[i].setDirection(DcMotor.Direction.FORWARD);
+            }
         }
     }
 
@@ -100,7 +105,9 @@ public class RobotCheck extends OpMode {
         boolean next = pad.isAPressed();
         boolean repeat = pad.isBPressed();
         boolean wrongWay = pad.isXPressed();
-        if (pinpoint != null) pinpoint.update();   // no follower here, so we read the Pinpoint ourselves
+        if (pinpoint != null) {
+            pinpoint.update();   // no follower here, so we read the Pinpoint ourselves
+        }
 
         switch (step) {
             case BATTERY:
@@ -126,7 +133,9 @@ public class RobotCheck extends OpMode {
             case LOGGER:
                 double freeMb = MatchLogger.getFreeStorageMb();
                 String logging = "OFF (turn on LogConfig.ENABLED)";
-                if (LogConfig.ENABLED) logging = "ON";
+                if (LogConfig.ENABLED) {
+                    logging = "ON";
+                }
                 finish(LogConfig.ENABLED && freeMb > HealthConfig.CHECK_MIN_FREE_MB,
                         String.format("logging %s, %.0f MB free (need %.0f)", logging, freeMb,
                                 HealthConfig.CHECK_MIN_FREE_MB));
@@ -136,13 +145,20 @@ public class RobotCheck extends OpMode {
                 break;
         }
 
-        if (repeat) goTo(step);
-        if (next && !result.isEmpty() && step != Step.DONE) goTo(Step.values()[step.ordinal() + 1]);
+        if (repeat) {
+            goTo(step);
+        }
+        if (next && !result.isEmpty() && step != Step.DONE) {
+            goTo(Step.values()[step.ordinal() + 1]);
+        }
 
         if (step != Step.DONE) {
             t.addData("STEP " + (step.ordinal() + 1) + " of 5", step);
-            if (result.isEmpty()) t.addLine(String.format("measuring... %.1f s", timer.seconds()));
-            else t.addLine(result + "      A = next step, B = repeat");
+            if (result.isEmpty()) {
+                t.addLine(String.format("measuring... %.1f s", timer.seconds()));
+            } else {
+                t.addLine(result + "      A = next step, B = repeat");
+            }
         }
         t.addData("Battery", String.format("%.1f V", battery.getVoltage()));
         t.update();
@@ -162,9 +178,13 @@ public class RobotCheck extends OpMode {
             return;
         }
         double hz = pinpoint.getFrequency();
-        if (lowestHz == 0 || hz < lowestHz) lowestHz = hz;
+        if (lowestHz == 0 || hz < lowestHz) {
+            lowestHz = hz;
+        }
         highestHz = Math.max(highestHz, hz);
-        if (!result.isEmpty() || timer.seconds() < HealthConfig.CHECK_PINPOINT_S) return;
+        if (!result.isEmpty() || timer.seconds() < HealthConfig.CHECK_PINPOINT_S) {
+            return;
+        }
         GoBildaPinpointDriver.DeviceStatus status = pinpoint.getDeviceStatus();
         boolean steady = true;
         String rateText = String.format("%.0f-%.0f Hz", lowestHz, highestHz);
@@ -185,7 +205,9 @@ public class RobotCheck extends OpMode {
             return;
         }
         double headingDeg = pinpoint.getHeading(AngleUnit.DEGREES);
-        if (timer.milliseconds() < 100) startHeadingDeg = headingDeg;   // first readings: the start
+        if (timer.milliseconds() < 100) {
+            startHeadingDeg = headingDeg;   // first readings: the start
+        }
         double driftDeg = Math.abs(AngleUnit.normalizeDegrees(headingDeg - startHeadingDeg));
         worstDriftDeg = Math.max(worstDriftDeg, driftDeg);
         if (result.isEmpty()) {
@@ -200,10 +222,18 @@ public class RobotCheck extends OpMode {
 
     private void checkDriveMotors(boolean forward, boolean again, boolean wrongWay) {
         if (motorNumber >= driveMotors.length) {   // every motor done: A moves on
-            if (result.isEmpty() && motorsAllForward) finish(true, "all 4 wheels forward");
-            if (result.isEmpty()) finish(false, "a wheel turned the WRONG way or is missing: fix its REVERSED in HardwareNames");
-            if (forward) goTo(Step.LOGGER);
-            if (again) goTo(Step.DRIVE_MOTORS);
+            if (result.isEmpty() && motorsAllForward) {
+                finish(true, "all 4 wheels forward");
+            }
+            if (result.isEmpty()) {
+                finish(false, "a wheel turned the WRONG way or is missing: fix its REVERSED in HardwareNames");
+            }
+            if (forward) {
+                goTo(Step.LOGGER);
+            }
+            if (again) {
+                goTo(Step.DRIVE_MOTORS);
+            }
             return;
         }
         String name = HardwareNames.DRIVE_MOTORS[motorNumber];
@@ -215,11 +245,16 @@ public class RobotCheck extends OpMode {
             timer.reset();
             return;
         }
-        if (timer.milliseconds() < ControlsConfig.ROBOT_CHECK_MOTOR_MS) motor.setPower(ControlsConfig.ROBOT_CHECK_MOTOR_POWER);
-        else motor.setPower(0);
+        if (timer.milliseconds() < ControlsConfig.ROBOT_CHECK_MOTOR_MS) {
+            motor.setPower(ControlsConfig.ROBOT_CHECK_MOTOR_POWER);
+        } else {
+            motor.setPower(0);
+        }
         t.addData("Motor", name + "  (" + (motorNumber + 1) + " of 4)");
         t.addLine("Did the wheel turn FORWARD?  A = yes,  X = wrong way,  B = spin again");
-        if (again) timer.reset();
+        if (again) {
+            timer.reset();
+        }
         if (forward || wrongWay) {
             motor.setPower(0);
             if (wrongWay) {
@@ -239,7 +274,9 @@ public class RobotCheck extends OpMode {
         } else {
             t.addLine("NOT READY. Failed:");
             for (Step each : Step.values()) {
-                if (each != Step.DONE && !passed[each.ordinal()]) t.addLine("  " + each);
+                if (each != Step.DONE && !passed[each.ordinal()]) {
+                    t.addLine("  " + each);
+                }
             }
             t.addLine("B = run the whole check again");
         }
@@ -262,27 +299,38 @@ public class RobotCheck extends OpMode {
         worstDriftDeg = 0;
         motorNumber = 0;
         motorsAllForward = true;
-        if (step == Step.DONE && isReady()) MatchLogger.event("ROBOTCHECK", "READY FOR MATCH");
-        if (step == Step.DONE && !isReady()) MatchLogger.event("ROBOTCHECK", "NOT READY");
+        if (step == Step.DONE && isReady()) {
+            MatchLogger.event("ROBOTCHECK", "READY FOR MATCH");
+        }
+        if (step == Step.DONE && !isReady()) {
+            MatchLogger.event("ROBOTCHECK", "NOT READY");
+        }
     }
 
     private void finish(boolean pass, String text) {
         passed[step.ordinal()] = pass;
-        if (pass) result = "PASS: " + text;
-        else result = "FAIL: " + text;
+        if (pass) {
+            result = "PASS: " + text;
+        } else {
+            result = "FAIL: " + text;
+        }
         MatchLogger.event("ROBOTCHECK", step + " " + result);
     }
 
     private boolean isReady() {
         for (Step each : Step.values()) {
-            if (each != Step.DONE && !passed[each.ordinal()]) return false;
+            if (each != Step.DONE && !passed[each.ordinal()]) {
+                return false;
+            }
         }
         return true;
     }
 
     private void stopMotors() {
         for (DcMotorEx motor : driveMotors) {
-            if (motor != null) motor.setPower(0);
+            if (motor != null) {
+                motor.setPower(0);
+            }
         }
     }
 }

@@ -62,7 +62,9 @@ public class Mechanism {
     // ==================== FIXED: its subsystem and test OpModes call these ====================
 
     public final void runUpdate() {
-        if (faulted) return;
+        if (faulted) {
+            return;
+        }
         try {
             update();
         } catch (RuntimeException e) {
@@ -79,8 +81,11 @@ public class Mechanism {
     }
 
     public final void addTelemetry(Telemetry t) {
-        if (faulted) t.addData(name, "FAULTED: " + faultReason);
-        else if (isTelemetryOn()) addDetails(t);
+        if (faulted) {
+            t.addData(name, "FAULTED: " + faultReason);
+        } else if (isTelemetryOn()) {
+            addDetails(t);
+        }
     }
 
     /** Its subsystem calls this for each match-log DATA row. */
@@ -95,7 +100,9 @@ public class Mechanism {
 
     /** A mechanism may call this itself, for example when it sees a motor stall. */
     protected final void markFaulted(String reason) {
-        if (faulted) return;
+        if (faulted) {
+            return;
+        }
         faulted = true;
         faultReason = reason;
         runStop();

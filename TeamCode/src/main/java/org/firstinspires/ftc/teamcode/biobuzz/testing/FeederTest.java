@@ -44,8 +44,12 @@ public class FeederTest extends OpMode {
         boolean feed = pad.isAPressed();
         boolean hold = pad.isBPressed();
 
-        if (feed) feeder.feedOne();
-        if (hold) feeder.hold();
+        if (feed) {
+            feeder.feedOne();
+        }
+        if (hold) {
+            feeder.hold();
+        }
         feeder.runUpdate();
 
         t.addLine("A = feed one   B = hold");

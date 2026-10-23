@@ -55,11 +55,21 @@ public class LauncherTest extends OpMode {
         boolean idle = pad.isYPressed();
         boolean stop = pad.isBPressed();
 
-        if (farther) testDistanceIn += DISTANCE_STEP_IN;
-        if (closer) testDistanceIn = Math.max(0, testDistanceIn - DISTANCE_STEP_IN);
-        if (spinUp) launcher.spinUpFor(testDistanceIn);
-        if (idle) launcher.idle();
-        if (stop) launcher.runStop();
+        if (farther) {
+            testDistanceIn += DISTANCE_STEP_IN;
+        }
+        if (closer) {
+            testDistanceIn = Math.max(0, testDistanceIn - DISTANCE_STEP_IN);
+        }
+        if (spinUp) {
+            launcher.spinUpFor(testDistanceIn);
+        }
+        if (idle) {
+            launcher.idle();
+        }
+        if (stop) {
+            launcher.runStop();
+        }
         launcher.runUpdate();
 
         t.addLine("D-pad up/down = distance   A = spin up   Y = idle   B = stop");

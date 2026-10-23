@@ -78,14 +78,19 @@ public class BioBuzzAuto extends OpMode {
 
     @Override
     public void init_loop() {
-        if (driver.isDpadLeftPressed() || driver.isDpadRightPressed()) MatchInfo.switchAlliance();
+        if (driver.isDpadLeftPressed() || driver.isDpadRightPressed()) {
+            MatchInfo.switchAlliance();
+        }
         checkPaths();
         t.addData("Alliance (D-pad left/right to change)", MatchInfo.alliance);
         t.addData("Routine / start / delay", AutoConfig.ROUTINE + " / " + AutoConfig.START + " / "
                 + AutoConfig.START_DELAY_S + " s   (set in AutoConfig)");
         t.addData("Up CELL at start", MatchInfo.getUpCellName());
-        if (pathWarnings.isEmpty()) t.addLine("Paths: all on our side and clear of the HIVE");
-        else t.addLine("!!! PATH WARNING: " + pathWarnings + " - check FieldConfig !!!");
+        if (pathWarnings.isEmpty()) {
+            t.addLine("Paths: all on our side and clear of the HIVE");
+        } else {
+            t.addLine("!!! PATH WARNING: " + pathWarnings + " - check FieldConfig !!!");
+        }
         t.addData("Battery", "%.1f V", robot.battery.getVoltage());
         FieldDrawing.send();
         t.update();
@@ -97,7 +102,9 @@ public class BioBuzzAuto extends OpMode {
                 + " start=" + AutoConfig.START + " delay_s=" + AutoConfig.START_DELAY_S);
         robot.drive.setAlliance(MatchInfo.isRed());
         robot.drive.setStartingPose(FieldPaths.startPose(AutoConfig.START, MatchInfo.isRed()));
-        if (!pathWarnings.isEmpty()) MatchLogger.event("AUTO_PATH_OFFSIDE", pathWarnings);
+        if (!pathWarnings.isEmpty()) {
+            MatchLogger.event("AUTO_PATH_OFFSIDE", pathWarnings);
+        }
         goToStep(Step.WAIT_DELAY, "PLAY");
     }
 
@@ -113,7 +120,9 @@ public class BioBuzzAuto extends OpMode {
         PoseMemory.save(robot.drive.getPose());   // every loop, so TeleOp has it even if Auto is cut short
 
         t.addData("Step", step + String.format("  (%.1f s)", stepTimer.seconds()));
-        if (!log.getLastChange().isEmpty()) t.addData("Auto last change", log.getLastChange());
+        if (!log.getLastChange().isEmpty()) {
+            t.addData("Auto last change", log.getLastChange());
+        }
         robot.addTelemetry(t);
         t.update();
     }
@@ -134,21 +143,35 @@ public class BioBuzzAuto extends OpMode {
 
         switch (step) {
             case WAIT_DELAY:
-                if (stepTimer.seconds() >= AutoConfig.START_DELAY_S) goToStep(Step.LEAVE, "delay over");
+                if (stepTimer.seconds() >= AutoConfig.START_DELAY_S) {
+                    goToStep(Step.LEAVE, "delay over");
+                }
                 break;
 
             case LEAVE:
-                if (firstLoop) robot.drive.followPath(FieldPaths.leaveWall(here, isRed));
-                if (robot.drive.isPathDone()) goToStep(Step.LAUNCH_PRELOADS, "at launch spot");
-                else if (isTimedOut(AutoConfig.DRIVE_TIMEOUT_MS)) driveTimedOut(Step.LAUNCH_PRELOADS);
+                if (firstLoop) {
+                    robot.drive.followPath(FieldPaths.leaveWall(here, isRed));
+                }
+                if (robot.drive.isPathDone()) {
+                    goToStep(Step.LAUNCH_PRELOADS, "at launch spot");
+                } else if (isTimedOut(AutoConfig.DRIVE_TIMEOUT_MS)) {
+                    driveTimedOut(Step.LAUNCH_PRELOADS);
+                }
                 break;
 
             case LAUNCH_PRELOADS:
-                if (firstLoop) robot.shooter.launch(4);
+                if (firstLoop) {
+                    robot.shooter.launch(4);
+                }
                 Step afterLaunch = Step.PARK;
-                if (AutoConfig.ROUTINE == AutoConfig.Routine.LAUNCH_COLLECT_PARK) afterLaunch = Step.COLLECT_GARDEN;
-                if (!robot.shooter.isLaunching()) goToStep(afterLaunch, "launched");
-                else if (isTimedOut(AutoConfig.LAUNCH_TIMEOUT_MS)) launchTimedOut(afterLaunch);
+                if (AutoConfig.ROUTINE == AutoConfig.Routine.LAUNCH_COLLECT_PARK) {
+                    afterLaunch = Step.COLLECT_GARDEN;
+                }
+                if (!robot.shooter.isLaunching()) {
+                    goToStep(afterLaunch, "launched");
+                } else if (isTimedOut(AutoConfig.LAUNCH_TIMEOUT_MS)) {
+                    launchTimedOut(afterLaunch);
+                }
                 break;
 
             case COLLECT_GARDEN:
@@ -156,14 +179,22 @@ public class BioBuzzAuto extends OpMode {
                     robot.intake.collect();
                     robot.drive.followPath(FieldPaths.throughGarden(here, isRed));
                 }
-                if (robot.drive.isPathDone()) goToStep(Step.DRIVE_TO_LAUNCH, "garden done");
-                else if (isTimedOut(AutoConfig.COLLECT_TIMEOUT_MS)) driveTimedOut(Step.DRIVE_TO_LAUNCH);
+                if (robot.drive.isPathDone()) {
+                    goToStep(Step.DRIVE_TO_LAUNCH, "garden done");
+                } else if (isTimedOut(AutoConfig.COLLECT_TIMEOUT_MS)) {
+                    driveTimedOut(Step.DRIVE_TO_LAUNCH);
+                }
                 break;
 
             case DRIVE_TO_LAUNCH:
-                if (firstLoop) robot.drive.followPath(FieldPaths.gardenToLaunchSpot(here, isRed));
-                if (robot.drive.isPathDone()) goToStep(Step.LAUNCH_AGAIN, "at launch spot");
-                else if (isTimedOut(AutoConfig.DRIVE_TIMEOUT_MS)) driveTimedOut(Step.LAUNCH_AGAIN);
+                if (firstLoop) {
+                    robot.drive.followPath(FieldPaths.gardenToLaunchSpot(here, isRed));
+                }
+                if (robot.drive.isPathDone()) {
+                    goToStep(Step.LAUNCH_AGAIN, "at launch spot");
+                } else if (isTimedOut(AutoConfig.DRIVE_TIMEOUT_MS)) {
+                    driveTimedOut(Step.LAUNCH_AGAIN);
+                }
                 break;
 
             case LAUNCH_AGAIN:
@@ -171,8 +202,11 @@ public class BioBuzzAuto extends OpMode {
                     robot.intake.stop();
                     robot.shooter.launch(4);
                 }
-                if (!robot.shooter.isLaunching()) goToStep(Step.PARK, "launched");
-                else if (isTimedOut(AutoConfig.LAUNCH_TIMEOUT_MS)) launchTimedOut(Step.PARK);
+                if (!robot.shooter.isLaunching()) {
+                    goToStep(Step.PARK, "launched");
+                } else if (isTimedOut(AutoConfig.LAUNCH_TIMEOUT_MS)) {
+                    launchTimedOut(Step.PARK);
+                }
                 break;
 
             case PARK:
@@ -180,8 +214,11 @@ public class BioBuzzAuto extends OpMode {
                     robot.stopMechanisms();
                     robot.drive.followPath(FieldPaths.toLoadingZone(here, isRed));
                 }
-                if (robot.drive.isPathDone()) goToStep(Step.DONE, "parked");
-                else if (isTimedOut(AutoConfig.PARK_TIMEOUT_MS)) driveTimedOut(Step.DONE);
+                if (robot.drive.isPathDone()) {
+                    goToStep(Step.DONE, "parked");
+                } else if (isTimedOut(AutoConfig.PARK_TIMEOUT_MS)) {
+                    driveTimedOut(Step.DONE);
+                }
                 break;
 
             case DONE:
@@ -237,7 +274,11 @@ public class BioBuzzAuto extends OpMode {
 
     private void checkOnePath(String name, Path path, boolean isRed) {
         FieldDrawing.drawPath(path);
-        if (!FieldPaths.isOnOwnSide(path, isRed)) pathWarnings += name + " leaves our side. ";
-        if (!FieldPaths.avoidsHive(path)) pathWarnings += name + " hits the HIVE. ";
+        if (!FieldPaths.isOnOwnSide(path, isRed)) {
+            pathWarnings += name + " leaves our side. ";
+        }
+        if (!FieldPaths.avoidsHive(path)) {
+            pathWarnings += name + " hits the HIVE. ";
+        }
     }
 }

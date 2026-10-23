@@ -57,13 +57,17 @@ public class StateLog {
 
     /** @return the newest change, for example "IDLE -> INTAKING  (intake on)", or "" if none yet. */
     public String getLastChange() {
-        if (history[0] == null) return "";
+        if (history[0] == null) {
+            return "";
+        }
         return history[0];
     }
 
     /** @return the newest warning, or "" once it is older than TelemetryConfig.WARNING_SHOW_S. */
     public String getWarning() {
-        if (sinceWarning.seconds() > TelemetryConfig.WARNING_SHOW_S) return "";
+        if (sinceWarning.seconds() > TelemetryConfig.WARNING_SHOW_S) {
+            return "";
+        }
         return warning;
     }
 
@@ -78,7 +82,9 @@ public class StateLog {
             telemetry.addData(name + " last change", history[0] + ", "
                     + String.format("%.1f", sinceChange.seconds()) + " s ago");
             for (int i = 1; i < HISTORY_SIZE; i++) {   // entry 0 is the "last change" shown above
-                if (history[i] != null) telemetry.addData(name + " earlier", history[i]);
+                if (history[i] != null) {
+                    telemetry.addData(name + " earlier", history[i]);
+                }
             }
         }
     }

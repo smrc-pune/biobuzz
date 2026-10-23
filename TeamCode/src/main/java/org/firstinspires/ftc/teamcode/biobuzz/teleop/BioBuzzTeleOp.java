@@ -108,12 +108,16 @@ public class BioBuzzTeleOp extends OpMode {
         // the drive team only has to check it during the 8-second transition.
         // Everything else (Auto routine, start, delay) is decided before the match, in the configs.
         boolean switchAlliance = driver.isDpadLeftPressed() || driver.isDpadRightPressed();
-        if (switchAlliance) MatchInfo.switchAlliance();   // RED <-> BLUE
+        if (switchAlliance) {
+            MatchInfo.switchAlliance();   // RED <-> BLUE
+        }
         t.addData("Alliance (D-pad left/right to change)", MatchInfo.alliance);
         // The battery's real voltage, so the drive team can swap a weak battery before PLAY.
         double volts = robot.battery.getVoltage();
         String batteryText = String.format("%.1f V", volts);
-        if (volts < HealthConfig.INIT_LOW_BATTERY_V) batteryText += "  LOW - swap the battery";
+        if (volts < HealthConfig.INIT_LOW_BATTERY_V) {
+            batteryText += "  LOW - swap the battery";
+        }
         t.addData("Battery", batteryText);
         if (hasAutoPose) {
             t.addData("Pose from auto", String.format("saved %.0f s ago: assists (S2) ready",
@@ -177,15 +181,19 @@ public class BioBuzzTeleOp extends OpMode {
         // STEP 2: COMMANDS. Each button calls one method.
 
         // ---- S2: assist buttons. ----
-        // robot.assists.toLaunchSpot() starts the path and answers true, or refuses and answers
+        // robot.driveToSpot.launchSpot() starts the path and answers true, or refuses and answers
         // false (position unknown, or the path would hit the HIVE; telemetry says which).
         // "&&" means AND, "!" means NOT. So the line reads: "if A was pressed AND the robot
         // did NOT accept it, buzz the gamepad".
-        if (goToLaunchSpot && !robot.assists.toLaunchSpot()) driver.rumble(ControlsConfig.RUMBLE_REFUSED_MS);
-        if (goToLoadingZone && !robot.assists.toLoadingZone()) driver.rumble(ControlsConfig.RUMBLE_REFUSED_MS);
+        if (goToLaunchSpot && !robot.driveToSpot.launchSpot()) {
+            driver.rumble(ControlsConfig.RUMBLE_REFUSED_MS);
+        }
+        if (goToLoadingZone && !robot.driveToSpot.loadingZone()) {
+            driver.rumble(ControlsConfig.RUMBLE_REFUSED_MS);
+        }
         if (setPoseHere) {
             // The robot is sitting in our reset corner: now we know exactly where it is.
-            robot.assists.setPoseAtResetCorner();
+            robot.drive.setPoseAtResetCorner();
             headingConfirmed = true;
             driver.rumble(ControlsConfig.RUMBLE_POSE_SET_MS);   // a long buzz = "S2 ready"
         }
@@ -218,7 +226,9 @@ public class BioBuzzTeleOp extends OpMode {
             driver.rumble(ControlsConfig.RUMBLE_DRIVE_MODE_MS);
         }
         // Back: "something odd just happened" - find this moment in the match log afterwards.
-        if (mark) MatchLogger.event("MARK", "driver");
+        if (mark) {
+            MatchLogger.event("MARK", "driver");
+        }
     }
 
     // ==================== GAMEPAD 2: MECHANISMS ====================
@@ -235,14 +245,30 @@ public class BioBuzzTeleOp extends OpMode {
         boolean stopAll = operator.isDpadDownPressed();
         boolean mark = operator.isBackPressed();
 
-        if (intakeOnOff) robot.intake.toggle();
-        if (spitOut) robot.intake.reverse();         // also how opponent NECTAR goes back out (G408)
-        if (spitOutReleased) robot.intake.stop();
-        if (launchAll) robot.shooter.launch(4);      // we can launch from anywhere
-        if (spinUp) robot.shooter.spinUp();
-        if (tipped) MatchInfo.markHiveTipped();      // the other CELL faces up now: aim and speed follow it
-        if (stopAll) robot.stopMechanisms();         // the emergency button: every subsystem stops
-        if (mark) MatchLogger.event("MARK", "operator");
+        if (intakeOnOff) {
+            robot.intake.toggle();
+        }
+        if (spitOut) {
+            robot.intake.reverse();   // also how opponent NECTAR goes back out (G408)
+        }
+        if (spitOutReleased) {
+            robot.intake.stop();
+        }
+        if (launchAll) {
+            robot.shooter.launch(4);   // we can launch from anywhere
+        }
+        if (spinUp) {
+            robot.shooter.spinUp();
+        }
+        if (tipped) {
+            MatchInfo.markHiveTipped();   // the other CELL faces up now: aim and speed follow it
+        }
+        if (stopAll) {
+            robot.stopMechanisms();   // the emergency button: every subsystem stops
+        }
+        if (mark) {
+            MatchLogger.event("MARK", "operator");
+        }
     }
 
     // ==================== RUMBLES (only OpModes touch gamepads) ====================
@@ -265,7 +291,9 @@ public class BioBuzzTeleOp extends OpMode {
 
     private void showTelemetry() {
         // A reminder at the top until the driver has told us which way is "away".
-        if (!headingConfirmed) t.addLine("No auto pose: press Y facing away from drivers");
+        if (!headingConfirmed) {
+            t.addLine("No auto pose: press Y facing away from drivers");
+        }
         robot.addTelemetry(t);   // header line first, then each part switched on in TelemetryConfig
         if (TelemetryConfig.GAMEPAD_HELP) {
             t.addLine(TelemetryConfig.GAMEPAD1_HELP);   // the controls cheat sheet

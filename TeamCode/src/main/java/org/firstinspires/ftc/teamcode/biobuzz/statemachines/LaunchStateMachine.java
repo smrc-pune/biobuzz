@@ -98,7 +98,9 @@ public class LaunchStateMachine extends StateMachine {
                 launcher.spinUpFor(getDistanceIn());
                 // CHECK + GO
                 boolean tipPauseOver = MatchInfo.secondsSinceTip() * 1000 >= LauncherConfig.TIP_PAUSE_MS;
-                if (launcher.isUpToSpeed() && tipPauseOver) goTo(State.FEEDING, "up to speed");
+                if (launcher.isUpToSpeed() && tipPauseOver) {
+                    goTo(State.FEEDING, "up to speed");
+                }
                 // TIMEOUT
                 if (timer.isTimeUp(LauncherConfig.SPIN_UP_TIMEOUT_MS)) {
                     log.warn("spin-up timeout");
@@ -113,7 +115,9 @@ public class LaunchStateMachine extends StateMachine {
                 feeder.feedOne();
                 launcher.spinUpFor(getDistanceIn());
                 // CHECK + GO (this wait IS the timeout: it always ends)
-                if (timer.isTimeUp(LauncherConfig.FEED_MS)) goTo(State.RECOVERING, "fed one");
+                if (timer.isTimeUp(LauncherConfig.FEED_MS)) {
+                    goTo(State.RECOVERING, "fed one");
+                }
                 break;
 
             case RECOVERING:
@@ -124,8 +128,11 @@ public class LaunchStateMachine extends StateMachine {
                 if (timer.isTimeUp(LauncherConfig.RECOVER_MS)) {
                     launched++;
                     MatchLogger.event("LAUNCH", launched + " of " + toLaunch);
-                    if (launched < toLaunch) goTo(State.SPINNING_UP, "next ball");
-                    else goTo(State.IDLE, "all launched");
+                    if (launched < toLaunch) {
+                        goTo(State.SPINNING_UP, "next ball");
+                    } else {
+                        goTo(State.IDLE, "all launched");
+                    }
                 }
                 break;
         }
@@ -133,7 +140,9 @@ public class LaunchStateMachine extends StateMachine {
 
     /** Inches to the upward CELL, or the default when we don't know where we are. */
     private double getDistanceIn() {
-        if (!drive.isPoseKnown()) return LauncherConfig.DEFAULT_DISTANCE_IN;
+        if (!drive.isPoseKnown()) {
+            return LauncherConfig.DEFAULT_DISTANCE_IN;
+        }
         return FieldPaths.distanceToUpCellIn(drive.getPose(), MatchInfo.isRed());
     }
 
@@ -141,7 +150,9 @@ public class LaunchStateMachine extends StateMachine {
 
     /** The ONLY place the state changes. Going to the state we are already in does nothing. */
     private void goTo(State newState, String reason) {
-        if (newState == state) return;
+        if (newState == state) {
+            return;
+        }
         log.record(state, newState, reason);
         state = newState;
         timer.reset();
@@ -158,9 +169,13 @@ public class LaunchStateMachine extends StateMachine {
 
     @Override
     public void addTelemetry(Telemetry t) {
-        if (!TelemetryConfig.LAUNCH) return;
+        if (!TelemetryConfig.LAUNCH) {
+            return;
+        }
         log.addTo(t, state, timer, isBusy());
-        if (isBusy()) t.addData("Launched", launched + " of " + toLaunch);
+        if (isBusy()) {
+            t.addData("Launched", launched + " of " + toLaunch);
+        }
     }
 
     @Override

@@ -76,12 +76,17 @@ public class FieldCheck07_Brake extends OpMode {
         boolean go = pad.isAPressed();
         drive.updatePoseOnly();   // we drive the motors ourselves, so Pedro must not set them
         double speed = drive.getForwardSpeedInPerS();
-        if (sideways) speed = drive.getLeftSpeedInPerS();
+        if (sideways) {
+            speed = drive.getLeftSpeedInPerS();
+        }
 
         switch (phase) {
             case READY:
-                if (sideways) t.addLine("A = run SIDEWAYS (to the robot's left)");
-                else t.addLine("A = run FORWARD");
+                if (sideways) {
+                    t.addLine("A = run SIDEWAYS (to the robot's left)");
+                } else {
+                    t.addLine("A = run FORWARD");
+                }
                 if (go) {
                     phase = Phase.SPEEDING;
                     phaseTimer.reset();
@@ -89,8 +94,11 @@ public class FieldCheck07_Brake extends OpMode {
                 break;
             case SPEEDING:
                 FieldCheckHelper.noteDrivingBattery(battery.getVoltage());
-                if (sideways) drive.driveDirectly(0, 1);
-                else drive.driveDirectly(1, 0);
+                if (sideways) {
+                    drive.driveDirectly(0, 1);
+                } else {
+                    drive.driveDirectly(1, 0);
+                }
                 if (Math.abs(speed) > FieldCheckConfig.BRAKE_TEST_SPEED_IN_PER_S
                         || phaseTimer.isTimeUp(FieldCheckConfig.BRAKE_MAX_DRIVE_MS)) {
                     drive.coast();
@@ -110,7 +118,9 @@ public class FieldCheck07_Brake extends OpMode {
                     decelCount++;
                 }
                 lastSpeed = speed;
-                if (Math.abs(speed) <= STOPPED_IN_PER_S) finishRun();
+                if (Math.abs(speed) <= STOPPED_IN_PER_S) {
+                    finishRun();
+                }
                 break;
             case DONE:
                 drive.coast();
@@ -124,7 +134,9 @@ public class FieldCheck07_Brake extends OpMode {
 
     private void finishRun() {
         double decel = 0;
-        if (decelCount > 0) decel = Math.abs(decelTotal / decelCount);
+        if (decelCount > 0) {
+            decel = Math.abs(decelTotal / decelCount);
+        }
         if (!sideways) {
             forwardDecel = decel;
             sideways = true;
@@ -138,7 +150,9 @@ public class FieldCheck07_Brake extends OpMode {
                 FieldCheckHelper.gradeAgainstBaseline(strafeDecel, FieldCheckConfig.BASELINE_STRAFE_DECEL, FieldCheckConfig.BRAKE_TOLERANCE));
         String text = String.format("forward %.1f (baseline %.1f), sideways %.1f (baseline %.1f) in/s/s",
                 forwardDecel, FieldCheckConfig.BASELINE_FORWARD_DECEL, strafeDecel, FieldCheckConfig.BASELINE_STRAFE_DECEL);
-        if (!grade.equals(FieldCheckHelper.PASS)) text += ": use these in pedro/Constants for this event";
+        if (!grade.equals(FieldCheckHelper.PASS)) {
+            text += ": use these in pedro/Constants for this event";
+        }
         FieldCheckHelper.record(7, grade, text);
     }
 

@@ -53,8 +53,12 @@ public class BatteryMonitor {
         double lowest = 0;
         for (VoltageSensor sensor : sensors) {
             double volts = sensor.getVoltage();
-            if (volts <= 0) continue;                 // a hub that gives no reading
-            if (lowest == 0 || volts < lowest) lowest = volts;
+            if (volts <= 0) {
+                continue;   // a hub that gives no reading
+            }
+            if (lowest == 0 || volts < lowest) {
+                lowest = volts;
+            }
         }
         return lowest;
     }

@@ -45,9 +45,15 @@ public class IntakeTest extends OpMode {
         boolean reverseReleased = pad.wasBReleased();
         boolean stop = pad.isXPressed();
 
-        if (collect) intake.collect();
-        if (reverse) intake.reverse();
-        if (reverseReleased || stop) intake.runStop();
+        if (collect) {
+            intake.collect();
+        }
+        if (reverse) {
+            intake.reverse();
+        }
+        if (reverseReleased || stop) {
+            intake.runStop();
+        }
         intake.runUpdate();
 
         t.addLine("A = collect   B (hold) = reverse   X = stop");

@@ -29,13 +29,17 @@ public class Alerts {
     public static void raise(String text, boolean urgent) {
         message = text;
         sinceRaised.reset();
-        if (urgent) urgentWaiting = true;
+        if (urgent) {
+            urgentWaiting = true;
+        }
         MatchLogger.event("ALERT", text);
     }
 
     /** @return the newest ALERT, or "" once it is older than TelemetryConfig.ALERT_SHOW_S. */
     public static String getMessage() {
-        if (sinceRaised.seconds() > TelemetryConfig.ALERT_SHOW_S) return "";
+        if (sinceRaised.seconds() > TelemetryConfig.ALERT_SHOW_S) {
+            return "";
+        }
         return message;
     }
 

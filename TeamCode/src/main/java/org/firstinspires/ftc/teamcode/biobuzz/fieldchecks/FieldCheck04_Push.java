@@ -64,7 +64,9 @@ public class FieldCheck04_Push extends OpMode {
         switch (phase) {
             case READY_FORWARD:
                 t.addLine("Back edge on a seam, facing along it. A = start the FORWARD push.");
-                if (next) startPush(Phase.PUSHING_FORWARD);
+                if (next) {
+                    startPush(Phase.PUSHING_FORWARD);
+                }
                 break;
             case PUSHING_FORWARD:
                 t.addLine("Push straight FORWARD 2 tiles (48 in) to a seam. A = there.");
@@ -75,7 +77,9 @@ public class FieldCheck04_Push extends OpMode {
                 break;
             case READY_SIDEWAYS:
                 t.addLine("Side edge on a seam. A = start the SIDEWAYS push.");
-                if (next) startPush(Phase.PUSHING_SIDEWAYS);
+                if (next) {
+                    startPush(Phase.PUSHING_SIDEWAYS);
+                }
                 break;
             case PUSHING_SIDEWAYS:
                 t.addLine("Push straight SIDEWAYS 2 tiles (48 in) to a seam. A = there.");

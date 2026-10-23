@@ -57,14 +57,18 @@ public class MatchLogger {
     /** The same, with one more # line, for example "routine=LAUNCH_PARK start=WALL_MIDDLE delay_s=0". */
     public static void start(String opModeName, double batteryVolts, String extraHeader) {
         close();
-        if (!LogConfig.ENABLED) return;
+        if (!LogConfig.ENABLED) {
+            return;
+        }
         row.setLength(0);
         columnNames.setLength(0);
         eventsBeforeColumns.setLength(0);
         columnsWritten = false;
         rowCount = 0;
         try {
-            if (!FOLDER.isDirectory() && !FOLDER.mkdirs()) throw new IOException("cannot make " + FOLDER);
+            if (!FOLDER.isDirectory() && !FOLDER.mkdirs()) {
+                throw new IOException("cannot make " + FOLDER);
+            }
             deleteOldFiles();
             file = new BufferedWriter(new FileWriter(newFile(opModeName)));
             writeLine("# opmode=" + opModeName);
@@ -72,7 +76,9 @@ public class MatchLogger {
             writeLine("# field=" + MatchInfo.fieldName);
             writeLine("# battery_at_play_v=" + round(batteryVolts));
             writeLine("# started_epoch_ms=" + System.currentTimeMillis());
-            if (!extraHeader.isEmpty()) writeLine("# " + clean(extraHeader));
+            if (!extraHeader.isEmpty()) {
+                writeLine("# " + clean(extraHeader));
+            }
         } catch (IOException e) {
             turnOff(e);
         }
@@ -89,9 +95,15 @@ public class MatchLogger {
 
     /** One column of the DATA row being built. */
     public static void value(String column, double number) {
-        if (file == null) return;
-        if (row.length() == 0) row.append("DATA,").append(round(sinceStart.seconds())).append(',');
-        if (!columnsWritten) columnNames.append(',').append(column);
+        if (file == null) {
+            return;
+        }
+        if (row.length() == 0) {
+            row.append("DATA,").append(round(sinceStart.seconds())).append(',');
+        }
+        if (!columnsWritten) {
+            columnNames.append(',').append(column);
+        }
         row.append(',').append(round(number));
     }
 
@@ -102,7 +114,9 @@ public class MatchLogger {
 
     /** The DATA row is complete: write it. */
     public static void endRow() {
-        if (file == null || row.length() == 0) return;
+        if (file == null || row.length() == 0) {
+            return;
+        }
         sinceRow.reset();
         writeColumnNamesOnce();
         writeLine(row.toString());
@@ -112,15 +126,22 @@ public class MatchLogger {
 
     /** An EVENT row, for example event("ASSIST", "launch spot"). */
     public static void event(String type, String text) {
-        if (file == null) return;
+        if (file == null) {
+            return;
+        }
         String line = "EVENT," + round(sinceStart.seconds()) + "," + clean(type + ":" + text);
-        if (columnsWritten) writeLine(line);
-        else eventsBeforeColumns.append(line).append('\n');   // kept until the column names are written
+        if (columnsWritten) {
+            writeLine(line);
+        } else {
+            eventsBeforeColumns.append(line).append('\n');   // kept until the column names are written
+        }
     }
 
     /** STOP: write the END line and close the file. endText: a summary, for example "min_battery_v=11.8". */
     public static void stop(String endText) {
-        if (file == null) return;
+        if (file == null) {
+            return;
+        }
         event("STOP", "");
         writeColumnNamesOnce();
         writeLine("# END rows=" + rowCount + " " + endText);
@@ -133,17 +154,23 @@ public class MatchLogger {
     /** @return free storage on the Control Hub, in MB (Robot Check wants more than 50). */
     public static double getFreeStorageMb() {
         File place = FOLDER;
-        if (!place.isDirectory()) place = AppUtil.FIRST_FOLDER;
+        if (!place.isDirectory()) {
+            place = AppUtil.FIRST_FOLDER;
+        }
         return place.getUsableSpace() / (1024.0 * 1024.0);
     }
 
     // ==================== inside the logger ====================
 
     private static void writeColumnNamesOnce() {
-        if (columnsWritten) return;
+        if (columnsWritten) {
+            return;
+        }
         columnsWritten = true;
         writeLine("type,t_s,event" + columnNames);
-        if (eventsBeforeColumns.length() > 0) writeText(eventsBeforeColumns.toString());
+        if (eventsBeforeColumns.length() > 0) {
+            writeText(eventsBeforeColumns.toString());
+        }
         eventsBeforeColumns.setLength(0);
     }
 
@@ -152,7 +179,9 @@ public class MatchLogger {
     }
 
     private static void writeText(String text) {
-        if (file == null) return;
+        if (file == null) {
+            return;
+        }
         try {
             file.write(text);
             if (sinceFlush.seconds() >= LogConfig.FLUSH_S) {
@@ -171,7 +200,9 @@ public class MatchLogger {
     }
 
     private static void close() {
-        if (file == null) return;
+        if (file == null) {
+            return;
+        }
         try {
             file.close();   // close() also saves what is still waiting in memory
         } catch (IOException e) {
@@ -196,7 +227,9 @@ public class MatchLogger {
     /** Keep the newest LogConfig.KEEP_FILES - 1 files, so there is room for the new one. */
     private static void deleteOldFiles() {
         File[] files = FOLDER.listFiles();
-        if (files == null) return;
+        if (files == null) {
+            return;
+        }
         Arrays.sort(files);   // names start with the time, so oldest first
         int toDelete = files.length - (LogConfig.KEEP_FILES - 1);
         for (int i = 0; i < toDelete; i++) {

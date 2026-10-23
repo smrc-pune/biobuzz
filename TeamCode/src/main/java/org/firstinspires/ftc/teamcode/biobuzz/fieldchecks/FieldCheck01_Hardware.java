@@ -54,12 +54,16 @@ public class FieldCheck01_Hardware extends OpMode {
 
     @Override
     public void loop() {
-        if (pinpoint != null) pinpoint.update();
+        if (pinpoint != null) {
+            pinpoint.update();
+        }
         if (!done && timer.seconds() >= WAIT_S) {
             done = true;
             check();
         }
-        if (!done) t.addLine("checking...");
+        if (!done) {
+            t.addLine("checking...");
+        }
         FieldCheckHelper.show(t, 1);
         t.update();
     }
@@ -67,26 +71,39 @@ public class FieldCheck01_Hardware extends OpMode {
     private void check() {
         String missing = "";
         for (String name : HardwareNames.ALL_DEVICES) {
-            if (hardwareMap.tryGet(HardwareDevice.class, name) == null) missing += name + " ";
+            if (hardwareMap.tryGet(HardwareDevice.class, name) == null) {
+                missing += name + " ";
+            }
         }
         int hubsAnswering = 0;
         for (LynxModule hub : hardwareMap.getAll(LynxModule.class)) {
-            if (!hub.isNotResponding() && hub.getInputVoltage(VoltageUnit.VOLTS) > 0) hubsAnswering++;
+            if (!hub.isNotResponding() && hub.getInputVoltage(VoltageUnit.VOLTS) > 0) {
+                hubsAnswering++;
+            }
         }
         String pinpointStatus = "MISSING";
-        if (pinpoint != null) pinpointStatus = pinpoint.getDeviceStatus().toString();
+        if (pinpoint != null) {
+            pinpointStatus = pinpoint.getDeviceStatus().toString();
+        }
         HuskyLens huskyLens = hardwareMap.tryGet(HuskyLens.class, HardwareNames.HUSKYLENS_HIVE);
         boolean huskyLensAnswers = huskyLens != null && huskyLens.knock();
 
         boolean pass = missing.isEmpty() && hubsAnswering >= FieldCheckConfig.EXPECTED_HUBS
                 && pinpointStatus.equals("READY") && huskyLensAnswers;
         String huskyLensText = "NO ANSWER";
-        if (huskyLensAnswers) huskyLensText = "answers";
+        if (huskyLensAnswers) {
+            huskyLensText = "answers";
+        }
         String text = "hubs " + hubsAnswering + " of " + FieldCheckConfig.EXPECTED_HUBS
                 + ", Pinpoint " + pinpointStatus + ", HuskyLens " + huskyLensText;
-        if (!missing.isEmpty()) text = "MISSING: " + missing + "; " + text;
-        if (pass) FieldCheckHelper.record(1, FieldCheckHelper.PASS, text);
-        else FieldCheckHelper.record(1, FieldCheckHelper.FAIL, text);
+        if (!missing.isEmpty()) {
+            text = "MISSING: " + missing + "; " + text;
+        }
+        if (pass) {
+            FieldCheckHelper.record(1, FieldCheckHelper.PASS, text);
+        } else {
+            FieldCheckHelper.record(1, FieldCheckHelper.FAIL, text);
+        }
     }
 
     @Override

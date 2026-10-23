@@ -39,7 +39,9 @@ public class TemplateMechanism extends Mechanism {
 
     // ---- What it can do (verbs). A FAULTED mechanism ignores them. ----
     public void run() {
-        if (isFaulted()) return;
+        if (isFaulted()) {
+            return;
+        }
         power = TemplateConfig.RUN_POWER;
         motor.setPower(power);
     }

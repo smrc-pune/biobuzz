@@ -78,7 +78,9 @@ public class TemplateStateMachine extends StateMachine {
                 // DO
                 mechanism.run();
                 // CHECK + GO
-                if (timer.isTimeUp(TemplateConfig.RUN_TIME_MS)) goTo(State.IDLE, "done");
+                if (timer.isTimeUp(TemplateConfig.RUN_TIME_MS)) {
+                    goTo(State.IDLE, "done");
+                }
                 // TIMEOUT: a safety net for states that wait on something that may never happen
                 if (timer.isTimeUp(TemplateConfig.TIMEOUT_MS)) {
                     log.warn("timeout");
@@ -92,11 +94,15 @@ public class TemplateStateMachine extends StateMachine {
 
     /** The ONLY place the state changes. Going to the state we are already in does nothing. */
     private void goTo(State newState, String reason) {
-        if (newState == state) return;
+        if (newState == state) {
+            return;
+        }
         log.record(state, newState, reason);   // telemetry history + a match-log EVENT
         state = newState;
         timer.reset();
-        if (state == State.IDLE) mechanism.runStop();   // entering IDLE: make it safe
+        if (state == State.IDLE) {
+            mechanism.runStop();   // entering IDLE: make it safe
+        }
     }
 
     @Override

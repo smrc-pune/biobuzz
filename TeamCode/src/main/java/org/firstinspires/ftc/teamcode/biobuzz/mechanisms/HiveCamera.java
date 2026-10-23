@@ -47,14 +47,18 @@ public class HiveCamera extends Mechanism {
     /** Pixels right (+) or left (-) of the picture's middle; 0 if the tag is not seen. */
     public double getTagOffsetPx(int learnedId) {
         HuskyLens.Block block = findBlock(learnedId);
-        if (block == null) return 0;
+        if (block == null) {
+            return 0;
+        }
         return block.x - CameraConfig.HIVE_IMAGE_WIDTH_PX / 2.0;
     }
 
     /** How wide the tag looks, in pixels (0 if not seen). Bigger = closer. */
     public double getTagWidthPx(int learnedId) {
         HuskyLens.Block block = findBlock(learnedId);
-        if (block == null) return 0;
+        if (block == null) {
+            return 0;
+        }
         return block.width;
     }
 
@@ -63,7 +67,9 @@ public class HiveCamera extends Mechanism {
 
     /** The learned id of the first tag in view, or -1. */
     public int getFirstTagId() {
-        if (blocks.length == 0) return -1;
+        if (blocks.length == 0) {
+            return -1;
+        }
         return blocks[0].id;
     }
 
@@ -71,7 +77,9 @@ public class HiveCamera extends Mechanism {
 
     private HuskyLens.Block findBlock(int learnedId) {
         for (HuskyLens.Block block : blocks) {
-            if (block.id == learnedId) return block;
+            if (block.id == learnedId) {
+                return block;
+            }
         }
         return null;
     }
@@ -79,9 +87,13 @@ public class HiveCamera extends Mechanism {
     // ---- Filled in for Mechanism ----
     @Override
     protected void update() {
-        if (sinceRead.milliseconds() < CameraConfig.HIVE_SAMPLE_MS) return;
+        if (sinceRead.milliseconds() < CameraConfig.HIVE_SAMPLE_MS) {
+            return;
+        }
         HuskyLens.Block[] newBlocks = huskyLens.blocks();
-        if (newBlocks == null) newBlocks = new HuskyLens.Block[0];
+        if (newBlocks == null) {
+            newBlocks = new HuskyLens.Block[0];
+        }
         blocks = newBlocks;
         sinceRead.reset();
     }

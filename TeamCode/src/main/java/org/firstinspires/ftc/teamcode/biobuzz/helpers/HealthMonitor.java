@@ -86,7 +86,9 @@ public class HealthMonitor {
         windowTotalMs += loopMs;
         windowWorstMs = Math.max(windowWorstMs, loopMs);
         windowLoops++;
-        if (sinceWindow.seconds() < 1) return;   // judge once per second
+        if (sinceWindow.seconds() < 1) {
+            return;   // judge once per second
+        }
         double averageMs = windowTotalMs / windowLoops;
         if (averageMs > HealthConfig.SLOW_LOOP_AVERAGE_MS || windowWorstMs > HealthConfig.SLOW_LOOP_WORST_MS) {
             Alerts.raise(String.format("SLOW LOOP: average %.0f ms, worst %.0f ms", averageMs, windowWorstMs), false);
@@ -99,8 +101,12 @@ public class HealthMonitor {
 
     private void checkBattery() {
         double volts = battery.getVoltage();
-        if (volts <= 0) return;   // no reading
-        if (lowestVolts <= 0 || volts < lowestVolts) lowestVolts = volts;
+        if (volts <= 0) {
+            return;   // no reading
+        }
+        if (lowestVolts <= 0 || volts < lowestVolts) {
+            lowestVolts = volts;
+        }
         if (volts >= HealthConfig.PLAY_LOW_BATTERY_V) {
             batteryLowFor.reset();
             return;
@@ -113,10 +119,14 @@ public class HealthMonitor {
 
     private void checkPinpoint() {
         GoBildaPinpointDriver.DeviceStatus status = drive.getPinpointStatus();
-        if (status == lastStatus) return;   // only act when the status changes
+        if (status == lastStatus) {
+            return;   // only act when the status changes
+        }
         lastStatus = status;
         MatchLogger.event("PINPOINT", status.toString());
-        if (status == GoBildaPinpointDriver.DeviceStatus.READY) return;   // Y turns field-centric back on
+        if (status == GoBildaPinpointDriver.DeviceStatus.READY) {
+            return;   // Y turns field-centric back on
+        }
         drive.useRobotCentric("Pinpoint " + status);
         drive.forgetPose("Pinpoint " + status);
         Alerts.raise("PINPOINT " + status + ": robot-centric. Y when READY", true);

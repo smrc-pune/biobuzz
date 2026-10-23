@@ -71,7 +71,9 @@ public class FieldCheck09_Square extends OpMode {
                 }
                 break;
             case SETTLING:
-                if (phaseTimer.isTimeUp(FieldCheckConfig.SETTLE_MS)) finish();
+                if (phaseTimer.isTimeUp(FieldCheckConfig.SETTLE_MS)) {
+                    finish();
+                }
                 break;
             case DONE:
                 break;

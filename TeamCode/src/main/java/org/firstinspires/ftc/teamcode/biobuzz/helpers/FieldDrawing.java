@@ -46,7 +46,9 @@ public class FieldDrawing {
 
     /** Draw the robot as a circle with a line pointing the way it faces. */
     public static void drawRobot(double xIn, double yIn, double headingDeg) {
-        if (!TelemetryConfig.FIELD_DRAWING) return;
+        if (!TelemetryConfig.FIELD_DRAWING) {
+            return;
+        }
         Canvas canvas = packet.fieldOverlay();
         double headingRad = Math.toRadians(headingDeg);
         canvas.setStroke("#3F51B5");
@@ -59,7 +61,9 @@ public class FieldDrawing {
 
     /** Draw a Pedro path as a line through PATH_POINTS + 1 points along it. */
     public static void drawPath(Path path) {
-        if (!TelemetryConfig.FIELD_DRAWING) return;
+        if (!TelemetryConfig.FIELD_DRAWING) {
+            return;
+        }
         double[] xIn = new double[PATH_POINTS + 1];
         double[] yIn = new double[PATH_POINTS + 1];
         for (int i = 0; i <= PATH_POINTS; i++) {
@@ -75,7 +79,9 @@ public class FieldDrawing {
 
     /** Draw the upward CELL (the place the launcher aims at) as a small orange circle. */
     public static void drawCell(Pose cell) {
-        if (!TelemetryConfig.FIELD_DRAWING) return;
+        if (!TelemetryConfig.FIELD_DRAWING) {
+            return;
+        }
         Canvas canvas = packet.fieldOverlay();
         canvas.setStroke("#FF9800");
         canvas.setStrokeWidth(2);
@@ -84,7 +90,9 @@ public class FieldDrawing {
 
     /** Draw a small dot, for example a place the camera sees. */
     public static void drawPoint(double xIn, double yIn) {
-        if (!TelemetryConfig.FIELD_DRAWING) return;
+        if (!TelemetryConfig.FIELD_DRAWING) {
+            return;
+        }
         Canvas canvas = packet.fieldOverlay();
         canvas.setFill("#E91E63");
         canvas.fillCircle(xIn, yIn, 1.5);
@@ -104,7 +112,9 @@ public class FieldDrawing {
 
     /** A fresh packet, with the BioBuzz field behind it when FIELD_IMAGE is on. */
     private static TelemetryPacket newPacket() {
-        if (!TelemetryConfig.FIELD_IMAGE) return new TelemetryPacket();   // Dashboard's own field
+        if (!TelemetryConfig.FIELD_IMAGE) {
+            return new TelemetryPacket();   // Dashboard's own field
+        }
         TelemetryPacket fresh = new TelemetryPacket(false);
         Canvas field = fresh.field();
         field.drawImage(TelemetryConfig.FIELD_IMAGE_PATH, 0, 0, FIELD_SIZE_IN, FIELD_SIZE_IN);

@@ -38,7 +38,9 @@ public class LogSummary {
     /** @return the newest "count" log files, newest first (an empty list if there are none). */
     public static LogSummary[] newest(int count) {
         File[] files = MatchLogger.getFolder().listFiles();
-        if (files == null) return new LogSummary[0];
+        if (files == null) {
+            return new LogSummary[0];
+        }
         Arrays.sort(files);   // names start with the date and time, so oldest first
         int howMany = Math.min(count, files.length);
         LogSummary[] summaries = new LogSummary[howMany];
@@ -76,7 +78,9 @@ public class LogSummary {
                     }
                     if (batteryColumn > 0 && batteryColumn < cells.length) {
                         double volts = number(cells[batteryColumn]);
-                        if (volts > 0 && (lowestBatteryV == 0 || volts < lowestBatteryV)) lowestBatteryV = volts;
+                        if (volts > 0 && (lowestBatteryV == 0 || volts < lowestBatteryV)) {
+                            lowestBatteryV = volts;
+                        }
                     }
                 } else if (line.startsWith("EVENT,")) {
                     String[] cells = line.split(",", 3);
@@ -86,7 +90,9 @@ public class LogSummary {
                             alertCount++;
                             lastAlert = cells[2].substring("ALERT:".length());
                         }
-                        if (cells[2].startsWith("TIMEOUT")) timeoutCount++;
+                        if (cells[2].startsWith("TIMEOUT")) {
+                            timeoutCount++;
+                        }
                     }
                 }
                 line = reader.readLine();
@@ -121,15 +127,21 @@ public class LogSummary {
 
     /** "2026-10-18 14:32" from a name like 2026-10-18_14-32-05_BioBuzzTeleOp_RED.csv */
     public String getStartText() {
-        if (fileName.length() < 16) return fileName;
+        if (fileName.length() < 16) {
+            return fileName;
+        }
         return fileName.substring(0, 10) + " " + fileName.substring(11, 16).replace('-', ':');
     }
 
     /** One line for the list: "14:32 BioBuzzTeleOp RED 121 s, 2 alerts, END ok". */
     public String getShortText() {
-        if (!readError.isEmpty()) return fileName + ": cannot read (" + readError + ")";
+        if (!readError.isEmpty()) {
+            return fileName + ": cannot read (" + readError + ")";
+        }
         String end = "END ok";
-        if (!endedCleanly) end = "NO END (crash or power loss)";
+        if (!endedCleanly) {
+            end = "NO END (crash or power loss)";
+        }
         return String.format("%s %s %s %.0f s, %d alerts, %s", getStartText().substring(Math.min(11,
                 getStartText().length())), opModeName, alliance, durationS, alertCount, end);
     }

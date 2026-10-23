@@ -54,8 +54,12 @@ public class FieldCheck05_Spin extends OpMode {
 
         if (spinning) {
             double change = headingDeg - lastHeadingDeg;   // the short way round, -180 to 180
-            if (change > 180) change -= 360;
-            if (change < -180) change += 360;
+            if (change > 180) {
+                change -= 360;
+            }
+            if (change < -180) {
+                change += 360;
+            }
             turnedDeg += change;
         }
         lastHeadingDeg = headingDeg;

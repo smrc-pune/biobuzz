@@ -1,10 +1,10 @@
 # BioBuzz Software – Low-Level Design (LLD)
 
-Oct 23, 2026 · **Matches the code after steps 1–10** (not yet run on the robot) · goes with Requirements v2.8 and `HLD.md`
+Oct 23, 2026 · **Matches the code after steps 1–10** (not yet run on the robot) · goes with Requirements v2.9 and `HLD.md`
 
 This document describes each class: its job, its public methods, its config values and how it fits with the others. Code sketches show the **shape** of each class; the code itself is the final word, and this document is updated in the same commit as any change.
 
-**Who this is for.** The code is owned during the season by rookie 7th graders with no Java background. Student-zone files (configurations, subsystems, mechanisms, state machines, TeleOp, Auto, `FieldPaths`, `Assists`, Robot's marked spot, tests) MUST read like the Intake sketch in section 5.1: short methods, plain words, one idea per line. Mentor-zone files (`Subsystem`, `Mechanism`, `StateMachine`, `Drive`, helpers, Field Checks) may be a little more technical, but still follow R3.
+**Who this is for.** The code is owned during the season by rookie 7th graders with no Java background. Student-zone files (configurations, subsystems, mechanisms, state machines, TeleOp, Auto, `FieldPaths`, `DriveToSpot`, Robot's marked spot, tests) MUST read like the Intake sketch in section 5.1: short methods, plain words, one idea per line. Mentor-zone files (`Subsystem`, `Mechanism`, `StateMachine`, `Drive`, helpers, Field Checks) may be a little more technical, but still follow R3.
 
 `TODO(BioBuzz)` marks what waits for the robot's hardware or a team decision (see `DESIGN-REVIEW.md`, section 5).
 
@@ -42,7 +42,7 @@ This document describes each class: its job, its public methods, its config valu
 
 ```
 teamcode/biobuzz/
-  Robot.java                     composition root: Drive, Assists, the subsystems
+  Robot.java                     composition root: Drive, DriveToSpot, the subsystems
   configurations/
     HardwareNames.java           every device name, hub and port; ALL_DEVICES array; motor/servo count
     DriveConfig.java             stick deadzone, driver headings, assist timeout
@@ -55,7 +55,7 @@ teamcode/biobuzz/
   drive/
     Drive.java                   MENTORS: driving over Pedro (replaces parts/DriveBase + subsystems/Drive)
     FieldPaths.java              STUDENTS: every Pedro path; alliance turn; own-side and HIVE checks
-    Assists.java                 STUDENTS: the S2 buttons (pose and HIVE checks, then a path)
+    DriveToSpot.java                 STUDENTS: the S2 buttons (pose and HIVE checks, then a path)
   subsystems/
     Subsystem.java               MENTORS: the base class (Composition + Template Method)
     IntakeSubsystem.java  ShooterSubsystem.java  VisionSubsystem.java              STUDENTS
@@ -85,19 +85,19 @@ teamcode/biobuzz/
 
 ## 3. Robot and the subsystems
 
-**Job of Robot:** build Drive, Assists and the subsystems; run `update()` in a fixed order; health checks, match log, telemetry header. **Patterns:** Composition root.
+**Job of Robot:** build Drive, DriveToSpot and the subsystems; run `update()` in a fixed order; health checks, match log, telemetry header. **Patterns:** Composition root.
 **Job of a subsystem:** one job of the robot (collect, shoot, see). It OWNS its mechanisms and the state machines that use them, updates, stops, shows and logs them, and its public methods are the menu OpModes call. **Patterns:** Composition, Facade, Template Method (`Subsystem`), Mediator (inside one subsystem).
 
 **Who calls what**
 
-- OpModes call `robot.drive.*` for driving and `robot.assists.*` for the S2 buttons (Drive is never shared with a state machine).
+- OpModes call `robot.drive.*` for driving and `robot.driveToSpot.*` for the S2 buttons (Drive is never shared with a state machine).
 - OpModes call **only subsystem menu methods** for mechanisms (`robot.shooter.launch(4)`), never a mechanism. A mechanism belongs to exactly ONE subsystem, and every state machine that uses it lives in that same subsystem, so the subsystem can cancel its state machine before a manual command (Mediator).
 - The game facts are static helpers: OpModes call `MatchInfo.markHiveTipped()` directly (as they call `MatchInfo.switchAlliance()`).
 
 ```java
 public class Robot {
     public final Drive drive;                    // OpModes drive through this directly
-    public final Assists assists;                // the S2 buttons
+    public final DriveToSpot driveToSpot;                // the S2 buttons
     public final IntakeSubsystem intake;         // the menus
     public final ShooterSubsystem shooter;
     public final VisionSubsystem vision;
@@ -108,7 +108,7 @@ public class Robot {
 
     public Robot(HardwareMap hardwareMap) {
         drive = new Drive(hardwareMap);
-        assists = new Assists(drive);
+        driveToSpot = new DriveToSpot(drive);
         battery = new BatteryMonitor(hardwareMap);
         health = new HealthMonitor(drive, battery);
         intake = new IntakeSubsystem(hardwareMap);
@@ -145,7 +145,9 @@ public void update() {
     // 3. HEALTH: loop time, battery, Pinpoint, heading jump -> ALERTs, robot-centric
     health.update();
     // 4. MATCH LOG: one DATA row, LogConfig.RATE_HZ times a second
-    if (MatchLogger.isRowDue()) writeLogRow();   // match_s_left, health, drive, each subsystem, up_cell_a, tip_count
+    if (MatchLogger.isRowDue()) {
+        writeLogRow();   // match_s_left, health, drive, each subsystem, up_cell_a, tip_count
+    }
 }
 ```
 
@@ -185,12 +187,13 @@ Menu details: `launch(count)` = `launchStateMachine.start(count)` (feeding an em
 
 **A state machine that needs two subsystems' mechanisms** means those jobs belong together: merge the subsystems (mentor decision), never let a state machine reach into another subsystem.
 
-### 3.4 `Assists` (student zone, `drive/Assists.java`)
+### 3.4 `DriveToSpot` (student zone, `drive/DriveToSpot.java`)
 
 | Method | Does |
 | --- | --- |
-| `toLaunchSpot()` / `toLoadingZone()` | S2 assists: refused (false, with a Drive warning) if `!drive.isPoseKnown()` or if the path fails `FieldPaths.avoidsHive`; else `drive.followPath(FieldPaths.toLaunchSpot(drive.getPose(), MatchInfo.isRed()))` and EVENT `ASSIST:<name>` |
-| `setPoseAtResetCorner()` | "Set pose here" (Q4): `drive.setPose(FieldPaths.resetCorner(isRed), "set pose here")` |
+| `launchSpot()` / `loadingZone()` | S2 assists: refused (false, with a Drive warning) if `!drive.isPoseKnown()` or if the path fails `FieldPaths.avoidsHive`; else `drive.followPath(FieldPaths.toLaunchSpot(drive.getPose(), MatchInfo.isRed()))` and EVENT `ASSIST:<name>` |
+
+"Set pose here" (Q4) is not a drive-to-spot, so it lives in `Drive`: `robot.drive.setPoseAtResetCorner()` = `setPose(FieldPaths.resetCorner(isRed), "set pose here")`.
 
 **Why lists and not a key-value map.** A `Map<String, Subsystem>` would let code look one up by a word, but it adds string keys that can be mistyped (and only fail while the robot runs) and a harder loop. Nothing needs to look a part up: each has its own field name (`shooter`), and the lists are only for "do this to every part". They are written by name and walked with "for each", so there are no index numbers to remember.
 
@@ -223,7 +226,9 @@ public class Mechanism {
 
     // ===== FIXED: Robot and test OpModes call these. Do not override. =====
     public final void runUpdate() {
-        if (faulted) return;
+        if (faulted) {
+            return;
+        }
         try {
             update();
         } catch (RuntimeException e) {
@@ -240,8 +245,11 @@ public class Mechanism {
     }
 
     public final void addTelemetry(Telemetry t) {
-        if (faulted) t.addData(name, "FAULTED: " + faultReason);
-        else if (isTelemetryOn()) addDetails(t);
+        if (faulted) {
+            t.addData(name, "FAULTED: " + faultReason);
+        } else if (isTelemetryOn()) {
+            addDetails(t);
+        }
     }
 
     public final void addLogData() {
@@ -254,7 +262,9 @@ public class Mechanism {
 
     /** A mechanism may call this itself, for example when it sees a problem. */
     protected final void markFaulted(String reason) {
-        if (faulted) return;
+        if (faulted) {
+            return;
+        }
         faulted = true;
         faultReason = reason;
         runStop();
@@ -380,7 +390,7 @@ There is no Storage mechanism: the hopper has no sensors, so the robot does not 
 | Setup | `Drive(hardwareMap)`, `setAlliance(isRed)`, `setStartingPose(pose)` (pose known), `setStartingPoseFacingAway()` (heading only, pose **not** known) |
 | Driver driving (S1) | `driveWithSticks(forward, right, clockwise)`: field-centric unless robot-centric is on; `driveWithSticksAimedAt(forward, right, targetHeadingDeg)`: field-centric powers, then Pedro's `ManualDrive.headingLock(follower, PIDController, powers, target)` replaces the turn (gains `DriveConfig.AIM_P`, `AIM_D`; in robot-centric mode it drives without turning); `resetHeading()`; `switchDriveMode()`; `useRobotCentric(reason)`, `useFieldCentric(reason)`; `isFieldCentric()` |
 | Path driving (S2, S3) | `followPath(path)`; `isDrivingItself()` (Pedro FOLLOW or HOLD); `isPathDone()`; `holdHere()`; `stopDrivingItself()` (back to manual, zero power) |
-| Pose | `getPose()`, `getX()`, `getY()`, `getHeadingDegrees()` (−180 to 180), `setPose(pose, reason)` (logged), `isPoseKnown()`, `isStill()` (speed under `DriveConfig.STILL_IN_PER_S`) |
+| Pose | `getPose()`, `getX()`, `getY()`, `getHeadingDegrees()` (−180 to 180), `setPose(pose, reason)` (logged), `setPoseAtResetCorner()` ("set pose here", D-pad left), `isPoseKnown()`, `isStill()` (speed under `DriveConfig.STILL_IN_PER_S`) |
 | Health | `getPinpointStatus()` (the same Pinpoint object Pedro reads; status only), `getHeadingSetCount()` (+1 whenever our code sets the heading, so it is not taken for a jump), `forgetPose(reason)` |
 | Loop | `update()` (Pedro's `follower.update()`, every loop), `addTelemetry(t)`, `addLogData()` (pose, heading speed, Pinpoint status, Pedro mode, drive mode, pose known, sticks), `addDrawing()` |
 | Field Checks only | `updatePoseOnly()` (the localizer only: an idle follower brakes the motors in every `update()`, which fights a hand push), `zeroPose()`, `driveDirectly(forward, left)` and `coast()` (Field Check 07: `follower.drivetrain.drive(...)` / `stop(false)`), `getForwardSpeedInPerS()`, `getLeftSpeedInPerS()`, `getSpeedInPerS()` |
@@ -483,18 +493,29 @@ private void handleDriver() {
     boolean aim = driver.isRightBumperHeld();
     boolean sticksMoved = driver.areSticksMoved();      // deadzone is inside GamepadInput
 
-    // S2 assists: Assists refuses them (false, with a warning) while the pose is not known
-    if (goToLaunchSpot && !robot.assists.toLaunchSpot()) driver.rumble(RUMBLE_REFUSED_MS);
-    if (goToLoadingZone && !robot.assists.toLoadingZone()) driver.rumble(RUMBLE_REFUSED_MS);
+    // S2 assists: DriveToSpot refuses them (false, with a warning) while the pose is not known
+    if (goToLaunchSpot && !robot.driveToSpot.launchSpot()) {
+        driver.rumble(RUMBLE_REFUSED_MS);
+    }
+    if (goToLoadingZone && !robot.driveToSpot.loadingZone()) {
+        driver.rumble(RUMBLE_REFUSED_MS);
+    }
 
     // Manual driving. Moving a stick ALWAYS takes the robot back, even in the middle of a path.
     if (sticksMoved || !robot.drive.isDrivingItself()) {
-        if (aim) robot.drive.driveWithSticksAimedAt(driver.getLeftStickY(), driver.getLeftStickX(), robot.shooter.getAimHeadingDeg());
-        else robot.drive.driveWithSticks(driver.getLeftStickY(), driver.getLeftStickX(), driver.getRightStickX());
+        if (aim) {
+            robot.drive.driveWithSticksAimedAt(driver.getLeftStickY(), driver.getLeftStickX(), robot.shooter.getAimHeadingDeg());
+        } else {
+            robot.drive.driveWithSticks(driver.getLeftStickY(), driver.getLeftStickX(), driver.getRightStickX());
+        }
     }
-    if (faceAway) robot.drive.resetHeading();
-    if (switchMode) robot.drive.switchDriveMode();
-    // D-pad left held 1 s: robot.assists.setPoseAtResetCorner();  Back: MatchLogger.event("MARK", "driver")
+    if (faceAway) {
+        robot.drive.resetHeading();
+    }
+    if (switchMode) {
+        robot.drive.switchDriveMode();
+    }
+    // D-pad left held 1 s: robot.drive.setPoseAtResetCorner();  Back: MatchLogger.event("MARK", "driver")
 }
 
 private void handleOperator() {
@@ -506,20 +527,42 @@ private void handleOperator() {
     boolean spinUp = operator.isYPressed();
     boolean stopAll = operator.isDpadDownPressed();
 
-    if (intakeOnOff) robot.intake.toggle();
-    if (spitOut) robot.intake.reverse();       // also how opponent NECTAR goes back out (G408)
-    if (spitOutReleased) robot.intake.stop();
-    if (launchAll) robot.shooter.launch(4);    // works from anywhere
-    if (tipped) MatchInfo.markHiveTipped();
-    if (spinUp) robot.shooter.spinUp();
-    if (stopAll) robot.stopMechanisms();
+    if (intakeOnOff) {
+        robot.intake.toggle();
+    }
+    if (spitOut) {
+        robot.intake.reverse();   // also how opponent NECTAR goes back out (G408)
+    }
+    if (spitOutReleased) {
+        robot.intake.stop();
+    }
+    if (launchAll) {
+        robot.shooter.launch(4);   // works from anywhere
+    }
+    if (tipped) {
+        MatchInfo.markHiveTipped();
+    }
+    if (spinUp) {
+        robot.shooter.spinUp();
+    }
+    if (stopAll) {
+        robot.stopMechanisms();
+    }
 }
 
 /** Rumbles: only OpModes touch gamepads. */
 private void rumbleForEvents() {
-    if (robot.hasNewUrgentAlert()) { driver.rumble(RUMBLE_ALERT_MS); operator.rumble(RUMBLE_ALERT_MS); }
-    if (robot.clock.justReachedSecondsLeft(ONE_MINUTE_WARNING_S)) { both rumble }   // NECTAR + FLOWERS unlocked
-    if (robot.clock.justReachedSecondsLeft(PARK_WARNING_S)) { driver rumble }       // time to PARK
+    if (robot.hasNewUrgentAlert()) {
+        driver.rumble(RUMBLE_ALERT_MS);
+        operator.rumble(RUMBLE_ALERT_MS);
+    }
+    if (robot.clock.justReachedSecondsLeft(ONE_MINUTE_WARNING_S)) {   // NECTAR + FLOWERS unlocked
+        driver.rumble(...);
+        operator.rumble(...);
+    }
+    if (robot.clock.justReachedSecondsLeft(PARK_WARNING_S)) {   // time to PARK
+        driver.rumble(...);
+    }
 }
 ```
 
@@ -642,7 +685,7 @@ All are mentor zone and share `helpers/FieldCheckHelper` (grades, results, `FIEL
 
 **Add a subsystem** (a new job of the robot): copy `template/TemplateSubsystem.java` to `subsystems/`; `addMechanism` / `addStateMachine` in its constructor; its menu; in `Robot` a public field, build it, add it to `subsystems` (`ADD A SUBSYSTEM HERE`); update `HLD.md`, `LLD.md` (section 3.3) and `README.md`.
 
-**Add an assist (S2):** a pose in `FieldConfig` → a path method in `FieldPaths` → a method in `Assists` that checks the pose and the HIVE → one line in `handleDriver()` → cheat sheets.
+**Add an assist (S2):** a pose in `FieldConfig` → a path method in `FieldPaths` → a method in `DriveToSpot` that checks the pose and the HIVE → one line in `handleDriver()` → cheat sheets.
 
 **Add an auto step:** a `Step` value → a `case` (first loop, done, timeout) → a timeout in `AutoConfig` → the step table in this document.
 

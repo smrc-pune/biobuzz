@@ -49,8 +49,12 @@ public class TemplateMechanismTest extends OpMode {
         boolean run = pad.isAPressed();
         boolean stop = pad.isBPressed();
 
-        if (run) mechanism.run();
-        if (stop) mechanism.runStop();
+        if (run) {
+            mechanism.run();
+        }
+        if (stop) {
+            mechanism.runStop();
+        }
 
         mechanism.runUpdate();   // what a subsystem's update() does for every mechanism it owns
 

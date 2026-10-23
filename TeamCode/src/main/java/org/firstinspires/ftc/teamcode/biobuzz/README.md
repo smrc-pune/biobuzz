@@ -37,7 +37,7 @@ Every pass of the loop does three things, always in this order:
   Robot            Robot.java                           builds everything; update() once per loop
        |                                   |
        v                                   v
-  subsystems       intake, shooter, vision         drive/  Drive, Assists, FieldPaths
+  subsystems       intake, shooter, vision         drive/  Drive, DriveToSpot, FieldPaths
   (the menus)      robot.shooter.launch(4)                  |
        |                |                                   v
        v                v                          ..............................
@@ -60,7 +60,7 @@ Every pass of the loop does three things, always in this order:
 | State machine | A job that takes time ("launch 4 balls": spin up, feed, wait, repeat). Gives mechanisms commands | Call another state machine |
 | Mechanism | One group of devices, with action words (`collect()`) and questions (`isUpToSpeed()`) | Remember states or wait |
 | Drive + FieldPaths | Driving: sticks, paths, where the robot is. The only code that uses Pedro | Decide when to drive a path |
-| Assists | The S2 buttons (`robot.assists.toLaunchSpot()`): checks the pose and the HIVE, then starts a path | Drive with the sticks |
+| DriveToSpot | The S2 buttons: the robot drives itself to a spot (`robot.driveToSpot.launchSpot()`). Checks the pose and the HIVE, then starts a path | Drive with the sticks |
 
 **Why subsystems?** Each one is a short file you can read by itself. To find what a
 button does, follow the dots: `robot.shooter.launch(4)` is the `launch` method in
@@ -73,7 +73,7 @@ two commands can only fight over a motor inside that one file.
 
 | Student zone (you will change these) | Mentor zone (read, don't change) |
 | --- | --- |
-| `configurations/`, `subsystems/` (except `Subsystem.java`), `mechanisms/` (except `Mechanism.java`), `statemachines/` (except `StateMachine.java`), `teleop/`, `auto/`, `drive/FieldPaths.java`, `drive/Assists.java`, the "ADD A SUBSYSTEM HERE" spot in `Robot.java`, `testing/` | `subsystems/Subsystem.java`, `mechanisms/Mechanism.java`, `statemachines/StateMachine.java`, `drive/Drive.java`, `helpers/`, `pedro/` |
+| `configurations/`, `subsystems/` (except `Subsystem.java`), `mechanisms/` (except `Mechanism.java`), `statemachines/` (except `StateMachine.java`), `teleop/`, `auto/`, `drive/FieldPaths.java`, `drive/DriveToSpot.java`, the "ADD A SUBSYSTEM HERE" spot in `Robot.java`, `testing/` | `subsystems/Subsystem.java`, `mechanisms/Mechanism.java`, `statemachines/StateMachine.java`, `drive/Drive.java`, `helpers/`, `pedro/` |
 
 ---
 
@@ -104,7 +104,7 @@ teamcode/
     drive/
       Drive.java              the drivetrain: sticks, paths, pose (talks to Pedro)
       FieldPaths.java         every path the robot drives by itself
-      Assists.java            the S2 buttons: drive to the launch spot / LOADING ZONE, set pose here
+      DriveToSpot.java            the S2 buttons: drive to the launch spot / LOADING ZONE, set pose here
     subsystems/             the menus OpModes call: robot.intake..., robot.shooter..., robot.vision
       Subsystem.java          what every subsystem has in common (updates, stops, shows, logs its parts)
       IntakeSubsystem.java    owns Intake: toggle(), collect(), reverse(), stop()
@@ -182,7 +182,7 @@ BioBuzzTeleOp.loop()
 ### "The driver presses A" (S2: drive to our launch spot)
 
 1. `handleDriver()` reads `driver.isAPressed()` once and keeps the answer.
-2. It calls `robot.assists.toLaunchSpot()` (in `drive/Assists.java`). It checks two things:
+2. It calls `robot.driveToSpot.launchSpot()` (in `drive/DriveToSpot.java`). It checks two things:
    - Is the robot's position known? If not: refused, a warning on screen, a short rumble.
    - Would the path hit the HIVE? If so: refused the same way.
 3. Otherwise `FieldPaths.toLaunchSpot(...)` makes a straight path from where the robot
@@ -354,6 +354,18 @@ A new mechanism or state machine usually goes into an EXISTING subsystem (one
 `addMechanism(...)` line and a menu method there); `Robot.java` does not change. Only a new
 job of the robot gets a new subsystem, at the `ADD A SUBSYSTEM HERE` spot in `Robot.java`.
 
+**Every `if` gets braces.** Even when only one line runs, write it with `{` and `}` and the
+body on its own line, like every file in this folder:
+
+```java
+if (isFaulted()) {
+    return;
+}
+```
+
+That way you can always see what the `if` controls, and adding a second line later cannot
+break it.
+
 ---
 
 ## 8. The helpers
@@ -405,6 +417,7 @@ true only on the one loop when the button goes from up to down. Read each button
 | 8 | Mechanisms: Intake, Feeder, Launcher, HIVE camera, front camera; LaunchStateMachine; aim button; gamepad 2 map; one test each | Done (device names, ports and numbers are first guesses: TODO(BioBuzz)) |
 | 9 | Guides (section 12), TROUBLESHOOTING.md, HLD/LLD updated, UPSTREAM.md, tools/plot_match.py | Done |
 | 10 | Subsystems (Requirements v2.8): `Robot` split into `intake`, `shooter`, `vision` and `assists`; `Subsystem` and `StateMachine` base classes, `TemplateSubsystem` | Done (OpModes now call `robot.shooter.launch(4)`, ...) |
+| 11 | Easier to read (Requirements v2.9): `Assists` renamed `DriveToSpot` (`robot.driveToSpot.launchSpot()`; "set pose here" is now `robot.drive.setPoseAtResetCorner()`); every `if` / `else` has `{ }` on its own lines | Done |
 
 > **Important:** Pedro's `pedro/Constants.java` is still the empty Quickstart file.
 > Until it is filled in at drive tuning, every BioBuzz OpMode that drives stops at INIT

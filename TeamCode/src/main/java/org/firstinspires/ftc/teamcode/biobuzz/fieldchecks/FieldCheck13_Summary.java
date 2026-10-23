@@ -56,17 +56,25 @@ public class FieldCheck13_Summary extends OpMode {
         for (int number = 1; number <= FieldCheckHelper.CHECK_COUNT - 1; number++) {
             FieldCheckHelper.show(t, number);
             String grade = FieldCheckHelper.getGrade(number);
-            if (grade.equals(FieldCheckHelper.FAIL)) fails++;
-            if (grade.equals(FieldCheckHelper.WARN)) warns++;
+            if (grade.equals(FieldCheckHelper.FAIL)) {
+                fails++;
+            }
+            if (grade.equals(FieldCheckHelper.WARN)) {
+                warns++;
+            }
         }
         double resting = FieldCheckHelper.getRestingBatteryV();
         double lowest = FieldCheckHelper.getLowestDrivingBatteryV();
         if (resting > 0 && lowest > 0) {
             t.addData("Battery sag", "%.2f V resting, %.2f V lowest while driving: %.2f V", resting, lowest, resting - lowest);
         }
-        if (fails > 0) t.addLine(fails + " FAIL: fix before matches (docs/MATCH_DAY.md, Field Checks table)");
-        else if (warns > 0) t.addLine(warns + " WARN: look at them; at home, record a baseline");
-        else t.addLine("ALL PASS");
+        if (fails > 0) {
+            t.addLine(fails + " FAIL: fix before matches (docs/MATCH_DAY.md, Field Checks table)");
+        } else if (warns > 0) {
+            t.addLine(warns + " WARN: look at them; at home, record a baseline");
+        } else {
+            t.addLine("ALL PASS");
+        }
         t.update();
     }
 

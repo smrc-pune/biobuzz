@@ -37,13 +37,17 @@ public class Feeder extends Mechanism {
 
     // ---- What the feeder can do ----
     public void feedOne() {
-        if (isFaulted()) return;
+        if (isFaulted()) {
+            return;
+        }
         feeding = true;
         moveTo(FeederConfig.FEED_POSITION);
     }
 
     public void hold() {
-        if (isFaulted()) return;
+        if (isFaulted()) {
+            return;
+        }
         feeding = false;
         moveTo(FeederConfig.HOLD_POSITION);
     }
@@ -52,7 +56,9 @@ public class Feeder extends Mechanism {
     public boolean isFeeding() { return feeding; }
 
     private void moveTo(double newPosition) {
-        if (newPosition == position) return;   // a servo command is a hub write: only send changes
+        if (newPosition == position) {
+            return;   // a servo command is a hub write: only send changes
+        }
         position = newPosition;
         pusher.setPosition(position);
     }
@@ -67,7 +73,9 @@ public class Feeder extends Mechanism {
     @Override
     protected void addDetails(Telemetry t) {
         String what = "HOLDING";
-        if (feeding) what = "FEEDING";
+        if (feeding) {
+            what = "FEEDING";
+        }
         t.addData("Feeder", what + String.format("  (servo %.2f)", position));
     }
 

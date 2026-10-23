@@ -44,7 +44,9 @@ public class DriveTest extends OpMode {
 
     @Override
     public void init_loop() {
-        if (pad.isBPressed()) MatchInfo.switchAlliance();   // RED <-> BLUE
+        if (pad.isBPressed()) {
+            MatchInfo.switchAlliance();   // RED <-> BLUE
+        }
         t.addData("Alliance (B to switch)", MatchInfo.alliance);
         showControls();
         t.update();
@@ -62,8 +64,12 @@ public class DriveTest extends OpMode {
         boolean switchMode = pad.isXPressed();
 
         drive.driveWithSticks(pad.getLeftStickY(), pad.getLeftStickX(), pad.getRightStickX());
-        if (faceAway) drive.resetHeading();
-        if (switchMode) drive.switchDriveMode();
+        if (faceAway) {
+            drive.resetHeading();
+        }
+        if (switchMode) {
+            drive.switchDriveMode();
+        }
 
         drive.update();
 

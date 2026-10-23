@@ -54,8 +54,12 @@ public class LogViewer extends OpMode {
             t.update();
             return;
         }
-        if (pad.isDpadDownPressed()) selected = Math.min(selected + 1, runs.length - 1);
-        if (pad.isDpadUpPressed()) selected = Math.max(selected - 1, 0);
+        if (pad.isDpadDownPressed()) {
+            selected = Math.min(selected + 1, runs.length - 1);
+        }
+        if (pad.isDpadUpPressed()) {
+            selected = Math.max(selected - 1, 0);
+        }
 
         LogSummary run = runs[selected];
         t.addLine("--- RUN " + (selected + 1) + " of " + runs.length + " (newest first) ---");
@@ -64,18 +68,25 @@ public class LogViewer extends OpMode {
         t.addData("OpMode / alliance", run.getOpModeName() + " / " + run.getAlliance());
         t.addData("Ran for", String.format("%.0f s (%d rows)", run.getDurationS(), run.getRowCount()));
         t.addData("ALERTs", run.getAlertCount());
-        if (!run.getLastAlert().isEmpty()) t.addData("Last ALERT", run.getLastAlert());
+        if (!run.getLastAlert().isEmpty()) {
+            t.addData("Last ALERT", run.getLastAlert());
+        }
         t.addData("Worst loop", String.format("%.0f ms", run.getWorstLoopMs()));
         t.addData("Battery", String.format("%.2f V at PLAY, lowest %.2f V",
                 run.getBatteryAtPlayV(), run.getLowestBatteryV()));
         t.addData("Auto TIMEOUTs", run.getTimeoutCount());
-        if (run.hasEndLine()) t.addData("Ended", "cleanly (# END)");
-        else t.addData("Ended", "NO END: crash or power loss");
+        if (run.hasEndLine()) {
+            t.addData("Ended", "cleanly (# END)");
+        } else {
+            t.addData("Ended", "NO END: crash or power loss");
+        }
 
         t.addLine("--- all runs (D-pad up/down, A = reload) ---");
         for (int i = 0; i < runs.length; i++) {
             String marker = "   ";
-            if (i == selected) marker = ">> ";
+            if (i == selected) {
+                marker = ">> ";
+            }
             t.addLine(marker + runs[i].getShortText());
         }
         t.update();

@@ -54,7 +54,9 @@ public class MatchInfo {
     public static boolean isCellAUp() { return cellAUp; }
 
     public static String getUpCellName() {
-        if (cellAUp) return "A";
+        if (cellAUp) {
+            return "A";
+        }
         return "B";
     }
 
@@ -65,13 +67,18 @@ public class MatchInfo {
 
     /** Seconds since the last TIP; a big number if there was none. The launcher waits after a TIP. */
     public static double secondsSinceTip() {
-        if (!hasTipped) return 1000;
+        if (!hasTipped) {
+            return 1000;
+        }
         return sinceTip.seconds();
     }
 
     /** RED becomes BLUE, BLUE becomes RED (used by test OpModes' B button). */
     public static void switchAlliance() {
-        if (alliance == AllianceColor.RED) alliance = AllianceColor.BLUE;
-        else alliance = AllianceColor.RED;
+        if (alliance == AllianceColor.RED) {
+            alliance = AllianceColor.BLUE;
+        } else {
+            alliance = AllianceColor.RED;
+        }
     }
 }

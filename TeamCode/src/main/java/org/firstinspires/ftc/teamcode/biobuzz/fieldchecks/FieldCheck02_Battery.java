@@ -57,15 +57,21 @@ public class FieldCheck02_Battery extends OpMode {
             double volts = voltsTotal / samples;
             FieldCheckHelper.setRestingBattery(volts);
             String grade = FieldCheckHelper.PASS;
-            if (volts < FieldCheckConfig.BATTERY_MIN_V) grade = FieldCheckHelper.WARN;
-            if (volts < FieldCheckConfig.BATTERY_MIN_V - WARN_BELOW_V) grade = FieldCheckHelper.FAIL;
+            if (volts < FieldCheckConfig.BATTERY_MIN_V) {
+                grade = FieldCheckHelper.WARN;
+            }
+            if (volts < FieldCheckConfig.BATTERY_MIN_V - WARN_BELOW_V) {
+                grade = FieldCheckHelper.FAIL;
+            }
             String text = String.format("%.2f V resting (need %.1f V)", volts, FieldCheckConfig.BATTERY_MIN_V);
             if (FieldCheckHelper.doesBatteryDiffer()) {
                 text += String.format(", baseline %.2f V: 07-09 battery differs", FieldCheckConfig.BASELINE_BATTERY_V);
             }
             FieldCheckHelper.record(2, grade, text);
         }
-        if (!done) t.addData("Measuring", "%.1f V", battery.getVoltage());
+        if (!done) {
+            t.addData("Measuring", "%.1f V", battery.getVoltage());
+        }
         FieldCheckHelper.show(t, 2);
         t.update();
     }

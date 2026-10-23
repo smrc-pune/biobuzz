@@ -209,7 +209,7 @@ These came up while writing the code. Each is resolved as below; details in `LLD
 
 | # | Before (v2.7) | Now (v2.8) | Why the old concern does not return |
 | --- | --- | --- | --- |
-| S1 | `robot.toggleIntake()`, `robot.startLaunching(4)`, `robot.driveToLaunchSpot()` | `robot.intake.toggle()`, `robot.shooter.launch(4)`, `robot.assists.toLaunchSpot()` | – |
+| S1 | `robot.toggleIntake()`, `robot.startLaunching(4)`, `robot.driveToLaunchSpot()` | `robot.intake.toggle()`, `robot.shooter.launch(4)`, `robot.driveToSpot.launchSpot()` | – |
 | S2 | Robot held five mechanisms and one state machine, listed by hand in update, stop, log and telemetry | Each subsystem owns its parts (`addMechanism`, `addStateMachine`); `Subsystem` runs them; Robot walks `{ intake, shooter, vision }` | C1 (one brain per mechanism, fake states): a subsystem has NO states; a state machine is still one task that may use several mechanisms |
 | S3 | Robot was the Mediator for every mechanism | Each subsystem is the Mediator for its own mechanisms (`spinUp()` waits while launching) | C12 (buttons fighting over a motor): a mechanism belongs to ONE subsystem and every state machine that uses it lives there, so a conflict can only happen inside one file. A task that needs two subsystems' mechanisms is a reason to merge them (mentor decision) |
 | S4 | Robot.isBusy() was removed (C3) | No subsystem-wide `isBusy()`; Auto still checks the one thing it started (`robot.shooter.isLaunching()`) | C3 |

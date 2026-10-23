@@ -49,7 +49,9 @@ runs. It changes at once, but is lost when the app restarts. That is why you typ
    case SETTLING:
        // DO: nothing, just wait
        // CHECK + GO (this wait IS its timeout: it always ends)
-       if (timer.isTimeUp(LauncherConfig.SETTLE_MS)) goTo(State.SPINNING_UP, "settled");
+       if (timer.isTimeUp(LauncherConfig.SETTLE_MS)) {
+           goTo(State.SPINNING_UP, "settled");
+       }
        break;
    ```
 6. Check: **Test: Launch**, A → the Launch line shows `SETTLING`, then `SPINNING_UP`. The
@@ -67,7 +69,9 @@ runs. It changes at once, but is lost when the app restarts. That is why you typ
 5. Add a case:
    ```java
    case SETTLE:
-       if (stepTimer.seconds() >= AutoConfig.SETTLE_S) goToStep(Step.LAUNCH_PRELOADS, "settled");
+       if (stepTimer.seconds() >= AutoConfig.SETTLE_S) {
+           goToStep(Step.LAUNCH_PRELOADS, "settled");
+       }
        break;
    ```
 6. Check: run BioBuzz Auto with the robot on blocks (wheels off the floor). The Step line shows

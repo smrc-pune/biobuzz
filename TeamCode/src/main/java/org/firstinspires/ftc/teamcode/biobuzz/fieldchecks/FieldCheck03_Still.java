@@ -57,7 +57,9 @@ public class FieldCheck03_Still extends OpMode {
         if (!done) {
             double creepDeg = Math.abs(AngleUnit.normalizeDegrees(drive.getHeadingDegrees() - startHeadingDeg));
             worstCreepDeg = Math.max(worstCreepDeg, creepDeg);
-            if (drive.getPinpointStatus() != GoBildaPinpointDriver.DeviceStatus.READY) alwaysReady = false;
+            if (drive.getPinpointStatus() != GoBildaPinpointDriver.DeviceStatus.READY) {
+                alwaysReady = false;
+            }
             t.addData("Heading creep", "%.2f deg  (%.0f s left)", creepDeg, FieldCheckConfig.STILL_S - timer.seconds());
         }
         if (!done && timer.seconds() >= FieldCheckConfig.STILL_S) {

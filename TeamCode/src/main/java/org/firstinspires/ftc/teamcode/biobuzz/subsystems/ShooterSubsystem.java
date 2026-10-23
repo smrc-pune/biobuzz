@@ -53,7 +53,9 @@ public class ShooterSubsystem extends Subsystem {
 
     /** Spin the flywheel up early, for the distance to the upward CELL from here (operator's Y). */
     public void spinUp() {
-        if (launchStateMachine.isBusy()) return;   // the state machine already controls the speed
+        if (launchStateMachine.isBusy()) {
+            return;   // the state machine already controls the speed
+        }
         launcher.spinUpFor(getDistanceToUpCellIn());
     }
 
@@ -77,14 +79,20 @@ public class ShooterSubsystem extends Subsystem {
 
     /** Inches to the upward CELL, or LauncherConfig.DEFAULT_DISTANCE_IN when the pose is unknown (S1). */
     public double getDistanceToUpCellIn() {
-        if (!drive.isPoseKnown()) return LauncherConfig.DEFAULT_DISTANCE_IN;
+        if (!drive.isPoseKnown()) {
+            return LauncherConfig.DEFAULT_DISTANCE_IN;
+        }
         return FieldPaths.distanceToUpCellIn(drive.getPose(), MatchInfo.isRed());
     }
 
     @Override
     public String getStatusText() {
-        if (launcher.isUpToSpeed()) return "launcher READY";
-        if (launcher.getTargetRpm() > 0) return "launcher spinning";
+        if (launcher.isUpToSpeed()) {
+            return "launcher READY";
+        }
+        if (launcher.getTargetRpm() > 0) {
+            return "launcher spinning";
+        }
         return "launcher -";
     }
 }

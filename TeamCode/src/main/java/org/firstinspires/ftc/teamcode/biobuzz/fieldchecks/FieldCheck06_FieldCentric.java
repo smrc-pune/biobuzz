@@ -41,7 +41,9 @@ public class FieldCheck06_FieldCentric extends OpMode {
 
     @Override
     public void init_loop() {
-        if (pad.isDpadLeftPressed() || pad.isDpadRightPressed()) MatchInfo.switchAlliance();
+        if (pad.isDpadLeftPressed() || pad.isDpadRightPressed()) {
+            MatchInfo.switchAlliance();
+        }
         t.addData("Alliance (D-pad left/right)", MatchInfo.alliance);
         t.addLine("Place the robot FACING AWAY from the drivers, then press PLAY.");
         t.update();
@@ -64,8 +66,11 @@ public class FieldCheck06_FieldCentric extends OpMode {
 
         if (!answered && (yes || no)) {
             answered = true;
-            if (yes) FieldCheckHelper.record(6, FieldCheckHelper.PASS, "driver: moved away");
-            else FieldCheckHelper.record(6, FieldCheckHelper.FAIL, "driver: did NOT move away");
+            if (yes) {
+                FieldCheckHelper.record(6, FieldCheckHelper.PASS, "driver: moved away");
+            } else {
+                FieldCheckHelper.record(6, FieldCheckHelper.FAIL, "driver: did NOT move away");
+            }
         }
         t.addLine("Turn about 90 deg (right stick), then push the LEFT stick away from you.");
         t.addLine("Did the robot move AWAY from you?   A = yes   B = no");

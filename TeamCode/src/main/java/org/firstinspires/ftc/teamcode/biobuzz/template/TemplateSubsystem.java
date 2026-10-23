@@ -53,7 +53,9 @@ public class TemplateSubsystem extends Subsystem {
 
     @Override
     public String getStatusText() {
-        if (mechanism.isRunning()) return "template ON";
+        if (mechanism.isRunning()) {
+            return "template ON";
+        }
         return "";
     }
 }

@@ -70,12 +70,16 @@ public class FieldCheck12_Camera extends OpMode {
         camera.runUpdate();
         int tagId = FieldCheckConfig.CAMERA_CHECK_TAG_ID;
         if (!done && camera.seesTag(tagId) && camera.getTagRangeIn(tagId) > 0) {
-            if (!seenOnce) seenTimer.reset();
+            if (!seenOnce) {
+                seenTimer.reset();
+            }
             seenOnce = true;
             rangeTotal += camera.getTagRangeIn(tagId);
             rangeCount++;
         }
-        if (!done && seenOnce && seenTimer.seconds() >= MEASURE_S) finish();
+        if (!done && seenOnce && seenTimer.seconds() >= MEASURE_S) {
+            finish();
+        }
         if (!done && timer.seconds() >= GIVE_UP_S) {
             done = true;
             FieldCheckHelper.record(12, FieldCheckHelper.FAIL, "tag " + tagId + " not seen (or has no range) in "

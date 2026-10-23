@@ -82,8 +82,11 @@ public class PartsTest extends OpMode {
 
         if (next || previous) {
             stopSelected();
-            if (next) selected = (selected + 1) % names.length;
-            else selected = (selected - 1 + names.length) % names.length;
+            if (next) {
+                selected = (selected + 1) % names.length;
+            } else {
+                selected = (selected - 1 + names.length) % names.length;
+            }
             MatchLogger.event("PARTS", "selected " + names[selected]);
         }
 
@@ -94,7 +97,9 @@ public class PartsTest extends OpMode {
         }
         if (servo != null) {
             double position = servo.getPosition() + pad.getRightStickY() * ControlsConfig.PARTS_TEST_SERVO_STEP;
-            if (servoMiddle) position = 0.5;
+            if (servoMiddle) {
+                position = 0.5;
+            }
             servo.setPosition(Math.max(0, Math.min(1, position)));
         }
 
@@ -111,7 +116,9 @@ public class PartsTest extends OpMode {
 
     /** The motor that was moving stops when another device is picked, and at STOP. */
     private void stopSelected() {
-        if (motors[selected] != null) motors[selected].setPower(0);
+        if (motors[selected] != null) {
+            motors[selected].setPower(0);
+        }
     }
 
     private void showSelected() {
@@ -119,7 +126,9 @@ public class PartsTest extends OpMode {
         DcMotorEx motor = motors[selected];
         if (motor != null) {
             String direction = "forward";
-            if (motor.getDirection() == DcMotor.Direction.REVERSE) direction = "REVERSED";
+            if (motor.getDirection() == DcMotor.Direction.REVERSE) {
+                direction = "REVERSED";
+            }
             t.addData("Motor power", String.format("%.2f  (%s)", motor.getPower(), direction));
             t.addData("Encoder", String.format("%d ticks, %.0f ticks/s", motor.getCurrentPosition(), motor.getVelocity()));
             t.addData("Current", String.format("%.2f A", motor.getCurrent(CurrentUnit.AMPS)));
@@ -139,11 +148,17 @@ public class PartsTest extends OpMode {
         t.addLine("--- D-pad up/down picks a device ---");
         for (int i = 0; i < names.length; i++) {
             String kind = "MISSING";
-            if (motors[i] != null) kind = "motor";
-            else if (servos[i] != null) kind = "servo";
-            else if (found[i]) kind = "sensor";
+            if (motors[i] != null) {
+                kind = "motor";
+            } else if (servos[i] != null) {
+                kind = "servo";
+            } else if (found[i]) {
+                kind = "sensor";
+            }
             String marker = "   ";
-            if (i == selected) marker = ">> ";
+            if (i == selected) {
+                marker = ">> ";
+            }
             t.addLine(marker + names[i] + "  (" + kind + ")");
         }
     }

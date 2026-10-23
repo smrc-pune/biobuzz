@@ -32,8 +32,11 @@ public class Intake extends Mechanism {
     public Intake(HardwareMap hardwareMap) {
         super("intake");
         roller = hardwareMap.get(DcMotorEx.class, HardwareNames.MOTOR_INTAKE);
-        if (HardwareNames.MOTOR_INTAKE_REVERSED) roller.setDirection(DcMotor.Direction.REVERSE);
-        else roller.setDirection(DcMotor.Direction.FORWARD);
+        if (HardwareNames.MOTOR_INTAKE_REVERSED) {
+            roller.setDirection(DcMotor.Direction.REVERSE);
+        } else {
+            roller.setDirection(DcMotor.Direction.FORWARD);
+        }
         // Nothing moves here: robots must stay still during INIT (rule G304.H).
     }
 
@@ -50,8 +53,12 @@ public class Intake extends Mechanism {
     public double getPower() { return power; }
 
     private void setPower(double newPower) {
-        if (isFaulted()) return;
-        if (newPower != power) MatchLogger.event("INTAKE", String.format("power %.2f", newPower));
+        if (isFaulted()) {
+            return;
+        }
+        if (newPower != power) {
+            MatchLogger.event("INTAKE", String.format("power %.2f", newPower));
+        }
         power = newPower;
         roller.setPower(power);
     }
@@ -59,7 +66,9 @@ public class Intake extends Mechanism {
     // ---- Filled in for Mechanism ----
     @Override
     protected void stop() {
-        if (power != 0) MatchLogger.event("INTAKE", "off");
+        if (power != 0) {
+            MatchLogger.event("INTAKE", "off");
+        }
         power = 0;
         roller.setPower(0);
     }
@@ -67,8 +76,12 @@ public class Intake extends Mechanism {
     @Override
     protected void addDetails(Telemetry t) {
         String what = "OFF";
-        if (isCollecting()) what = "COLLECTING";
-        if (isReversing()) what = "SPITTING OUT";
+        if (isCollecting()) {
+            what = "COLLECTING";
+        }
+        if (isReversing()) {
+            what = "SPITTING OUT";
+        }
         t.addData("Intake", what + String.format("  (power %.2f)", power));
     }
 

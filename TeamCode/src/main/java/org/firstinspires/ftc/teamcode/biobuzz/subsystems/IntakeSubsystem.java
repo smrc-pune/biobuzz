@@ -29,8 +29,11 @@ public class IntakeSubsystem extends Subsystem {
 
     /** On if it was off, off if it was on (operator's A). */
     public void toggle() {
-        if (intake.isCollecting()) stop();
-        else intake.collect();
+        if (intake.isCollecting()) {
+            stop();
+        } else {
+            intake.collect();
+        }
     }
 
     /** Pull balls in. */
@@ -45,7 +48,9 @@ public class IntakeSubsystem extends Subsystem {
 
     @Override
     public String getStatusText() {
-        if (intake.isCollecting()) return "intake ON";
+        if (intake.isCollecting()) {
+            return "intake ON";
+        }
         return "intake off";
     }
 }

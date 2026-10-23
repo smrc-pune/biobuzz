@@ -39,7 +39,9 @@ public class FieldPaths {
 
     /** A RED place (inches, degrees). For BLUE it is turned half a turn around the field's middle. */
     public static Pose place(double xIn, double yIn, double headingDeg, boolean isRed) {
-        if (isRed) return new Pose(xIn, yIn, Math.toRadians(headingDeg));
+        if (isRed) {
+            return new Pose(xIn, yIn, Math.toRadians(headingDeg));
+        }
         // BLUE: flip across the middle line both ways = half a turn around the middle point.
         double centre = FieldConfig.FIELD_CENTRE_IN;
         return PoseFactory.degrees().mirrorX(centre).mirrorY(centre).of(xIn, yIn, headingDeg);
@@ -77,7 +79,9 @@ public class FieldPaths {
 
     /** The CELL that faces up now (MatchInfo knows which), turned for BLUE. Heading is not used. */
     public static Pose upCellPose(boolean isRed) {
-        if (MatchInfo.isCellAUp()) return place(FieldConfig.CELL_A_X_IN, FieldConfig.CELL_A_Y_IN, 0, isRed);
+        if (MatchInfo.isCellAUp()) {
+            return place(FieldConfig.CELL_A_X_IN, FieldConfig.CELL_A_Y_IN, 0, isRed);
+        }
         return place(FieldConfig.CELL_B_X_IN, FieldConfig.CELL_B_Y_IN, 0, isRed);
     }
 
@@ -162,8 +166,12 @@ public class FieldPaths {
         double middle = FieldConfig.FIELD_CENTRE_IN;
         for (int i = 0; i <= CHECK_POINTS; i++) {
             Pose point = path.get((double) i / CHECK_POINTS);
-            if (isRed && point.x() > middle - FieldConfig.OWN_SIDE_MARGIN_IN) return false;
-            if (!isRed && point.x() < middle + FieldConfig.OWN_SIDE_MARGIN_IN) return false;
+            if (isRed && point.x() > middle - FieldConfig.OWN_SIDE_MARGIN_IN) {
+                return false;
+            }
+            if (!isRed && point.x() < middle + FieldConfig.OWN_SIDE_MARGIN_IN) {
+                return false;
+            }
         }
         return true;
     }
@@ -176,7 +184,9 @@ public class FieldPaths {
                     && point.x() < FieldConfig.HIVE_KEEP_OUT_MAX_X_IN;
             boolean insideY = point.y() > FieldConfig.HIVE_KEEP_OUT_MIN_Y_IN
                     && point.y() < FieldConfig.HIVE_KEEP_OUT_MAX_Y_IN;
-            if (insideX && insideY) return false;
+            if (insideX && insideY) {
+                return false;
+            }
         }
         return true;
     }

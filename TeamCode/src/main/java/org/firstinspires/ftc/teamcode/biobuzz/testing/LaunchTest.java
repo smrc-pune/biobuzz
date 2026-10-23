@@ -51,11 +51,21 @@ public class LaunchTest extends OpMode {
         boolean tipped = pad.isXPressed();
         boolean stopAll = pad.isDpadDownPressed();
 
-        if (launch) robot.shooter.launch(4);
-        if (cancel) robot.shooter.cancelLaunch();
-        if (spinUp) robot.shooter.spinUp();
-        if (tipped) MatchInfo.markHiveTipped();
-        if (stopAll) robot.stopMechanisms();
+        if (launch) {
+            robot.shooter.launch(4);
+        }
+        if (cancel) {
+            robot.shooter.cancelLaunch();
+        }
+        if (spinUp) {
+            robot.shooter.spinUp();
+        }
+        if (tipped) {
+            MatchInfo.markHiveTipped();
+        }
+        if (stopAll) {
+            robot.stopMechanisms();
+        }
         robot.update();
 
         t.addLine("A = launch 4   B = cancel   Y = spin up   X = HIVE tipped   D-pad down = stop all");

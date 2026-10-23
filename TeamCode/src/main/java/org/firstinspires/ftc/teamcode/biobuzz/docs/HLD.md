@@ -1,6 +1,6 @@
 # BioBuzz Software – High-Level Design (HLD)
 
-Oct 23, 2026 · **Matches the code (steps 1–10 built, not yet run on the robot)** · goes with Requirements v2.8 and `LLD.md`
+Oct 23, 2026 · **Matches the code (steps 1–10 built, not yet run on the robot)** · goes with Requirements v2.9 and `LLD.md`
 
 This document explains how the BioBuzz robot software fits together. It is written for our team: 7th graders who are new to Java. Read it once from top to bottom. Use `LLD.md` when you need the details of one file.
 
@@ -75,7 +75,7 @@ Limits (R503, R701): at most 8 motors and 8 servos, a Control Hub and at most on
   +----------------+-----------------+   +----------------+-----------------+
                    |  robot.intake.toggle()               |
                    |  robot.shooter.launch(4)             |
-                   v  robot.assists.toLaunchSpot()        v
+                   v  robot.driveToSpot.launchSpot()      v
   +--------------------------------------------------------------------------+
   | Robot   builds everything; update() once per loop:                       |
   |         1. every subsystem  2. Drive  3. health  4. match log            |
@@ -84,7 +84,7 @@ Limits (R503, R701): at most 8 motors and 8 servos, a Control Hub and at most on
          v                                                 v
   subsystems/   (the menus OpModes call)              drive/
    intake    IntakeSubsystem   owns Intake             Drive       (sticks, paths, pose)
-   shooter   ShooterSubsystem  owns Feeder, Launcher,  Assists     (the S2 buttons)
+   shooter   ShooterSubsystem  owns Feeder, Launcher,  DriveToSpot (S2: drive itself to a spot)
                                LaunchStateMachine      FieldPaths  (every path on the field)
    vision    VisionSubsystem   owns HiveCamera,              |
                                FrontCamera                   v
@@ -117,11 +117,11 @@ Limits (R503, R701): at most 8 motors and 8 servos, a Control Hub and at most on
 
 | Part | Does | Must never |
 | --- | --- | --- |
-| OpMode (`teleop/`, `auto/`, `testing/`) | Reads the gamepads (only OpModes do). Calls subsystem menus (`robot.shooter.launch(4)`) and `robot.drive` / `robot.assists`. Calls `robot.update()` and telemetry once per loop. Auto keeps its list of steps | Touch a mechanism, motor or servo |
-| `Robot` | Builds Drive, Assists and the subsystems. Runs `update()` in a fixed order. Health checks, match log, telemetry header | Read gamepads. Know what is inside a subsystem |
+| OpMode (`teleop/`, `auto/`, `testing/`) | Reads the gamepads (only OpModes do). Calls subsystem menus (`robot.shooter.launch(4)`) and `robot.drive` / `robot.driveToSpot`. Calls `robot.update()` and telemetry once per loop. Auto keeps its list of steps | Touch a mechanism, motor or servo |
+| `Robot` | Builds Drive, DriveToSpot and the subsystems. Runs `update()` in a fixed order. Health checks, match log, telemetry header | Read gamepads. Know what is inside a subsystem |
 | Subsystem (`subsystems/`) | One job of the robot. OWNS its mechanisms and the state machines that use them; updates, stops, shows and logs them. Its public methods are the menu. Stops a menu command and a state machine from fighting over one mechanism | Have states of its own. Use another subsystem's mechanism |
 | State machine (`statemachines/`) | One job that takes time, maybe using several mechanisms (for example "launch 4 balls": spin up, feed, wait, repeat). It gives mechanisms commands | Call another state machine, or a mechanism's `update()`. Read gamepads |
-| `Drive`, `Assists` and `FieldPaths` (`drive/`) | Driving: sticks, paths, where the robot is; the S2 buttons. Drive is the only code that talks to Pedro | Decide when to drive a path (the OpMode decides) |
+| `Drive`, `DriveToSpot` and `FieldPaths` (`drive/`) | Driving: sticks, paths, where the robot is; the S2 buttons. Drive is the only code that talks to Pedro | Decide when to drive a path (the OpMode decides) |
 | Mechanism (`mechanisms/`) | One group of devices, with action words (`collect()`, `stop()`) and questions (`isUpToSpeed()`) | Remember states or wait. Know about other mechanisms |
 | Libraries (Pedro, FTC SDK, Dashboard) | Do the hard work: path following, talking to hardware, the Dashboard | Get edited by us (Pedro only gets tuned numbers in `pedro/Constants.java`) |
 
@@ -137,13 +137,13 @@ Limits (R503, R701): at most 8 motors and 8 servos, a Control Hub and at most on
 | is a place or a path on the field | `FieldConfig` (places) and `FieldPaths` (paths) |
 | is a number someone will tune | a `...Config` file |
 
-**Who changes which files.** Students change the **student zone**: `configurations/`, `subsystems/` (except `Subsystem.java`), `mechanisms/` (except `Mechanism.java`), `statemachines/` (except `StateMachine.java`), `teleop/`, `auto/`, `drive/FieldPaths.java`, `drive/Assists.java`, the marked spot in `Robot.java`, and the tests. The **mentor zone** (`Subsystem.java`, `Mechanism.java`, `StateMachine.java`, `Drive.java`, `helpers/`, `fieldchecks/`, `pedro/`) works quietly in the background. Every file says which zone it is in on its first line.
+**Who changes which files.** Students change the **student zone**: `configurations/`, `subsystems/` (except `Subsystem.java`), `mechanisms/` (except `Mechanism.java`), `statemachines/` (except `StateMachine.java`), `teleop/`, `auto/`, `drive/FieldPaths.java`, `drive/DriveToSpot.java`, the marked spot in `Robot.java`, and the tests. The **mentor zone** (`Subsystem.java`, `Mechanism.java`, `StateMachine.java`, `Drive.java`, `helpers/`, `fieldchecks/`, `pedro/`) works quietly in the background. Every file says which zone it is in on its first line.
 
 ---
 
 ## 4. The building blocks
 
-**Robot** builds everything when the OpMode starts: Drive, Assists, then the subsystems. Robot keeps the subsystems in one list, written by name:
+**Robot** builds everything when the OpMode starts: Drive, DriveToSpot, then the subsystems. Robot keeps the subsystems in one list, written by name:
 
 ```java
 subsystems = new Subsystem[] { intake, shooter, vision };
@@ -307,7 +307,7 @@ The first telemetry line always shows: alliance, time left, loop time, battery, 
 | A mechanism | Copy `template/TemplateMechanism.java`; add its names to `HardwareNames`; add a `...Config`; in the subsystem that owns it, `addMechanism(...)` and a menu method; copy the test OpMode; add a button that calls the menu method |
 | A state machine | Copy `template/TemplateStateMachine.java`; in the subsystem that owns its mechanisms, `addStateMachine(...)` and a menu method that starts it |
 | A subsystem (a new job) | Copy `template/TemplateSubsystem.java`; one field, one build line and one list entry in Robot (`ADD A SUBSYSTEM HERE`) |
-| An assist button (S2) | A place in `FieldConfig`, a path in `FieldPaths`, a method in `Assists`, one line in TeleOp |
+| An assist button (S2) | A place in `FieldConfig`, a path in `FieldPaths`, a method in `DriveToSpot`, one line in TeleOp |
 | An auto step | One name in the `Step` list and one `case`, with its timeout in `AutoConfig` |
 
 ---

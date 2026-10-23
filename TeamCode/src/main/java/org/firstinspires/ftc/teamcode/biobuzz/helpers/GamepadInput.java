@@ -111,7 +111,9 @@ public class GamepadInput {
 
     /** Stick values smaller than the deadzone count as 0. */
     private double deadzone(double value) {
-        if (Math.abs(value) < DriveConfig.STICK_DEADZONE) return 0;
+        if (Math.abs(value) < DriveConfig.STICK_DEADZONE) {
+            return 0;
+        }
         return value;
     }
 

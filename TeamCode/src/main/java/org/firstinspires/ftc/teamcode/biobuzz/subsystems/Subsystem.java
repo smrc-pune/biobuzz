@@ -103,7 +103,9 @@ public class Subsystem {
     public final String getFaultedNames() {
         String names = "";
         for (Mechanism mechanism : mechanisms) {
-            if (mechanism.isFaulted()) names += mechanism.getName() + " ";
+            if (mechanism.isFaulted()) {
+                names += mechanism.getName() + " ";
+            }
         }
         return names.trim();
     }

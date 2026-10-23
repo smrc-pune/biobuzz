@@ -97,7 +97,9 @@ public class Drive {
     /** Drive with stick values, each -1 to 1 (deadzone already applied by GamepadInput). */
     public void driveWithSticks(double forward, double right, double clockwise) {
         boolean sticksMoved = forward != 0 || right != 0 || clockwise != 0;
-        if (sticksMoved && follower.following()) MatchLogger.event("ASSIST_CANCELLED", "stick");
+        if (sticksMoved && follower.following()) {
+            MatchLogger.event("ASSIST_CANCELLED", "stick");
+        }
         stickForward = forward;
         stickRight = right;
         stickClockwise = clockwise;
@@ -120,7 +122,9 @@ public class Drive {
             driveWithSticks(forward, right, 0);
             return;
         }
-        if (follower.following()) MatchLogger.event("ASSIST_CANCELLED", "aim");
+        if (follower.following()) {
+            MatchLogger.event("ASSIST_CANCELLED", "aim");
+        }
         stickForward = forward;
         stickRight = right;
         stickClockwise = 0;
@@ -143,20 +147,27 @@ public class Drive {
 
     /** Switch between field-centric and robot-centric by hand (driver's X). */
     public void switchDriveMode() {
-        if (fieldCentric) useRobotCentric("driver switched");
-        else useFieldCentric("driver switched");
+        if (fieldCentric) {
+            useRobotCentric("driver switched");
+        } else {
+            useFieldCentric("driver switched");
+        }
     }
 
     /** Robot-centric: "forward" is the robot's own front. */
     public void useRobotCentric(String reason) {
-        if (!fieldCentric) return;
+        if (!fieldCentric) {
+            return;
+        }
         fieldCentric = false;
         log.record("FIELD-CENTRIC", "ROBOT-CENTRIC", reason);
     }
 
     /** Field-centric (the normal mode): "forward" is away from the drivers. */
     public void useFieldCentric(String reason) {
-        if (fieldCentric) return;
+        if (fieldCentric) {
+            return;
+        }
         fieldCentric = true;
         log.record("ROBOT-CENTRIC", "FIELD-CENTRIC", reason);
     }
@@ -193,9 +204,16 @@ public class Drive {
         headingSetCount++;
     }
 
+    /** "Set pose here": the robot is sitting in our reset corner (FieldConfig.RESET_CORNER). */
+    public void setPoseAtResetCorner() {
+        setPose(FieldPaths.resetCorner(isRed), "set pose here");
+    }
+
     /** We can no longer trust x and y (for example a Pinpoint fault). Assists are refused. */
     public void forgetPose(String reason) {
-        if (!poseKnown) return;
+        if (!poseKnown) {
+            return;
+        }
         poseKnown = false;
         log.record("pose known", "pose UNKNOWN", reason);
     }
@@ -213,7 +231,9 @@ public class Drive {
 
     /** The heading (deg) the robot has when it faces away from this alliance's drivers. */
     public double getDriverHeadingDeg() {
-        if (isRed) return DriveConfig.RED_DRIVER_HEADING_DEG;
+        if (isRed) {
+            return DriveConfig.RED_DRIVER_HEADING_DEG;
+        }
         return DriveConfig.BLUE_DRIVER_HEADING_DEG;
     }
 
@@ -265,17 +285,25 @@ public class Drive {
 
     public void addTelemetry(Telemetry t) {
         String mode = "FIELD-centric";
-        if (!fieldCentric) mode = "ROBOT-centric";
+        if (!fieldCentric) {
+            mode = "ROBOT-centric";
+        }
         String who = "driver";
-        if (isDrivingItself()) who = "robot (path)";
+        if (isDrivingItself()) {
+            who = "robot (path)";
+        }
         t.addData("Drive", mode + ", driven by " + who + ", Pinpoint " + getPinpointStatus());
         t.addData("Pose x / y / heading", String.format("%.1f in / %.1f in / %.1f deg",
                 getX(), getY(), getHeadingDegrees()));
-        if (!log.getWarning().isEmpty()) t.addData("Drive WARNING", log.getWarning());
+        if (!log.getWarning().isEmpty()) {
+            t.addData("Drive WARNING", log.getWarning());
+        }
         if (TelemetryConfig.HISTORY && !log.getLastChange().isEmpty()) {
             t.addData("Drive last change", log.getLastChange());
         }
-        if (TelemetryConfig.DETAILS) t.addData("Pedro mode", follower.mode().toString());
+        if (TelemetryConfig.DETAILS) {
+            t.addData("Pedro mode", follower.mode().toString());
+        }
     }
 
     /** Drive columns of a match-log DATA row. */
@@ -296,7 +324,9 @@ public class Drive {
     /** Draw the robot, and the path while the robot drives itself, on the Dashboard field. */
     public void addDrawing() {
         FieldDrawing.drawRobot(getX(), getY(), getHeadingDegrees());
-        if (currentPath != null && isDrivingItself()) FieldDrawing.drawPath(currentPath);
+        if (currentPath != null && isDrivingItself()) {
+            FieldDrawing.drawPath(currentPath);
+        }
     }
 
     private String poseText(Pose pose) {

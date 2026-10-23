@@ -112,8 +112,11 @@ public class FrontCamera extends Mechanism {
     public void resume() { portal.resumeStreaming(); }
 
     public void setPreview(boolean on) {
-        if (on) portal.resumeLiveView();
-        else portal.stopLiveView();
+        if (on) {
+            portal.resumeLiveView();
+        } else {
+            portal.stopLiveView();
+        }
     }
 
     // ---- What you can ask it ----
@@ -122,21 +125,27 @@ public class FrontCamera extends Mechanism {
     /** Distance from the camera to the tag, in inches (0 if not seen). */
     public double getTagRangeIn(int id) {
         int slot = findTag(id);
-        if (slot < 0) return 0;
+        if (slot < 0) {
+            return 0;
+        }
         return tagRangeIn[slot];
     }
 
     /** Degrees the tag is to the LEFT (+) of straight ahead (0 if not seen). */
     public double getTagBearingDeg(int id) {
         int slot = findTag(id);
-        if (slot < 0) return 0;
+        if (slot < 0) {
+            return 0;
+        }
         return tagBearingDeg[slot];
     }
 
     /** How much the tag is turned, in degrees (0 = facing the camera). */
     public double getTagYawDeg(int id) {
         int slot = findTag(id);
-        if (slot < 0) return 0;
+        if (slot < 0) {
+            return 0;
+        }
         return tagYawDeg[slot];
     }
 
@@ -144,7 +153,9 @@ public class FrontCamera extends Mechanism {
 
     /** The id of the first tag in view, or -1. */
     public int getFirstTagId() {
-        if (tagCount == 0) return -1;
+        if (tagCount == 0) {
+            return -1;
+        }
         return tagIds[0];
     }
 
@@ -165,7 +176,9 @@ public class FrontCamera extends Mechanism {
 
     private int findTag(int id) {
         for (int slot = 0; slot < tagCount; slot++) {
-            if (tagIds[slot] == id) return slot;
+            if (tagIds[slot] == id) {
+                return slot;
+            }
         }
         return -1;
     }
@@ -176,7 +189,9 @@ public class FrontCamera extends Mechanism {
         applyExposureOnce();
         tagCount = 0;
         for (AprilTagDetection detection : aprilTags.getDetections()) {
-            if (tagCount >= MAX_TAGS || !(detection instanceof AprilTagSingleDetection)) continue;
+            if (tagCount >= MAX_TAGS || !(detection instanceof AprilTagSingleDetection)) {
+                continue;
+            }
             tagIds[tagCount] = ((AprilTagSingleDetection) detection).id;
             tagRangeIn[tagCount] = 0;
             tagBearingDeg[tagCount] = 0;
@@ -192,17 +207,23 @@ public class FrontCamera extends Mechanism {
         }
         seesPollen = false;
         for (ColorBlobLocatorProcessor.Blob blob : pollenFinder.getBlobs()) {
-            if (!seesPollen) pollenBearingDeg = bearingDeg(blob);
+            if (!seesPollen) {
+                pollenBearingDeg = bearingDeg(blob);
+            }
             seesPollen = true;
         }
         seesRedNectar = false;
         for (ColorBlobLocatorProcessor.Blob blob : redNectarFinder.getBlobs()) {
-            if (!seesRedNectar) redNectarBearingDeg = bearingDeg(blob);
+            if (!seesRedNectar) {
+                redNectarBearingDeg = bearingDeg(blob);
+            }
             seesRedNectar = true;
         }
         seesBlueNectar = false;
         for (ColorBlobLocatorProcessor.Blob blob : blueNectarFinder.getBlobs()) {
-            if (!seesBlueNectar) blueNectarBearingDeg = bearingDeg(blob);
+            if (!seesBlueNectar) {
+                blueNectarBearingDeg = bearingDeg(blob);
+            }
             seesBlueNectar = true;
         }
         sinceUpdate.reset();
@@ -216,8 +237,12 @@ public class FrontCamera extends Mechanism {
 
     /** Exposure can only be set once the camera is streaming. */
     private void applyExposureOnce() {
-        if (exposureApplied || CameraConfig.EXPOSURE_MS <= 0) return;
-        if (portal.getCameraState() != VisionPortal.CameraState.STREAMING) return;
+        if (exposureApplied || CameraConfig.EXPOSURE_MS <= 0) {
+            return;
+        }
+        if (portal.getCameraState() != VisionPortal.CameraState.STREAMING) {
+            return;
+        }
         ExposureControl exposure = portal.getCameraControl(ExposureControl.class);
         exposure.setMode(ExposureControl.Mode.Manual);
         exposure.setExposure((long) CameraConfig.EXPOSURE_MS, TimeUnit.MILLISECONDS);
@@ -229,14 +254,26 @@ public class FrontCamera extends Mechanism {
     @Override
     protected void addDetails(Telemetry t) {
         String tags = "no tags";
-        if (tagCount > 0) tags = String.format("tag %d at %.0f in, %.0f deg", tagIds[0], tagRangeIn[0], tagBearingDeg[0]);
+        if (tagCount > 0) {
+            tags = String.format("tag %d at %.0f in, %.0f deg", tagIds[0], tagRangeIn[0], tagBearingDeg[0]);
+        }
         String colours = "";
-        if (seesPollen) colours += " POLLEN";
-        if (seesRedNectar) colours += " red-NECTAR";
-        if (seesBlueNectar) colours += " blue-NECTAR";
-        if (colours.isEmpty()) colours = " nothing";
+        if (seesPollen) {
+            colours += " POLLEN";
+        }
+        if (seesRedNectar) {
+            colours += " red-NECTAR";
+        }
+        if (seesBlueNectar) {
+            colours += " blue-NECTAR";
+        }
+        if (colours.isEmpty()) {
+            colours = " nothing";
+        }
         t.addData("Front camera", tags + "; sees" + colours);
-        if (TelemetryConfig.DETAILS) t.addData("Front camera state", getCameraState() + String.format(", %.0f fps", getFps()));
+        if (TelemetryConfig.DETAILS) {
+            t.addData("Front camera state", getCameraState() + String.format(", %.0f fps", getFps()));
+        }
     }
 
     @Override

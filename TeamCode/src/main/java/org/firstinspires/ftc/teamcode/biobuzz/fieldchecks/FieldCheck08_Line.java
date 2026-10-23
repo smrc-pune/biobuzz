@@ -82,8 +82,12 @@ public class FieldCheck08_Line extends OpMode {
                 break;
             case SETTLING:
                 farthestIn = Math.max(farthestIn, drive.getX());
-                if (settleS < 0 && drive.getSpeedInPerS() < STOPPED_IN_PER_S) settleS = phaseTimer.seconds();
-                if (phaseTimer.isTimeUp(FieldCheckConfig.SETTLE_MS)) finish();
+                if (settleS < 0 && drive.getSpeedInPerS() < STOPPED_IN_PER_S) {
+                    settleS = phaseTimer.seconds();
+                }
+                if (phaseTimer.isTimeUp(FieldCheckConfig.SETTLE_MS)) {
+                    finish();
+                }
                 break;
             case DONE:
                 break;
@@ -102,7 +106,9 @@ public class FieldCheck08_Line extends OpMode {
         double overshootIn = Math.max(0, farthestIn - FieldCheckConfig.LINE_DISTANCE_IN);
         String grade = FieldCheckHelper.grade(Math.max(0, errorIn - FieldCheckConfig.BASELINE_LINE_ERROR_IN),
                 FieldCheckConfig.LINE_TOLERANCE_IN);
-        if (FieldCheckConfig.BASELINE_LINE_ERROR_IN <= 0 && grade.equals(FieldCheckHelper.PASS)) grade = FieldCheckHelper.WARN;
+        if (FieldCheckConfig.BASELINE_LINE_ERROR_IN <= 0 && grade.equals(FieldCheckHelper.PASS)) {
+            grade = FieldCheckHelper.WARN;
+        }
         FieldCheckHelper.record(8, grade, String.format("end error %.2f in (baseline %.2f), overshoot %.2f in, settle %.2f s",
                 errorIn, FieldCheckConfig.BASELINE_LINE_ERROR_IN, overshootIn, settleS));
     }

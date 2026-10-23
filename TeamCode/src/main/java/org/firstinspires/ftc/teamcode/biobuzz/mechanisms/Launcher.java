@@ -38,8 +38,11 @@ public class Launcher extends Mechanism {
     public Launcher(HardwareMap hardwareMap) {
         super("launcher");
         flywheel = hardwareMap.get(DcMotorEx.class, HardwareNames.MOTOR_LAUNCHER);
-        if (HardwareNames.MOTOR_LAUNCHER_REVERSED) flywheel.setDirection(DcMotor.Direction.REVERSE);
-        else flywheel.setDirection(DcMotor.Direction.FORWARD);
+        if (HardwareNames.MOTOR_LAUNCHER_REVERSED) {
+            flywheel.setDirection(DcMotor.Direction.REVERSE);
+        } else {
+            flywheel.setDirection(DcMotor.Direction.FORWARD);
+        }
         flywheel.setMode(DcMotor.RunMode.RUN_USING_ENCODER);   // a setting, not a movement
         flywheel.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);   // coast down, don't brake
         applySpeedControl();
@@ -71,8 +74,12 @@ public class Launcher extends Mechanism {
         double[] distances = LauncherConfig.DISTANCE_IN;
         double[] speeds = LauncherConfig.RPM;
         int last = Math.min(distances.length, speeds.length) - 1;
-        if (last < 0) return 0;
-        if (distanceIn <= distances[0]) return speeds[0];
+        if (last < 0) {
+            return 0;
+        }
+        if (distanceIn <= distances[0]) {
+            return speeds[0];
+        }
         for (int i = 1; i <= last; i++) {
             if (distanceIn <= distances[i]) {
                 double fraction = (distanceIn - distances[i - 1]) / (distances[i] - distances[i - 1]);
@@ -83,8 +90,12 @@ public class Launcher extends Mechanism {
     }
 
     private void setTargetRpm(double newTargetRpm) {
-        if (isFaulted()) return;
-        if (newTargetRpm == targetRpm) return;
+        if (isFaulted()) {
+            return;
+        }
+        if (newTargetRpm == targetRpm) {
+            return;
+        }
         targetRpm = newTargetRpm;
         flywheel.setVelocity(targetRpm * LauncherConfig.TICKS_PER_REV / 60.0);   // ticks per second
     }
@@ -92,7 +103,9 @@ public class Launcher extends Mechanism {
     /** Send the PIDF numbers to the motor controller, only when they changed. */
     private void applySpeedControl() {
         if (appliedP == LauncherConfig.SPEED_P && appliedI == LauncherConfig.SPEED_I
-                && appliedD == LauncherConfig.SPEED_D && appliedF == LauncherConfig.SPEED_F) return;
+                && appliedD == LauncherConfig.SPEED_D && appliedF == LauncherConfig.SPEED_F) {
+            return;
+        }
         appliedP = LauncherConfig.SPEED_P;
         appliedI = LauncherConfig.SPEED_I;
         appliedD = LauncherConfig.SPEED_D;
@@ -116,7 +129,9 @@ public class Launcher extends Mechanism {
     @Override
     protected void addDetails(Telemetry t) {
         String ready = "";
-        if (isUpToSpeed()) ready = "  READY";
+        if (isUpToSpeed()) {
+            ready = "  READY";
+        }
         t.addData("Launcher", String.format("%.0f / %.0f RPM", rpm, targetRpm) + ready);
         if (TelemetryConfig.DETAILS) {
             PIDFCoefficients pidf = flywheel.getPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER);
