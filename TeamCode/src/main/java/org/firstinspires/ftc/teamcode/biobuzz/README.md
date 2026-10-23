@@ -552,7 +552,8 @@ it more. Nothing in the project needs to change.
 
 **What stays the same:** FTC Dashboard, live Config changes, telemetry, the match logs
 and Logcat. Every OpMode still shows on the Driver Station: the release build does not
-shrink the code (`minifyEnabled` is off), so nothing is removed.
+shrink the code (`minifyEnabled` is off), so nothing is removed. Hiding the test
+OpModes with one switch is a future improvement (`docs/LLD.md`, section 14).
 
 **What you lose:** the debugger (breakpoints). Debug in the pit, not at the field.
 
