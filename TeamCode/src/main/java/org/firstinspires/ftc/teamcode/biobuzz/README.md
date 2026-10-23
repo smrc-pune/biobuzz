@@ -465,3 +465,53 @@ cleanly.
 Changes to Quickstart files (outside `biobuzz/`) are listed in `UPSTREAM.md` at the
 repository root.
 
+
+---
+
+## 13. Competition build
+
+Android Studio normally builds a **debug** build. For competitions, use a **release**
+build. It is the same code, but it runs a little faster, because Android can optimise
+it more. Nothing in the project needs to change.
+
+```
+  pit (working on code)     ->  debug    (you can attach the debugger)
+  competition matches       ->  release  (a little faster, no debugger)
+```
+
+**In Android Studio:**
+1. Open **View → Tool Windows → Build Variants**.
+2. Set **TeamCode** to `release` (FtcRobotController changes with it).
+3. Press **Run** as usual (see `docs/GETTING_STARTED.md`, "Deploy to the robot").
+4. Back in the pit, set it to `debug` again.
+
+**In a terminal** (from the repository root):
+```
+./gradlew :TeamCode:assembleRelease   # makes TeamCode/build/outputs/apk/release/TeamCode-release.apk
+./gradlew :TeamCode:installRelease    # makes it AND installs it on the connected Control Hub
+```
+
+**What stays the same:** FTC Dashboard, live Config changes, telemetry, the match logs
+and Logcat. Every OpMode still shows on the Driver Station: the release build does not
+shrink the code (`minifyEnabled` is off), so nothing is removed.
+
+**What you lose:** the debugger (breakpoints). Debug in the pit, not at the field.
+
+**What you may see while it builds:** lines starting with `e:` about "an incompatible
+version of Kotlin". They come from a check that only release builds run, and they do not
+stop the build. The build worked if the APK file is there (about 51 MB, a little smaller
+than debug).
+
+**The signing key.** Android only installs an app over another one signed with the
+same key. Our release build uses the shared FTC debug key (`libs/ftc.debug.keystore`),
+the same as the debug build, so release and debug install over each other with no
+uninstall. Keep it that way. A team key is possible (set the four `APK_SIGNING_*`
+variables that `build.common.gradle` reads), but then:
+- the first switch needs an uninstall of the app on the hub. The robot configuration
+  files in `/sdcard/FIRST` are kept, but you may have to pick the active configuration
+  again;
+- every laptop that deploys needs the key file and the variables;
+- the key file must never go into git.
+
+**Check after installing:** the Driver Station connects, BioBuzz TeleOp and BioBuzz Auto
+are in the lists, and **Robot Check** ends with READY FOR MATCH.

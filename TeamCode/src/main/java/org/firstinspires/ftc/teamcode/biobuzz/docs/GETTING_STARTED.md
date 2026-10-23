@@ -25,6 +25,9 @@ Our code is in `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/biobuzz/`.
    configuration, then press **Run** (the green triangle).
 4. The Robot Controller app restarts with the new code.
 
+For a competition, deploy a **release** build instead: see `README.md`, section 13,
+"Competition build".
+
 ## 4. Run an OpMode
 
 On the Driver Station: the **TeleOp** list (or **Autonomous** list) → pick an OpMode → **INIT**
