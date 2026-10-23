@@ -46,8 +46,9 @@ example climbing) gets a new subsystem: see Part 3.
 Example: **"open the gate, wait, close it"** as `GatePulseStateMachine`.
 
 1. Copy `template/TemplateStateMachine.java` to `statemachines/GatePulseStateMachine.java`.
-   Keep `implements StateMachine` (the build then checks it has `update()`, `cancel()`,
-   `isBusy()`, `addTelemetry()` and `addLogData()`), and keep the four sections in order:
+   Keep `extends StateMachine` and all five `@Override` methods (`update()`, `cancel()`,
+   `isBusy()`, `addTelemetry()`, `addLogData()`): a missing `cancel()` is not caught by the
+   build, and stop-all would not stop it. Keep the four sections in order:
    1. STATES, 2. COMMANDS, 3. update(), 4. BOOKKEEPING.
 2. List the states (`IDLE`, `OPEN`), one comment each. Every state that waits gets a timeout
    from a `...Config` (`GateConfig.OPEN_MS`), and goes to a safe state with a reason.

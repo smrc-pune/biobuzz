@@ -38,7 +38,7 @@ import org.firstinspires.ftc.teamcode.biobuzz.mechanisms.Launcher;
  * TRACING A BUG: read the "Launch last change" line. "spin-up timeout" = the flywheel never
  * reached its speed: see Launcher's RPM vs target, and the battery.
  */
-public class LaunchStateMachine implements StateMachine {
+public class LaunchStateMachine extends StateMachine {
 
     // ==================== 1. STATES ====================
     public enum State {

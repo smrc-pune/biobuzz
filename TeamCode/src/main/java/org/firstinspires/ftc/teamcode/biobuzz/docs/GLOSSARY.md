@@ -43,7 +43,6 @@
 | Game Loop / Update Method | `loop()` → `robot.update()` → every `update()` |
 | Facade | Each subsystem and `Drive`: one simple front for many parts |
 | Composition | Building a big object out of smaller ones it HAS: Robot has subsystems, a subsystem has mechanisms |
-| Interface | A promise of which methods a class has. `StateMachine` is our only one: every state machine `implements` it |
 | Adapter | Mechanisms and `GamepadInput`: device calls become game words |
 | Template Method | `Mechanism.runUpdate()` calls your `update()` safely |
 | State pattern (enum + switch) | `LaunchStateMachine`, Auto's steps |

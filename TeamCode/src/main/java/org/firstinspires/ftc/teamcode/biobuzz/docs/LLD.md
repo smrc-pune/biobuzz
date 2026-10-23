@@ -64,7 +64,7 @@ teamcode/biobuzz/
     Intake.java  Feeder.java  Launcher.java                                          STUDENTS
     HiveCamera.java  FrontCamera.java     MENTORS (SDK camera details; their numbers are in CameraConfig)
   statemachines/                 STUDENTS
-    StateMachine.java            MENTORS: the interface every state machine implements
+    StateMachine.java            MENTORS: the base class every state machine extends
     LaunchStateMachine.java      Feeder + Launcher + Drive (where we are); the HIVE from MatchInfo
   teleop/BioBuzzTeleOp.java
   auto/BioBuzzAuto.java
@@ -171,7 +171,7 @@ Log columns are read by name (`LogSummary`, `plot_match.py`), so their order may
 
 ### 3.2 `StateMachine` (mentor zone, `statemachines/StateMachine.java`)
 
-An interface with the five methods every state machine already had: `update()`, `cancel()`, `isBusy()`, `addTelemetry(t)`, `addLogData()`. Each state machine `implements StateMachine`, so `Subsystem` can run any of them; the build fails if one is missing. The commands that start a job (`start(count)`) are each state machine's own. A state machine's `addTelemetry()` checks its own `TelemetryConfig` switch (`LaunchStateMachine`: `TelemetryConfig.LAUNCH`).
+A plain base class, like `Mechanism`, with the five methods every state machine already had: `update()`, `cancel()`, `isBusy()`, `addTelemetry(t)`, `addLogData()`. They do nothing (`isBusy()` is false); each state machine `extends StateMachine` and overrides all five with `@Override`, so `Subsystem` can run any of them. The build does NOT catch a missing override, so the template has all five and the checklist says so (an interface would catch it, but R3 keeps interfaces out: they are a second idea for students to learn). The commands that start a job (`start(count)`) are each state machine's own. A state machine's `addTelemetry()` checks its own `TelemetryConfig` switch (`LaunchStateMachine`: `TelemetryConfig.LAUNCH`).
 
 ### 3.3 The subsystems (student zone)
 
@@ -635,7 +635,7 @@ All are mentor zone and share `helpers/FieldCheckHelper` (grades, results, `FIEL
 **Add a state machine**
 
 1. Copy `template/TemplateStateMachine.java` to `statemachines/<Task>StateMachine.java`; list its states; give every waiting state a timeout in a `*Config`.
-2. Keep `implements StateMachine`. In the subsystem that owns its mechanisms: one field, build it with its mechanisms, and `addStateMachine(...)` after `addMechanism(...)`. (Update before the mechanisms, stop-all, telemetry and log now include it.) It never calls a mechanism's `update()`: the subsystem already does. If its mechanisms are in two subsystems, ask a mentor (section 3.3).
+2. Keep `extends StateMachine` and all five overrides. In the subsystem that owns its mechanisms: one field, build it with its mechanisms, and `addStateMachine(...)` after `addMechanism(...)`. (Update before the mechanisms, stop-all, telemetry and log now include it.) It never calls a mechanism's `update()`: the subsystem already does. If its mechanisms are in two subsystems, ask a mentor (section 3.3).
 3. Add a menu method that starts it; it cancels every state machine in that subsystem that shares a mechanism with this one.
 4. Add a test OpMode (start / cancel) and the buttons or auto steps that start it.
 5. Update `HLD.md`, `LLD.md` (section 7, with the state table) and `README.md`.

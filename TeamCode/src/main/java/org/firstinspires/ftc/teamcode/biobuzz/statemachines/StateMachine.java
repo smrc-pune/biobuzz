@@ -5,32 +5,37 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 /**
  * MENTORS: you do not need to change this file.
  *
- * StateMachine.java  -  the five methods every state machine has.             ROLE: interface
- * PATTERN: Interface ("a promise"). A class that says "implements StateMachine" promises
- * to have these five methods. Then a Subsystem can update, cancel and show ANY state
- * machine the same way, without knowing which one it is.
+ * StateMachine.java  -  what every state machine has in common.              ROLE: base class
+ * PATTERN: the same idea as Mechanism: your state machine "extends StateMachine" and fills
+ * in these five methods with @Override. Then a Subsystem can update, cancel and show ANY
+ * state machine the same way, without knowing which one it is.
  *
- *   public class GatePulseStateMachine implements StateMachine { ... }
+ *   public class GatePulseStateMachine extends StateMachine {
+ *       @Override public void update() { ... }
+ *       @Override public void cancel() { goTo(State.IDLE, "cancel"); }
+ *       ...
+ *   }
  *
+ * FILL IN ALL FIVE. The empty versions below do nothing, so a state machine that forgets
+ * cancel() would keep running after stop-all. Copy template/TemplateStateMachine.java: it
+ * has all five.
  * The commands that START a job (start(count), open(), ...) are not here: each state
  * machine has its own, and its subsystem calls them.
- * The one interface in the team code (Requirements v2.8, R3): if a state machine forgets
- * one of these methods (cancel() is the easy one to forget), the build fails and says so.
  */
-public interface StateMachine {
+public class StateMachine {
 
     /** One small step. Its subsystem calls it once per loop, BEFORE its mechanisms update. */
-    void update();
+    public void update() { }
 
     /** Stop the job at once and go to the safe state (stop-all, or a timeout in Auto). */
-    void cancel();
+    public void cancel() { }
 
     /** @return true while the job is running (not IDLE). */
-    boolean isBusy();
+    public boolean isBusy() { return false; }
 
     /** The state, the "last change" line, and anything else worth seeing. */
-    void addTelemetry(Telemetry t);
+    public void addTelemetry(Telemetry t) { }
 
     /** Its match-log columns, for example MatchLogger.value("launch_state", ...). */
-    void addLogData();
+    public void addLogData() { }
 }

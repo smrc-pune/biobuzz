@@ -93,7 +93,7 @@ Limits (R503, R701): at most 8 motors and 8 servos, a Control Hub and at most on
          v                                      : follows paths, holds the robot still,  :
   statemachines/ --commands--> mechanisms/      : knows where the robot is. Set up in    :
    LaunchStateMachine           Intake Feeder   : the Quickstart's pedro/Constants.java  :
-   (implements StateMachine)    Launcher ...    :........................................:
+   (extends StateMachine)       Launcher ...    :........................................:
                                 (extend Mechanism)
                                      |
          v                                                  v
@@ -193,7 +193,7 @@ What you write in your mechanism         What Mechanism does around it
 
 If something goes wrong inside a mechanism (for example a cable comes out), that mechanism is marked **FAULTED**, stops, and an ALERT names it. The rest of the robot keeps running.
 
-**State machines** all `implement StateMachine` (an interface: a promise to have `update()`, `cancel()`, `isBusy()`, `addTelemetry()` and `addLogData()`, so a subsystem can run any of them). They all look the same inside: 1. the list of states, 2. commands (`start()`, `cancel()`), 3. `update()` with DO / CHECK / GO in each state, 4. bookkeeping (`goTo()`, `isBusy()`, telemetry). Every state that waits has a timeout.
+**State machines** all `extend StateMachine` (a plain base class, like `Mechanism`) and fill in `update()`, `cancel()`, `isBusy()`, `addTelemetry()` and `addLogData()`, so a subsystem can run any of them. They all look the same inside: 1. the list of states, 2. commands (`start()`, `cancel()`), 3. `update()` with DO / CHECK / GO in each state, 4. bookkeeping (`goTo()`, `isBusy()`, telemetry). Every state that waits has a timeout.
 
 | State machine | Uses | Job |
 | --- | --- | --- |
@@ -340,13 +340,12 @@ Professional programmers have names for designs that work well. You don't need t
 | **Game Loop** and **Update Method** | `loop()` → `robot.update()` → every `update()` | Every loop, everything takes one small step; nothing waits |
 | **Composition** | `Robot` has subsystems; `ShooterSubsystem` has a Feeder, a Launcher and a LaunchStateMachine | Build big things out of small parts, each in its own file |
 | **Facade** | each subsystem, `Drive` | One simple front for many parts behind it |
-| **Interface** | `StateMachine` | A promise of which methods a class has, so other code can use any of them the same way |
 | **Adapter** | `Intake`, `Launcher`, `HiveCamera`, `FrontCamera`, `GamepadInput` | Turns device calls into game words |
-| **Template Method** | `Mechanism.runUpdate()` calls your `update()`; `Subsystem.update()` runs your state machines, then your mechanisms | The base class fixes the order and the safety; you fill in the steps |
+| **Template Method** | `Mechanism.runUpdate()` calls your `update()`; `Subsystem.update()` runs your state machines, then your mechanisms; a subsystem runs any class that `extends StateMachine` | The base class fixes the order and the safety; you fill in the steps |
 | **State pattern** (enum + switch) | `LaunchStateMachine`, Auto's steps | The object behaves differently depending on its current state |
 | **Mediator** | A subsystem's menu methods cancel its state machine when they share a mechanism (`spinUp()` waits while launching) | Parts that could clash don't talk to each other; one coordinator does |
 | **Dependency injection** | `new LaunchStateMachine(feeder, launcher, drive)` | A class is given what it needs; it doesn't go and find it |
 | **Factory method** | `FieldPaths.toLaunchSpot(from, isRed)` | One method makes every path of one kind, so everyone gets the same one |
 | **Third-party library** | Pedro Pathing, FTC SDK, FTC Dashboard | Use well-tested code as it comes, behind one or two of our own classes |
 
-**Not used, on purpose:** the Command pattern and command schedulers (FTCLib, NextFTC), and lambdas. They are powerful, but they hide what runs when, and our team is new to Java. There is exactly one interface (`StateMachine`, v2.8): it only lists five methods every state machine already had, and nothing runs through it that `Subsystem.update()` does not show in plain order.
+**Not used, on purpose:** the Command pattern and command schedulers (FTCLib, NextFTC), interfaces and lambdas. They are powerful, but they hide what runs when, and our team is new to Java. Where several classes must look the same to the code that runs them, they extend one plain team base class instead (`Mechanism`, `Subsystem`, `StateMachine`).

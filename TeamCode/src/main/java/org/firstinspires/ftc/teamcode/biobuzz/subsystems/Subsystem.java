@@ -33,7 +33,7 @@ import java.util.List;
  * time). Robot calls update(), addTelemetry() and addLogData() on every subsystem; OpModes
  * call only the menu methods (and stop()).
  *
- * Subsystem is the second team base class, next to Mechanism (Requirements v2.8, R3).
+ * One of the three team base classes, with Mechanism and StateMachine (Requirements v2.8, R3).
  * The lists are ArrayLists so a subsystem can add any number of parts; students never
  * see them, they only call addMechanism(...) and addStateMachine(...).
  */

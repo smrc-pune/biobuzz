@@ -118,7 +118,7 @@ teamcode/
       HiveCamera.java         HuskyLens looking up at the CELL tags (answers questions only)
       FrontCamera.java        Logitech webcam: field tags, POLLEN, NECTAR (answers questions only)
     statemachines/
-      StateMachine.java       the five methods every state machine promises (an interface)
+      StateMachine.java       what every state machine has in common (base class, like Mechanism)
       LaunchStateMachine.java "launch 4": spin up, feed, recover, repeat
     teleop/
       BioBuzzTeleOp.java      the match TeleOp: both gamepad maps (S1 and S2)
@@ -334,9 +334,9 @@ words and questions, and fills in up to three methods: `update()` (every loop),
 **FAULTED** and stops, and the rest of the robot keeps running.
 
 **A state machine** is one file in `statemachines/` for a job that takes time. It
-`implements StateMachine` (an **interface**: a promise to have `update()`, `cancel()`,
-`isBusy()`, `addTelemetry()` and `addLogData()`), so its subsystem can run any state machine
-the same way. A **state**
+`extends StateMachine`, just as a mechanism `extends Mechanism`, and fills in `update()`,
+`cancel()`, `isBusy()`, `addTelemetry()` and `addLogData()` with `@Override`, so its
+subsystem can run any state machine the same way. Fill in all five (the template has them). A **state**
 is what it is doing right now; it changes state only in `goTo(state, "reason")`. Every file
 has the same four sections: 1. the list of states, 2. commands (`start()`, `cancel()`),
 3. `update()` with `// DO`, `// CHECK`, `// GO` in each state, 4. bookkeeping (`isBusy()`,
@@ -404,7 +404,7 @@ true only on the one loop when the button goes from up to down. Read each button
 | 7 | Autonomous (S3): BioBuzzAuto, AutoConfig, start positions, GARDEN and auto paths, own-side and HIVE checks at INIT, park-by guard | Done (places in FieldConfig are guesses from the field picture) |
 | 8 | Mechanisms: Intake, Feeder, Launcher, HIVE camera, front camera; LaunchStateMachine; aim button; gamepad 2 map; one test each | Done (device names, ports and numbers are first guesses: TODO(BioBuzz)) |
 | 9 | Guides (section 12), TROUBLESHOOTING.md, HLD/LLD updated, UPSTREAM.md, tools/plot_match.py | Done |
-| 10 | Subsystems (Requirements v2.8): `Robot` split into `intake`, `shooter`, `vision` and `assists`; `Subsystem` base class, `StateMachine` interface, `TemplateSubsystem` | Done (OpModes now call `robot.shooter.launch(4)`, ...) |
+| 10 | Subsystems (Requirements v2.8): `Robot` split into `intake`, `shooter`, `vision` and `assists`; `Subsystem` and `StateMachine` base classes, `TemplateSubsystem` | Done (OpModes now call `robot.shooter.launch(4)`, ...) |
 
 > **Important:** Pedro's `pedro/Constants.java` is still the empty Quickstart file.
 > Until it is filled in at drive tuning, every BioBuzz OpMode that drives stops at INIT
@@ -480,7 +480,6 @@ cleanly.
 | Telemetry | Text the robot sends to the Driver Station and Dashboard |
 | Dashboard | FTC Dashboard, a web page at `http://192.168.43.1:8080/dash` |
 | Config | A file of numbers you can change live in the Dashboard |
-| Interface | A promise: a class that `implements StateMachine` must have its five methods |
 | enum | A fixed list of names, like `AllianceColor { RED, BLUE }`; a typo is caught when the code is built |
 
 ---

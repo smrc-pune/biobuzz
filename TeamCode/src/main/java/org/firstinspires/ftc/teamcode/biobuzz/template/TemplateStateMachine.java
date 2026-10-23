@@ -25,15 +25,15 @@ import org.firstinspires.ftc.teamcode.biobuzz.statemachines.StateMachine;
  *   4. BOOKKEEPING  goTo(), isBusy(), getState(), addTelemetry(), addLogData()
  * Every state that waits has a timeout that goes to a safe state, with the reason logged.
  *
- * "implements StateMachine" promises the five methods a Subsystem needs (update, cancel,
- * isBusy, addTelemetry, addLogData). It gets the mechanisms it uses in its constructor:
+ * "extends StateMachine" (like "extends Mechanism"): it fills in the five methods a Subsystem
+ * needs (update, cancel, isBusy, addTelemetry, addLogData), each with @Override. It gets the mechanisms it uses in its constructor:
  * the subsystem that owns them builds it with addStateMachine(...). It never calls a
  * mechanism's update() (the subsystem does), another state machine, or Robot.
  * TO ADD ONE: docs/HOW_TO_ADD_A_MECHANISM.md, second part.
  *
  * TRACING A BUG: look at the "last change" line on telemetry: the newest state and WHY.
  */
-public class TemplateStateMachine implements StateMachine {
+public class TemplateStateMachine extends StateMachine {
 
     // ==================== 1. STATES ====================
     public enum State {

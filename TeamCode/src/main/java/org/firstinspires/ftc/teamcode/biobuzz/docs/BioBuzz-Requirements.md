@@ -86,7 +86,7 @@ A 7th grader who has never used Java MUST be able to read any file in the studen
 | `enum` for fixed lists: states, auto steps, routines, alliances (`enum AllianceColor { RED, BLUE }`) | `enum State { IDLE, INTAKING, FEEDING }` |
 | `extends Mechanism`: every mechanism extends this team base class, and overrides its hook methods with `@Override` | `public class Intake extends Mechanism { ... }` |
 | `extends Subsystem`: every subsystem extends this team base class; its constructor calls `addMechanism(...)` and `addStateMachine(...)` | `public class IntakeSubsystem extends Subsystem { ... }` |
-| `implements StateMachine`: every state machine implements this one team interface, with `@Override` on its five methods | `public class LaunchStateMachine implements StateMachine { ... }` |
+| `extends StateMachine`: every state machine extends this team base class, and overrides all five of its methods with `@Override` | `public class LaunchStateMachine extends StateMachine { ... }` |
 | `switch` on the state enum, with one `case` per state | `switch (state) { case IDLE: ... break; }` |
 | `if` / `else`, and fixed-size arrays | `Mechanism[] mechanisms = { intake, feeder, launcher };` |
 | A "for each" loop over an array, so no index numbers appear | `for (Mechanism mechanism : mechanisms) { mechanism.runUpdate(); }` |
@@ -99,8 +99,8 @@ A 7th grader who has never used Java MUST be able to read any file in the studen
 
 - Lambdas, method references and the streams API: `x -> ...`, `::`, `.stream()`.
 - Generics written by the team, such as `class Machine<T>`. Using an SDK `List<String>` is acceptable only inside `helpers/` and inside `subsystems/Subsystem.java` (mentor zone).
-- Any team base class other than `mechanisms/Mechanism.java` and `subsystems/Subsystem.java`, inheritance deeper than one level, and abstract classes. Both are plain classes; nothing extends a mechanism or a subsystem. The other superclasses used are the SDK's `OpMode` and `LinearOpMode`.
-- Interfaces other than `statemachines/StateMachine.java`, anonymous classes, inner classes and static nested classes. State machines implement `StateMachine` and follow the shared section layout.
+- Any team base class other than `mechanisms/Mechanism.java`, `subsystems/Subsystem.java` and `statemachines/StateMachine.java`, inheritance deeper than one level, and abstract classes. All three are plain classes; nothing extends a mechanism, a subsystem or a state machine. The other superclasses used are the SDK's `OpMode` and `LinearOpMode`.
+- Interfaces, anonymous classes, inner classes and static nested classes. State machines extend `StateMachine` and follow the shared section layout.
 - `Optional`, `var`, ternary chains, bit operations, reflection and annotations other than the FTC ones (`@TeleOp`, `@Autonomous`, `@Config`, `@Override`, `@Disabled`).
 - Threads, `sleep()` and busy-wait loops anywhere in team code. Waiting is done with `StateTimer`.
 - Exceptions used for control flow. `try`/`catch` is allowed only inside `helpers/` (for example around file writes) and in `Mechanism.runUpdate()` / `runStop()`, which turn an error in a mechanism into a FAULTED mechanism instead of a crash.
@@ -192,7 +192,7 @@ teamcode/biobuzz/
   subsystems/             Subsystem.java (base class) + one class per job of the robot (intake, shooter,
                           vision): owns its mechanisms and state machines; its methods are the menu
   mechanisms/             Mechanism.java (base class) + one class per mechanism: operations, no states
-  statemachines/          StateMachine.java (interface) + <Task>StateMachine.java: tasks that take time
+  statemachines/          StateMachine.java (base class) + <Task>StateMachine.java: tasks that take time
                           and may use several mechanisms of one subsystem
   teleop/                 BioBuzzTeleOp.java: both match gamepad maps (driver + operator), stages S1 and S2
   auto/                   BioBuzzAuto.java: the step list (stage S3)
@@ -212,7 +212,7 @@ tools/plot_match.py       laptop only, mentor-side (repo root, not built into th
 
 | Student zone (change these) | Mentor zone (read, don't change) |
 | --- | --- |
-| `configurations/` (every tunable number and name) | `mechanisms/Mechanism.java`, `subsystems/Subsystem.java` (the base classes), `statemachines/StateMachine.java` (the interface) |
+| `configurations/` (every tunable number and name) | `mechanisms/Mechanism.java`, `subsystems/Subsystem.java`, `statemachines/StateMachine.java` (the base classes) |
 | `subsystems/`, `mechanisms/` (one file per subsystem / mechanism) | `drive/Drive.java` (talks to Pedro) |
 | `statemachines/` | `helpers/` |
 | `teleop/`, `auto/` | `fieldchecks/`, `testing/RobotCheck.java`, `testing/LogViewer.java` |
@@ -295,7 +295,7 @@ The design is explained in `docs/HLD.md` (why) and `docs/LLD.md` (each class). T
 - Every state machine MUST use this section order: 1. **States** (the `enum`, one comment per value); 2. **Commands** (`start(...)`, `cancel()`: they only call `goTo(state, "reason")`; a command that cannot run calls `log.warn("...")` and returns); 3. **`update()`** (a `switch` with one `case` per state, marked DO, CHECK and GO); 4. **Bookkeeping** (`goTo()`, `isBusy()`, `getState()`, `addTelemetry()`, `addLogData()`).
 - Every state that waits MUST have a timeout that goes to a safe state, with the reason logged (for example `"spin-up timeout"`). `goTo()` with the current state does nothing, so repeated commands are safe.
 - A state machine gets the mechanisms it uses in its constructor. It never finds them itself, never calls another state machine and never calls Robot.
-- Every state machine implements `statemachines/StateMachine.java` (`update()`, `cancel()`, `isBusy()`, `addTelemetry(t)`, `addLogData()`), so its subsystem can run it; its `addTelemetry(t)` checks its own `TelemetryConfig` switch.
+- Every state machine extends `statemachines/StateMachine.java` and overrides all five of its methods (`update()`, `cancel()`, `isBusy()`, `addTelemetry(t)`, `addLogData()`), so its subsystem can run it; its `addTelemetry(t)` checks its own `TelemetryConfig` switch.
 
 **Robot rules**
 
@@ -303,7 +303,7 @@ The design is explained in `docs/HLD.md` (why) and `docs/LLD.md` (each class). T
 - `Robot.stopMechanisms()` calls `stop()` on every subsystem: each cancels its state machines, then puts its mechanisms in their safe state. OpModes call it in `stop()`, and D-pad down on gamepad 2 calls it.
 - No button, subsystem method or assist may command both driving and mechanisms (R2).
 
-**Design patterns.** The code uses these standard patterns, in their simplest form, and each file's header names the one it uses (details in `docs/HLD.md`): Layered architecture; Game Loop and Update Method; Composition (Robot has subsystems; a subsystem has mechanisms and state machines); Facade (each subsystem, `Drive`); Adapter (mechanisms, the two cameras, `GamepadInput`); Template Method (`Mechanism`, `Subsystem`); Interface (`StateMachine`, the only one); State pattern in its enum-and-switch form (state machines, Auto); Mediator (a subsystem's menu methods, inside that subsystem); Dependency injection through constructors, with Robot as the composition root; Factory method (`FieldPaths`). Command-pattern frameworks are not used (see Coding style rules).
+**Design patterns.** The code uses these standard patterns, in their simplest form, and each file's header names the one it uses (details in `docs/HLD.md`): Layered architecture; Game Loop and Update Method; Composition (Robot has subsystems; a subsystem has mechanisms and state machines); Facade (each subsystem, `Drive`); Adapter (mechanisms, the two cameras, `GamepadInput`); Template Method (`Mechanism`, `Subsystem`, `StateMachine`); State pattern in its enum-and-switch form (state machines, Auto); Mediator (a subsystem's menu methods, inside that subsystem); Dependency injection through constructors, with Robot as the composition root; Factory method (`FieldPaths`). Command-pattern frameworks are not used (see Coding style rules).
 
 ## Game requirements (BIOBUZZ)
 
@@ -803,7 +803,7 @@ The team MUST give the AI the facts below before it writes BioBuzz-specific code
 
 | Version | Date | Changes |
 | --- | --- | --- |
-| 2.8 | 2026-10-23 | Subsystems (step 10). `Robot` was the hardest file to read: it held every mechanism, every state machine and a method for every action. Now OpModes call three subsystems, `robot.intake`, `robot.shooter`, `robot.vision` (new `subsystems/`: `Subsystem` base class, `IntakeSubsystem`, `ShooterSubsystem`, `VisionSubsystem`), and `robot.assists` (new `drive/Assists.java`, the S2 buttons). A subsystem owns its mechanisms and the state machines that use them and has no states, so the v2.0 objection to subsystems (one state-machine brain per mechanism) does not return; the Mediator rule now lives inside each subsystem. State machines implement a new `StateMachine` interface. **R3 amended:** a second team base class (`Subsystem`), one interface (`StateMachine`) and a `List` inside `Subsystem.java` are allowed; team generics stay forbidden. `robot.markHiveTipped()` removed (OpModes call `MatchInfo.markHiveTipped()`). `TemplateSubsystem` added. Match-log columns are grouped by subsystem (read by name, so tools are unchanged). |
+| 2.8 | 2026-10-23 | Subsystems (step 10). `Robot` was the hardest file to read: it held every mechanism, every state machine and a method for every action. Now OpModes call three subsystems, `robot.intake`, `robot.shooter`, `robot.vision` (new `subsystems/`: `Subsystem` base class, `IntakeSubsystem`, `ShooterSubsystem`, `VisionSubsystem`), and `robot.assists` (new `drive/Assists.java`, the S2 buttons). A subsystem owns its mechanisms and the state machines that use them and has no states, so the v2.0 objection to subsystems (one state-machine brain per mechanism) does not return; the Mediator rule now lives inside each subsystem. State machines extend a new `StateMachine` base class. **R3 amended:** two more plain team base classes (`Subsystem`, `StateMachine`) and a `List` inside `Subsystem.java` are allowed; interfaces and team generics stay forbidden. `robot.markHiveTipped()` removed (OpModes call `MatchInfo.markHiveTipped()`). `TemplateSubsystem` added. Match-log columns are grouped by subsystem (read by name, so tools are unchanged). |
 | 2.7 | 2026-10-22 | Steps 5–9 built. Step 5: Robot Check, Test: Parts, Log Viewer (`LogSummary`), templates (+ `TemplateConfig`). Step 8: Intake, Feeder (a servo, first guess), Launcher (speed table as Dashboard arrays), HiveCamera, FrontCamera (mentor zone: SDK 12 `AprilTagSingleDetection`), `LaunchStateMachine` (spin-up timeout is an urgent ALERT), aim button (`ManualDrive.headingLock`), gamepad 2 map, `GamepadInput.wasXReleased()`, a `Mechanism.isTelemetryOn()` hook for the per-mechanism switches, the game header line. Step 7: `BioBuzzAuto`, `AutoConfig` (`enum Routine`, `enum Start`), a `DRIVE_TO_LAUNCH` step before `LAUNCH_AGAIN`, INIT path checks. Step 6: Field Checks 01–13 (`FieldCheckHelper`, `FieldCheckConfig`); hand-push checks read the localizer only, because an idle Pedro follower brakes; Field Check 12 compares the tag range. Step 9: guides, `TROUBLESHOOTING.md`, `UPSTREAM.md`, `tools/plot_match.py`. |
 | 2.6 | 2026-10-19 | Step 4 kept to the core: `MatchLogger` (CSV, no background thread: buffered writes from the loop, saved every `LogConfig.FLUSH_S`; newest 100 files kept), `MatchClock` (owned by Robot), `Alerts` (newest ALERT on screen, EVENT row, urgent rumble), and `HealthMonitor` with loop time, low battery, Pinpoint not READY and heading jump (`LoopMonitor` merged into it). Snap-to-90°, gyro recalibrate and INIT drift checks, gamepad-disconnect, pose-jump and stall detection, LED colours, the config snapshot and dropped-row counting moved to Future improvements. EVENT types simplified to `CHANGE`, `WARN`, `ALERT`, `PINPOINT`, `ASSIST`, `MARK`. |
 | 2.5 | 2026-10-19 | No INIT menu: `InitMenu` removed. Only the alliance is picked at the field (gamepad 1 D-pad left/right in INIT, Auto and TeleOp). Auto's routine, start position and start delay are decided before the match and set in `AutoConfig`; the Field Check field name in `FieldCheckConfig`; logging on/off in `LogConfig`. |
