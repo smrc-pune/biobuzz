@@ -6,7 +6,9 @@
 | --- | --- |
 | OpMode | A program you pick on the Driver Station (TeleOp, Autonomous, a test) |
 | Loop | One pass of read → command → update → show; about 50 a second. Nothing waits |
-| Robot | `Robot.java`: the one object with a method for everything the robot can do |
+| Robot | `Robot.java`: the one object that holds the drive and the subsystems (`robot.intake`, `robot.shooter`, `robot.vision`, `robot.assists`) and updates them every loop |
+| Subsystem | One job of the robot (intake, shooter, vision). Owns its mechanisms and the state machines that use them; its methods are the menu OpModes call. No states |
+| Menu method | A subsystem's public method that an OpMode calls, for example `robot.shooter.launch(4)` |
 | Mechanism | One group of devices (intake, launcher) with action words (verbs) and questions. No states |
 | Hook | A method a mechanism fills in for `Mechanism`: `update()`, `stop()`, `addDetails()`, `addLogValues()`, `isTelemetryOn()` |
 | FAULTED | A mechanism that hit an error (often a cable) and stopped; the rest of the robot keeps going |
@@ -37,13 +39,15 @@
 
 | Pattern | In our code |
 | --- | --- |
-| Layered architecture | OpMode → Robot → state machines → mechanisms; each layer only calls the ones below |
+| Layered architecture | OpMode → subsystems → state machines → mechanisms; each layer only calls the ones below |
 | Game Loop / Update Method | `loop()` → `robot.update()` → every `update()` |
-| Facade | `Robot` and `Drive`: one simple front for many parts |
+| Facade | Each subsystem and `Drive`: one simple front for many parts |
+| Composition | Building a big object out of smaller ones it HAS: Robot has subsystems, a subsystem has mechanisms |
+| Interface | A promise of which methods a class has. `StateMachine` is our only one: every state machine `implements` it |
 | Adapter | Mechanisms and `GamepadInput`: device calls become game words |
 | Template Method | `Mechanism.runUpdate()` calls your `update()` safely |
 | State pattern (enum + switch) | `LaunchStateMachine`, Auto's steps |
-| Mediator | Robot's start methods cancel a state machine that shares a mechanism |
+| Mediator | A subsystem's menu methods cancel its state machine when they share a mechanism |
 | Dependency injection | `new LaunchStateMachine(feeder, launcher, drive)` |
 | Factory method | `FieldPaths.toLaunchSpot(...)` |
 

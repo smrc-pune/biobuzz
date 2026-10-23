@@ -5,6 +5,7 @@ import org.firstinspires.ftc.teamcode.biobuzz.configurations.TemplateConfig;
 import org.firstinspires.ftc.teamcode.biobuzz.helpers.MatchLogger;
 import org.firstinspires.ftc.teamcode.biobuzz.helpers.StateLog;
 import org.firstinspires.ftc.teamcode.biobuzz.helpers.StateTimer;
+import org.firstinspires.ftc.teamcode.biobuzz.statemachines.StateMachine;
 
 /**
  * STUDENTS: copy this file to start a new state machine.
@@ -24,13 +25,15 @@ import org.firstinspires.ftc.teamcode.biobuzz.helpers.StateTimer;
  *   4. BOOKKEEPING  goTo(), isBusy(), getState(), addTelemetry(), addLogData()
  * Every state that waits has a timeout that goes to a safe state, with the reason logged.
  *
- * It gets the mechanisms it uses in its constructor (Robot builds it). It never calls
- * a mechanism's update() (Robot does), another state machine, or Robot.
+ * "implements StateMachine" promises the five methods a Subsystem needs (update, cancel,
+ * isBusy, addTelemetry, addLogData). It gets the mechanisms it uses in its constructor:
+ * the subsystem that owns them builds it with addStateMachine(...). It never calls a
+ * mechanism's update() (the subsystem does), another state machine, or Robot.
  * TO ADD ONE: docs/HOW_TO_ADD_A_MECHANISM.md, second part.
  *
  * TRACING A BUG: look at the "last change" line on telemetry: the newest state and WHY.
  */
-public class TemplateStateMachine {
+public class TemplateStateMachine implements StateMachine {
 
     // ==================== 1. STATES ====================
     public enum State {
@@ -59,10 +62,12 @@ public class TemplateStateMachine {
     }
 
     /** Stop at once. */
+    @Override
     public void cancel() { goTo(State.IDLE, "cancel"); }
 
-    // ==================== 3. UPDATE (once per loop, Robot calls it) ====================
+    // ==================== 3. UPDATE (once per loop, its subsystem calls it) ====================
 
+    @Override
     public void update() {
         switch (state) {
             case IDLE:
@@ -94,11 +99,14 @@ public class TemplateStateMachine {
         if (state == State.IDLE) mechanism.runStop();   // entering IDLE: make it safe
     }
 
+    @Override
     public boolean isBusy() { return state != State.IDLE; }
 
     public State getState() { return state; }
 
+    @Override
     public void addTelemetry(Telemetry t) { log.addTo(t, state, timer, isBusy()); }
 
+    @Override
     public void addLogData() { MatchLogger.value("template_state", state.ordinal()); }
 }

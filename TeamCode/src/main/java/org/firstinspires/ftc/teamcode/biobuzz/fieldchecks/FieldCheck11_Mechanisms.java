@@ -13,7 +13,7 @@ import org.firstinspires.ftc.teamcode.biobuzz.helpers.StateTimer;
 /**
  * MENTORS: you do not need to change this file.
  *
- * FieldCheck11_Mechanisms.java  -  one bench check per mechanism, through Robot.   ROLE: OpMode (field check)
+ * FieldCheck11_Mechanisms.java  -  one bench check per mechanism, through the subsystems.   ROLE: OpMode (field check)
  *
  * NO BALLS in the robot; hands clear of the intake and flywheel. Press PLAY:
  *   INTAKE     runs for 1 s                              PASS: not FAULTED
@@ -47,7 +47,7 @@ public class FieldCheck11_Mechanisms extends OpMode {
     public void start() {
         FieldCheckHelper.start("FieldCheck11_Mechanisms", robot.battery.getVoltage());
         robot.drive.setStartingPoseFacingAway();
-        robot.startIntake();
+        robot.intake.collect();
         phaseTimer.reset();
     }
 
@@ -56,20 +56,20 @@ public class FieldCheck11_Mechanisms extends OpMode {
         switch (phase) {
             case INTAKE:
                 if (phaseTimer.isTimeUp(INTAKE_RUN_MS)) {
-                    robot.stopIntake();
+                    robot.intake.stop();
                     text += "intake ran; ";
-                    robot.spinUpLauncher();
+                    robot.shooter.spinUp();
                     phase = Phase.LAUNCHER;
                     phaseTimer.reset();
                 }
                 break;
             case LAUNCHER:
-                if (robot.isLauncherUpToSpeed()) {
+                if (robot.shooter.isUpToSpeed()) {
                     text += String.format("launcher up to speed in %.1f s; ", phaseTimer.seconds());
                     finish();
                 } else if (phaseTimer.isTimeUp(LauncherConfig.SPIN_UP_TIMEOUT_MS)) {
                     grade = FieldCheckHelper.FAIL;
-                    text += String.format("launcher only %.0f RPM; ", robot.getLauncherRpm());
+                    text += String.format("launcher only %.0f RPM; ", robot.shooter.getRpm());
                     finish();
                 }
                 break;

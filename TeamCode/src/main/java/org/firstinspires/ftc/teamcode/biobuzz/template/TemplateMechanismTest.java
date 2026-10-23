@@ -52,7 +52,7 @@ public class TemplateMechanismTest extends OpMode {
         if (run) mechanism.run();
         if (stop) mechanism.runStop();
 
-        mechanism.runUpdate();   // what Robot.update() does for every mechanism
+        mechanism.runUpdate();   // what a subsystem's update() does for every mechanism it owns
 
         t.addLine("A = run   B = stop");
         t.addData("isRunning()", mechanism.isRunning());

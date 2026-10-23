@@ -1,6 +1,6 @@
 # BioBuzz Software – High-Level Design (HLD)
 
-Oct 22, 2026 · **Matches the code (steps 1–9 built, not yet run on the robot)** · goes with Requirements v2.7 and `LLD.md`
+Oct 23, 2026 · **Matches the code (steps 1–10 built, not yet run on the robot)** · goes with Requirements v2.8 and `LLD.md`
 
 This document explains how the BioBuzz robot software fits together. It is written for our team: 7th graders who are new to Java. Read it once from top to bottom. Use `LLD.md` when you need the details of one file.
 
@@ -73,26 +73,29 @@ Limits (R503, R701): at most 8 motors and 8 servos, a Control Hub and at most on
   |  gamepad 1 -> driving            |   |  a list of steps                 |
   |  gamepad 2 -> mechanisms         |   |  each step: start, check, timeout|
   +----------------+-----------------+   +----------------+-----------------+
-                   |      call Robot methods              |
-                   v                                      v
+                   |  robot.intake.toggle()               |
+                   |  robot.shooter.launch(4)             |
+                   v  robot.assists.toLaunchSpot()        v
   +--------------------------------------------------------------------------+
-  | Robot   the robot's "menu": toggleIntake(), startLaunching(), ...        |
-  |         builds everything; update() once per loop:                       |
-  |         1. state machines  2. mechanisms  3. Drive  4. always-on rules   |
-  +------+-------------------+------------------------------+----------------+
-         | starts, updates   | updates every mechanism      | drives
-         v                   | once per loop                v
-  statemachines/             |                        drive/
-   LaunchStateMachine        |                         Drive       (sticks, paths, pose)
-         | commands          |                         FieldPaths  (every path on the field)
-         v                   v                              |
-  mechanisms/ <--------------+                              v
-   Intake  Feeder  Launcher                  ..........................................
-   HiveCamera  FrontCamera                   : Pedro Pathing   (off the shelf)        :
-   (each extends Mechanism)                  : follows paths, holds the robot still,  :
-         |                                   : knows where the robot is. Set up in    :
-         |                                   : the Quickstart's pedro/Constants.java  :
-         |                                   :........................................:
+  | Robot   builds everything; update() once per loop:                       |
+  |         1. every subsystem  2. Drive  3. health  4. match log            |
+  +------+-------------------------------------------------+-----------------+
+         | updates each subsystem                          | drives
+         v                                                 v
+  subsystems/   (the menus OpModes call)              drive/
+   intake    IntakeSubsystem   owns Intake             Drive       (sticks, paths, pose)
+   shooter   ShooterSubsystem  owns Feeder, Launcher,  Assists     (the S2 buttons)
+                               LaunchStateMachine      FieldPaths  (every path on the field)
+   vision    VisionSubsystem   owns HiveCamera,              |
+                               FrontCamera                   v
+         | each loop: its state machines,       ..........................................
+         | then its mechanisms                  : Pedro Pathing   (off the shelf)        :
+         v                                      : follows paths, holds the robot still,  :
+  statemachines/ --commands--> mechanisms/      : knows where the robot is. Set up in    :
+   LaunchStateMachine           Intake Feeder   : the Quickstart's pedro/Constants.java  :
+   (implements StateMachine)    Launcher ...    :........................................:
+                                (extend Mechanism)
+                                     |
          v                                                  v
   ..........................................................................
   : FTC SDK + FTC Dashboard   (off the shelf)                               :
@@ -106,16 +109,19 @@ Limits (R503, R701): at most 8 motors and 8 servos, a Control Hub and at most on
                     helpers/         (tools: timers, gamepad reading, match info, logging)
 ```
 
-**Why Robot updates the mechanisms itself, not the state machines.** A part may call any part below it, never one above. Every mechanism needs its `update()` once per loop even when no state machine is using it: the cameras read every loop, and the launcher holds its speed. A mechanism used by two state machines must still be updated exactly once. So Robot updates every mechanism, and state machines only give mechanisms commands (`feeder.feedOne()`).
+**Why a subsystem updates its mechanisms, not the state machines.** A part may call any part below it, never one above. Every mechanism needs its `update()` once per loop even when no state machine is using it: the cameras read every loop, and the launcher holds its speed. A mechanism used by two state machines must still be updated exactly once. So each mechanism belongs to exactly ONE subsystem, which updates it once per loop, and state machines only give mechanisms commands (`feeder.feedOne()`).
+
+**Why subsystems (v2.8).** Robot used to hold every mechanism, every state machine and a method for every action, which made `Robot.java` the hardest file to read. Now each job of the robot is one short file (`ShooterSubsystem` is the shooter's whole menu), and Robot only builds and updates. This is NOT the old design that the design review removed (one "brain" per mechanism with fake states): a subsystem has no states, a state machine is still one job that may use several mechanisms, and it lives in the subsystem that owns all of them. That keeps the Mediator rule in one place per job: inside a subsystem, a menu command cancels the state machine that shares its mechanism.
 
 **What each part does, and must never do**
 
 | Part | Does | Must never |
 | --- | --- | --- |
-| OpMode (`teleop/`, `auto/`, `testing/`) | Reads the gamepads (only OpModes do). Calls Robot methods. Calls `robot.update()` and telemetry once per loop. Auto keeps its list of steps | Touch a motor or servo |
-| `Robot` | Builds everything. One method for each thing the robot can do. Runs `update()` in a fixed order. Stops two state machines from fighting over one mechanism | Read gamepads. Set a motor power itself |
+| OpMode (`teleop/`, `auto/`, `testing/`) | Reads the gamepads (only OpModes do). Calls subsystem menus (`robot.shooter.launch(4)`) and `robot.drive` / `robot.assists`. Calls `robot.update()` and telemetry once per loop. Auto keeps its list of steps | Touch a mechanism, motor or servo |
+| `Robot` | Builds Drive, Assists and the subsystems. Runs `update()` in a fixed order. Health checks, match log, telemetry header | Read gamepads. Know what is inside a subsystem |
+| Subsystem (`subsystems/`) | One job of the robot. OWNS its mechanisms and the state machines that use them; updates, stops, shows and logs them. Its public methods are the menu. Stops a menu command and a state machine from fighting over one mechanism | Have states of its own. Use another subsystem's mechanism |
 | State machine (`statemachines/`) | One job that takes time, maybe using several mechanisms (for example "launch 4 balls": spin up, feed, wait, repeat). It gives mechanisms commands | Call another state machine, or a mechanism's `update()`. Read gamepads |
-| `Drive` and `FieldPaths` (`drive/`) | Driving: sticks, paths, where the robot is. The only code that talks to Pedro | Decide when to drive a path (the OpMode decides) |
+| `Drive`, `Assists` and `FieldPaths` (`drive/`) | Driving: sticks, paths, where the robot is; the S2 buttons. Drive is the only code that talks to Pedro | Decide when to drive a path (the OpMode decides) |
 | Mechanism (`mechanisms/`) | One group of devices, with action words (`collect()`, `stop()`) and questions (`isUpToSpeed()`) | Remember states or wait. Know about other mechanisms |
 | Libraries (Pedro, FTC SDK, Dashboard) | Do the hard work: path following, talking to hardware, the Dashboard | Get edited by us (Pedro only gets tuned numbers in `pedro/Constants.java`) |
 
@@ -125,32 +131,54 @@ Limits (R503, R701): at most 8 motors and 8 servos, a Control Hub and at most on
 | --- | --- |
 | happens when a button is pressed | TeleOp: `handleDriver()` or `handleOperator()` |
 | moves or reads one group of devices | that mechanism's file |
-| takes several steps over time, or needs two mechanisms together | a state machine, started by a Robot method |
+| is something an OpMode asks for | a menu method in the subsystem that owns the mechanism |
+| takes several steps over time, or needs two mechanisms together | a state machine, started by a subsystem menu method |
 | must always happen, in every OpMode | `Robot.update()` |
 | is a place or a path on the field | `FieldConfig` (places) and `FieldPaths` (paths) |
 | is a number someone will tune | a `...Config` file |
 
-**Who changes which files.** Students change the **student zone**: `configurations/`, `mechanisms/` (except `Mechanism.java`), `statemachines/`, `teleop/`, `auto/`, `drive/FieldPaths.java`, the marked spots in `Robot.java`, and the tests. The **mentor zone** (`Mechanism.java`, `Drive.java`, `helpers/`, `fieldchecks/`, `pedro/`) works quietly in the background. Every file says which zone it is in on its first line.
+**Who changes which files.** Students change the **student zone**: `configurations/`, `subsystems/` (except `Subsystem.java`), `mechanisms/` (except `Mechanism.java`), `statemachines/` (except `StateMachine.java`), `teleop/`, `auto/`, `drive/FieldPaths.java`, `drive/Assists.java`, the marked spot in `Robot.java`, and the tests. The **mentor zone** (`Subsystem.java`, `Mechanism.java`, `StateMachine.java`, `Drive.java`, `helpers/`, `fieldchecks/`, `pedro/`) works quietly in the background. Every file says which zone it is in on its first line.
 
 ---
 
 ## 4. The building blocks
 
-**Robot** builds everything when the OpMode starts: Drive, the mechanisms, then the state machines (each is handed the mechanisms it uses). Robot keeps the mechanisms in one list, written by name:
+**Robot** builds everything when the OpMode starts: Drive, Assists, then the subsystems. Robot keeps the subsystems in one list, written by name:
 
 ```java
-mechanisms = new Mechanism[] { intake, feeder, launcher, hiveCamera, frontCamera };
+subsystems = new Subsystem[] { intake, shooter, vision };
 ```
 
 and goes through it with a "for each" loop, so there are no index numbers to remember:
 
 ```java
-for (Mechanism mechanism : mechanisms) {
-    mechanism.runUpdate();
+for (Subsystem subsystem : subsystems) {
+    subsystem.update();
 }
 ```
 
-Everywhere else, a mechanism is used by its name: `intake.collect()`.
+**Every subsystem extends `Subsystem`.** In its constructor it names what it owns; `Subsystem` (mentor zone) does the updating, stopping, telemetry and logging:
+
+```java
+public ShooterSubsystem(HardwareMap hardwareMap, Drive drive) {
+    super("shooter");
+    feeder = new Feeder(hardwareMap);
+    launcher = new Launcher(hardwareMap);
+    launchStateMachine = new LaunchStateMachine(feeder, launcher, drive);
+    addMechanism(feeder);
+    addMechanism(launcher);
+    addStateMachine(launchStateMachine);
+}
+public void launch(int count) { launchStateMachine.start(count); }   // the menu
+```
+
+| Subsystem | Owns | Menu (examples) |
+| --- | --- | --- |
+| `robot.intake` | Intake | `toggle()`, `collect()`, `reverse()`, `stop()`, `isOn()` |
+| `robot.shooter` | Feeder, Launcher, LaunchStateMachine | `launch(4)`, `cancelLaunch()`, `spinUp()`, `holdPreloads()`, `isLaunching()`, `getAimHeadingDeg()` |
+| `robot.vision` | HiveCamera, FrontCamera | questions only, added when needed |
+
+Inside a subsystem, a mechanism is used by its name: `intake.collect()`.
 
 **Every mechanism extends `Mechanism`.** You only fill in up to five methods; `Mechanism` (mentor zone) does the safety around them:
 
@@ -165,7 +193,7 @@ What you write in your mechanism         What Mechanism does around it
 
 If something goes wrong inside a mechanism (for example a cable comes out), that mechanism is marked **FAULTED**, stops, and an ALERT names it. The rest of the robot keeps running.
 
-**State machines** all look the same inside: 1. the list of states, 2. commands (`start()`, `cancel()`), 3. `update()` with DO / CHECK / GO in each state, 4. bookkeeping (`goTo()`, `isBusy()`, telemetry). Every state that waits has a timeout.
+**State machines** all `implement StateMachine` (an interface: a promise to have `update()`, `cancel()`, `isBusy()`, `addTelemetry()` and `addLogData()`, so a subsystem can run any of them). They all look the same inside: 1. the list of states, 2. commands (`start()`, `cancel()`), 3. `update()` with DO / CHECK / GO in each state, 4. bookkeeping (`goTo()`, `isBusy()`, telemetry). Every state that waits has a timeout.
 
 | State machine | Uses | Job |
 | --- | --- | --- |
@@ -276,9 +304,10 @@ The first telemetry line always shows: alliance, time left, loop time, battery, 
 
 | To add... | Do this (step-by-step checklists in `LLD.md`, section 11) |
 | --- | --- |
-| A mechanism | Copy `template/TemplateMechanism.java`; add its names to `HardwareNames`; add a `...Config`; in Robot add a field and its name in the mechanisms list; copy the test OpMode; add buttons through a Robot method |
-| A state machine | Copy `template/TemplateStateMachine.java`; build it in Robot with the mechanisms it uses; add one line each to `update()`, `stopMechanisms()` and telemetry; add a Robot start method |
-| An assist button (S2) | A place in `FieldConfig`, a path in `FieldPaths`, a Robot method, one line in TeleOp |
+| A mechanism | Copy `template/TemplateMechanism.java`; add its names to `HardwareNames`; add a `...Config`; in the subsystem that owns it, `addMechanism(...)` and a menu method; copy the test OpMode; add a button that calls the menu method |
+| A state machine | Copy `template/TemplateStateMachine.java`; in the subsystem that owns its mechanisms, `addStateMachine(...)` and a menu method that starts it |
+| A subsystem (a new job) | Copy `template/TemplateSubsystem.java`; one field, one build line and one list entry in Robot (`ADD A SUBSYSTEM HERE`) |
+| An assist button (S2) | A place in `FieldConfig`, a path in `FieldPaths`, a method in `Assists`, one line in TeleOp |
 | An auto step | One name in the `Step` list and one `case`, with its timeout in `AutoConfig` |
 
 ---
@@ -307,15 +336,17 @@ Professional programmers have names for designs that work well. You don't need t
 
 | Pattern | In our code | In one sentence |
 | --- | --- | --- |
-| **Layered architecture** | OpMode → Robot → state machines → mechanisms | Each layer only calls the layer below it |
+| **Layered architecture** | OpMode → subsystems → state machines → mechanisms | Each layer only calls the layer below it |
 | **Game Loop** and **Update Method** | `loop()` → `robot.update()` → every `update()` | Every loop, everything takes one small step; nothing waits |
-| **Facade** | `Robot`, `Drive` | One simple front for many parts behind it |
+| **Composition** | `Robot` has subsystems; `ShooterSubsystem` has a Feeder, a Launcher and a LaunchStateMachine | Build big things out of small parts, each in its own file |
+| **Facade** | each subsystem, `Drive` | One simple front for many parts behind it |
+| **Interface** | `StateMachine` | A promise of which methods a class has, so other code can use any of them the same way |
 | **Adapter** | `Intake`, `Launcher`, `HiveCamera`, `FrontCamera`, `GamepadInput` | Turns device calls into game words |
-| **Template Method** | `Mechanism.runUpdate()` calls your `update()` | The base class fixes the order and the safety; you fill in the steps |
+| **Template Method** | `Mechanism.runUpdate()` calls your `update()`; `Subsystem.update()` runs your state machines, then your mechanisms | The base class fixes the order and the safety; you fill in the steps |
 | **State pattern** (enum + switch) | `LaunchStateMachine`, Auto's steps | The object behaves differently depending on its current state |
-| **Mediator** | Robot's start methods cancel any state machine that shares a mechanism | Parts that could clash don't talk to each other; one coordinator does |
+| **Mediator** | A subsystem's menu methods cancel its state machine when they share a mechanism (`spinUp()` waits while launching) | Parts that could clash don't talk to each other; one coordinator does |
 | **Dependency injection** | `new LaunchStateMachine(feeder, launcher, drive)` | A class is given what it needs; it doesn't go and find it |
 | **Factory method** | `FieldPaths.toLaunchSpot(from, isRed)` | One method makes every path of one kind, so everyone gets the same one |
 | **Third-party library** | Pedro Pathing, FTC SDK, FTC Dashboard | Use well-tested code as it comes, behind one or two of our own classes |
 
-**Not used, on purpose:** the Command pattern and command schedulers (FTCLib, NextFTC), interfaces and lambdas. They are powerful, but they hide what runs when, and our team is new to Java.
+**Not used, on purpose:** the Command pattern and command schedulers (FTCLib, NextFTC), and lambdas. They are powerful, but they hide what runs when, and our team is new to Java. There is exactly one interface (`StateMachine`, v2.8): it only lists five methods every state machine already had, and nothing runs through it that `Subsystem.update()` does not show in plain order.

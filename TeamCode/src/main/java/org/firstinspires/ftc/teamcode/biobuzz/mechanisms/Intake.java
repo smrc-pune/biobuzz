@@ -18,7 +18,7 @@ import org.firstinspires.ftc.teamcode.biobuzz.helpers.MatchLogger;
  *
  * It only does what it is told: collect, reverse or stop. It never decides anything.
  * The operator turns it on and off (gamepad 2 A) and spits balls out (hold B), through
- * Robot.toggleIntake() and Robot.reverseIntake().
+ * IntakeSubsystem.toggle() and IntakeSubsystem.reverse().
  * The hopper holds at most 4 balls (rule G407); the robot cannot count them (no sensors).
  *
  * TRACING A BUG: the roller spins the wrong way -> flip MOTOR_INTAKE_REVERSED in HardwareNames.

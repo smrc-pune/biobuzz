@@ -7,13 +7,14 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.biobuzz.Robot;
 import org.firstinspires.ftc.teamcode.biobuzz.helpers.DashboardTelemetry;
 import org.firstinspires.ftc.teamcode.biobuzz.helpers.GamepadInput;
+import org.firstinspires.ftc.teamcode.biobuzz.helpers.MatchInfo;
 
 /**
  * STUDENTS: you will change this file.
  *
  * LaunchTest.java  -  test the LAUNCH state machine (feeder + flywheel together).   ROLE: OpMode (test)
  *
- * It builds the whole Robot (the state machine needs the feeder, the launcher and Drive),
+ * It builds the whole Robot (the shooter needs the feeder, the launcher and Drive),
  * but the robot does not drive. Put balls in the hopper and the robot where you want to test.
  * CONTROLS (gamepad 1):   A = launch 4    B = cancel    Y = spin up early
  *                         X = "HIVE tipped" (switches the upward CELL; launching waits TIP_PAUSE_MS)
@@ -50,16 +51,16 @@ public class LaunchTest extends OpMode {
         boolean tipped = pad.isXPressed();
         boolean stopAll = pad.isDpadDownPressed();
 
-        if (launch) robot.startLaunching(4);
-        if (cancel) robot.stopLaunching();
-        if (spinUp) robot.spinUpLauncher();
-        if (tipped) robot.markHiveTipped();
+        if (launch) robot.shooter.launch(4);
+        if (cancel) robot.shooter.cancelLaunch();
+        if (spinUp) robot.shooter.spinUp();
+        if (tipped) MatchInfo.markHiveTipped();
         if (stopAll) robot.stopMechanisms();
         robot.update();
 
         t.addLine("A = launch 4   B = cancel   Y = spin up   X = HIVE tipped   D-pad down = stop all");
-        t.addData("isLaunching()", robot.isLaunching());
-        t.addData("Distance used", "%.0f in", robot.getDistanceToUpCellIn());
+        t.addData("isLaunching()", robot.shooter.isLaunching());
+        t.addData("Distance used", "%.0f in", robot.shooter.getDistanceToUpCellIn());
         robot.addTelemetry(t);
         t.update();
     }

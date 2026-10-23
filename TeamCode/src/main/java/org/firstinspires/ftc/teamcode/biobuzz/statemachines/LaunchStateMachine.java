@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.biobuzz.statemachines;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.biobuzz.configurations.LauncherConfig;
+import org.firstinspires.ftc.teamcode.biobuzz.configurations.TelemetryConfig;
 import org.firstinspires.ftc.teamcode.biobuzz.drive.Drive;
 import org.firstinspires.ftc.teamcode.biobuzz.drive.FieldPaths;
 import org.firstinspires.ftc.teamcode.biobuzz.helpers.Alerts;
@@ -32,11 +33,12 @@ import org.firstinspires.ftc.teamcode.biobuzz.mechanisms.Launcher;
  * The robot cannot see how many balls it holds, so start(4) feeds 4 times; feeding an empty
  * slot does no harm.
  * Uses: Feeder, Launcher (commands only) and Drive (only to ask where we are).
+ * Lives in: ShooterSubsystem, which builds it and calls update() every loop.
  *
  * TRACING A BUG: read the "Launch last change" line. "spin-up timeout" = the flywheel never
  * reached its speed: see Launcher's RPM vs target, and the battery.
  */
-public class LaunchStateMachine {
+public class LaunchStateMachine implements StateMachine {
 
     // ==================== 1. STATES ====================
     public enum State {
@@ -79,10 +81,12 @@ public class LaunchStateMachine {
     }
 
     /** Stop launching at once. */
+    @Override
     public void cancel() { goTo(State.IDLE, "cancel"); }
 
-    // ==================== 3. UPDATE (once per loop, Robot calls it) ====================
+    // ==================== 3. UPDATE (once per loop, ShooterSubsystem calls it) ====================
 
+    @Override
     public void update() {
         switch (state) {
             case IDLE:
@@ -147,14 +151,18 @@ public class LaunchStateMachine {
         }
     }
 
+    @Override
     public boolean isBusy() { return state != State.IDLE; }
 
     public State getState() { return state; }
 
+    @Override
     public void addTelemetry(Telemetry t) {
+        if (!TelemetryConfig.LAUNCH) return;
         log.addTo(t, state, timer, isBusy());
         if (isBusy()) t.addData("Launched", launched + " of " + toLaunch);
     }
 
+    @Override
     public void addLogData() { MatchLogger.value("launch_state", state.ordinal()); }
 }

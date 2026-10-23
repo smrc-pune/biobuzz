@@ -1,10 +1,10 @@
 # BioBuzz Software – Low-Level Design (LLD)
 
-Oct 22, 2026 · **Matches the code after steps 1–9** (not yet run on the robot) · goes with Requirements v2.7 and `HLD.md`
+Oct 23, 2026 · **Matches the code after steps 1–10** (not yet run on the robot) · goes with Requirements v2.8 and `HLD.md`
 
 This document describes each class: its job, its public methods, its config values and how it fits with the others. Code sketches show the **shape** of each class; the code itself is the final word, and this document is updated in the same commit as any change.
 
-**Who this is for.** The code is owned during the season by rookie 7th graders with no Java background. Student-zone files (configurations, mechanisms, state machines, TeleOp, Auto, `FieldPaths`, Robot's marked spots, tests) MUST read like the Intake sketch in section 5.1: short methods, plain words, one idea per line. Mentor-zone files (`Mechanism`, `Drive`, helpers, Field Checks) may be a little more technical, but still follow R3.
+**Who this is for.** The code is owned during the season by rookie 7th graders with no Java background. Student-zone files (configurations, subsystems, mechanisms, state machines, TeleOp, Auto, `FieldPaths`, `Assists`, Robot's marked spot, tests) MUST read like the Intake sketch in section 5.1: short methods, plain words, one idea per line. Mentor-zone files (`Subsystem`, `Mechanism`, `StateMachine`, `Drive`, helpers, Field Checks) may be a little more technical, but still follow R3.
 
 `TODO(BioBuzz)` marks what waits for the robot's hardware or a team decision (see `DESIGN-REVIEW.md`, section 5).
 
@@ -12,7 +12,7 @@ This document describes each class: its job, its public methods, its config valu
 
 1. Conventions
 2. Packages and files
-3. Robot
+3. Robot and the subsystems
 4. The `Mechanism` base class
 5. Mechanisms: Intake, Feeder, Launcher, HiveCamera, FrontCamera
 6. Drive
@@ -42,7 +42,7 @@ This document describes each class: its job, its public methods, its config valu
 
 ```
 teamcode/biobuzz/
-  Robot.java                     Facade + composition root
+  Robot.java                     composition root: Drive, Assists, the subsystems
   configurations/
     HardwareNames.java           every device name, hub and port; ALL_DEVICES array; motor/servo count
     DriveConfig.java             stick deadzone, driver headings, assist timeout
@@ -55,11 +55,16 @@ teamcode/biobuzz/
   drive/
     Drive.java                   MENTORS: driving over Pedro (replaces parts/DriveBase + subsystems/Drive)
     FieldPaths.java              STUDENTS: every Pedro path; alliance turn; own-side and HIVE checks
+    Assists.java                 STUDENTS: the S2 buttons (pose and HIVE checks, then a path)
+  subsystems/
+    Subsystem.java               MENTORS: the base class (Composition + Template Method)
+    IntakeSubsystem.java  ShooterSubsystem.java  VisionSubsystem.java              STUDENTS
   mechanisms/
     Mechanism.java               MENTORS: the one base class (Template Method)
     Intake.java  Feeder.java  Launcher.java                                          STUDENTS
     HiveCamera.java  FrontCamera.java     MENTORS (SDK camera details; their numbers are in CameraConfig)
   statemachines/                 STUDENTS
+    StateMachine.java            MENTORS: the interface every state machine implements
     LaunchStateMachine.java      Feeder + Launcher + Drive (where we are); the HIVE from MatchInfo
   teleop/BioBuzzTeleOp.java
   auto/BioBuzzAuto.java
@@ -69,116 +74,125 @@ teamcode/biobuzz/
   helpers/   StateTimer, StateLog, GamepadInput, AllianceColor, MatchInfo, PoseMemory, MatchClock,
              DashboardTelemetry, FieldDrawing, MatchLogger, BatteryMonitor, HealthMonitor,
              Alerts, FieldCheckHelper, LogSummary
-  template/  TemplateMechanism.java, TemplateStateMachine.java, TemplateMechanismTest.java (@Disabled)
+  template/  TemplateSubsystem.java, TemplateMechanism.java, TemplateStateMachine.java,
+             TemplateMechanismTest.java (@Disabled)
   docs/
 ```
 
-**Removed from today's code:** `parts/` and `subsystems/` (merged into `drive/` and `mechanisms/`), `Robot.buildDrive`, `Drive`'s states, `Drive.setDriverInput` (now `driveWithSticks`), the stick deadzone in Drive (now in `GamepadInput`). There is no `game/` folder: paths live with Drive, and the HIVE with the other match facts in `MatchInfo`. There is no Storage mechanism and no `CollectStateMachine` yet: the robot has no sensors to count balls (see Future improvements).
+**Removed from today's code:** `parts/` and the old `subsystems/` (one state-machine "brain" per mechanism; merged into `drive/` and `mechanisms/` in v2.0; today's `subsystems/` are menus without states, v2.8), `Robot.buildDrive`, `Drive`'s states, `Drive.setDriverInput` (now `driveWithSticks`), the stick deadzone in Drive (now in `GamepadInput`). There is no `game/` folder: paths live with Drive, and the HIVE with the other match facts in `MatchInfo`. There is no Storage mechanism and no `CollectStateMachine` yet: the robot has no sensors to count balls (see Future improvements).
 
 ---
 
-## 3. Robot
+## 3. Robot and the subsystems
 
-**Job:** build everything; be the one "menu" of robot actions; run `update()` in a fixed order; keep the always-on rules. **Patterns:** Facade, Composition root, Mediator.
+**Job of Robot:** build Drive, Assists and the subsystems; run `update()` in a fixed order; health checks, match log, telemetry header. **Patterns:** Composition root.
+**Job of a subsystem:** one job of the robot (collect, shoot, see). It OWNS its mechanisms and the state machines that use them, updates, stops, shows and logs them, and its public methods are the menu OpModes call. **Patterns:** Composition, Facade, Template Method (`Subsystem`), Mediator (inside one subsystem).
 
 **Who calls what**
 
-- OpModes call `robot.drive.*` directly for driving (Drive is never shared with a state machine).
-- OpModes call **only Robot methods** for mechanisms. This lets Robot cancel the state machine that owns a mechanism before a manual command (Mediator).
+- OpModes call `robot.drive.*` for driving and `robot.assists.*` for the S2 buttons (Drive is never shared with a state machine).
+- OpModes call **only subsystem menu methods** for mechanisms (`robot.shooter.launch(4)`), never a mechanism. A mechanism belongs to exactly ONE subsystem, and every state machine that uses it lives in that same subsystem, so the subsystem can cancel its state machine before a manual command (Mediator).
+- The game facts are static helpers: OpModes call `MatchInfo.markHiveTipped()` directly (as they call `MatchInfo.switchAlliance()`).
 
 ```java
 public class Robot {
-    public final Drive drive;                 // OpModes drive through this directly
-    private final Intake intake;              // mechanisms: only through Robot methods
-    private final Feeder feeder;
-    private final Launcher launcher;
-    private final HiveCamera hiveCamera;      // HuskyLens, looks up at the CELL tags
-    private final FrontCamera frontCamera;    // Logitech webcam: field tags, POLLEN, NECTAR
-    private final Mechanism[] mechanisms;     // every mechanism, by name: update, stop, telemetry, log
-
-    private final LaunchStateMachine launch;
+    public final Drive drive;                    // OpModes drive through this directly
+    public final Assists assists;                // the S2 buttons
+    public final IntakeSubsystem intake;         // the menus
+    public final ShooterSubsystem shooter;
+    public final VisionSubsystem vision;
+    public final BatteryMonitor battery;
+    public final MatchClock clock = new MatchClock();
+    private final HealthMonitor health;
+    private final Subsystem[] subsystems;        // every subsystem, in update order
 
     public Robot(HardwareMap hardwareMap) {
         drive = new Drive(hardwareMap);
-        intake = new Intake(hardwareMap);
-        feeder = new Feeder(hardwareMap);
-        launcher = new Launcher(hardwareMap);
-        hiveCamera = new HiveCamera(hardwareMap);
-        frontCamera = new FrontCamera(hardwareMap);
-        mechanisms = new Mechanism[] { intake, feeder, launcher, hiveCamera, frontCamera };    // ADD A MECHANISM HERE
-
-        launch = new LaunchStateMachine(feeder, launcher, drive);              // given what it uses
-        // ADD A STATE MACHINE HERE
+        assists = new Assists(drive);
+        battery = new BatteryMonitor(hardwareMap);
+        health = new HealthMonitor(drive, battery);
+        intake = new IntakeSubsystem(hardwareMap);
+        shooter = new ShooterSubsystem(hardwareMap, drive);          // given what it uses
+        vision = new VisionSubsystem(hardwareMap);
+        subsystems = new Subsystem[] { intake, shooter, vision };    // ADD A SUBSYSTEM HERE
     }
 ```
 
-**Public methods (the menu)**
+**Robot's public methods**
 
-| Method | Does | Cancels first |
-| --- | --- | --- |
-| `toggleIntake()`, `startIntake()`, `stopIntake()` | Intake on / off (operator A; Auto's COLLECT step). Off = `intake.runStop()` | – |
-| `reverseIntake()` | Spit out while the operator holds B; `stopIntake()` on release | – |
-| `startLaunching(count)` | `launch.start(count)`; feeding an empty slot does no harm | any other state machine that uses the Feeder or Launcher (none yet) |
-| `stopLaunching()` | `launch.cancel()` (Auto's launch timeout, Test: Launch) | – |
-| `spinUpLauncher()` | Pre-spin for the current distance to the upward CELL (ignored while launching) | – |
-| `markHiveTipped()` | `MatchInfo.markHiveTipped()` | – |
-| `holdPreloads()` | Auto INIT only: grip the 4 POLLEN (G304) | – |
-| `stopMechanisms()` | Cancel every state machine, then `runStop()` on every mechanism | everything |
-| `driveToLaunchSpot()` / `driveToLoadingZone()` | S2 assists: refused with a warning if `!drive.isPoseKnown()`; else `drive.followPath(FieldPaths.toLaunchSpot(drive.getPose(), MatchInfo.isRed()))` | – |
-| `setPoseAtResetCorner()` | "Set pose here" (Q4) | – |
-| `getAimHeadingDeg()` | Heading that faces the upward CELL from the current pose, plus `LauncherConfig.AIM_OFFSET_DEG` (for the aim button) | – |
-| `getDistanceToUpCellIn()` | Distance to the upward CELL, or `LauncherConfig.DEFAULT_DISTANCE_IN` when the pose is not known | – |
-| `isIntakeOn()`, `isLaunching()`, `isLauncherUpToSpeed()`, `getLauncherRpm()` | Questions for OpModes (`isLaunching()` = `launch.isBusy()`) | – |
-| `getFaultedMechanisms()` | Names of every FAULTED mechanism, or "" (Field Check 11) | – |
-| `startMatch(opModeName, lengthS)`, `startMatch(opModeName, lengthS, logHeader)` | PLAY: clears ALERTs, starts `clock`, the health checks and the match log (Auto adds its plan as a header line) | – |
-| `endMatch()` | STOP: `stopMechanisms()`, one last `update()`, then the log's END line | everything |
-| `hasNewUrgentAlert()` | True once per new urgent ALERT (`Alerts.takeUrgent()`); the OpMode rumbles | – |
-| `clock` (field) | The `MatchClock`: `getTimeLeftText()`, `justReachedSecondsLeft(s)`, `secondsSinceStart()` | – |
-| `update()` | See below; also writes the match-log DATA row | – |
-| `addHeader(t)`, `addTelemetry(t)` | Header (two lines and the newest ALERT), then each part, honoring `TelemetryConfig`; draws the robot, path and upward CELL; sends the Dashboard graph values (`launcher_rpm`, `launcher_target_rpm`, `loop_ms`, `battery_v`) | – |
+| Method | Does |
+| --- | --- |
+| `startMatch(opModeName, lengthS)`, `startMatch(opModeName, lengthS, logHeader)` | PLAY: clears ALERTs, starts `clock`, the health checks and the match log (Auto adds its plan as a header line) |
+| `endMatch()` | STOP: `stopMechanisms()`, one last `update()`, then the log's END line |
+| `stopMechanisms()` | `stop()` on every subsystem (each cancels its state machines, then stops its mechanisms). Not the drive |
+| `hasNewUrgentAlert()` | True once per new urgent ALERT (`Alerts.takeUrgent()`); the OpMode rumbles |
+| `getFaultedMechanisms()` | Names of every FAULTED mechanism, or "" (Field Check 11) |
+| `clock` (field) | The `MatchClock`: `getTimeLeftText()`, `justReachedSecondsLeft(s)`, `secondsSinceStart()` |
+| `update()` | See below; also writes the match-log DATA row |
+| `addHeader(t)`, `addTelemetry(t)` | Header (two lines and the newest ALERT; the second line joins each subsystem's `getStatusText()`), then Drive and each subsystem, honoring `TelemetryConfig`; draws the robot, path and upward CELL; sends the Dashboard graph values (`launcher_rpm`, `launcher_target_rpm`, `loop_ms`, `battery_v`) |
 
 **`update()` order** (once per loop, and only once)
 
 ```java
 public void update() {
     clock.update();
-
-    // 1. STATE MACHINES: they decide and give mechanisms commands
-    launch.update();                        // ADD A STATE MACHINE HERE
-
-    // 2. MECHANISMS: every one, once, whether or not a state machine is using it
-    for (Mechanism mechanism : mechanisms) {           // "for each mechanism in the list"
-        mechanism.runUpdate();
+    // 1. SUBSYSTEMS: each runs its state machines (they decide, give commands), then its mechanisms
+    for (Subsystem subsystem : subsystems) {
+        subsystem.update();
     }
-
-    // 3. DRIVE: Pedro reads the Pinpoint and sets the drive motors
+    // 2. DRIVE: Pedro reads the Pinpoint and sets the drive motors
     drive.update();
-
-    // 4. HEALTH: loop time, battery, Pinpoint, heading jump -> ALERTs, robot-centric
+    // 3. HEALTH: loop time, battery, Pinpoint, heading jump -> ALERTs, robot-centric
     health.update();
-    // hive confirm from the HIVE camera: optional, Q2
-
-    // 5. MATCH LOG: one DATA row, LogConfig.RATE_HZ times a second
-    if (MatchLogger.isRowDue()) {
-        MatchLogger.value("match_s_left", clock.secondsLeft());
-        health.addLogData();
-        drive.addLogData();
-        for (Mechanism mechanism : mechanisms) {
-            mechanism.addLogData();
-        }
-        launch.addLogData();                                               // ADD A STATE MACHINE HERE
-        MatchLogger.value("up_cell_a", MatchInfo.isCellAUp());
-        MatchLogger.value("tip_count", MatchInfo.getTipCount());
-        MatchLogger.endRow();
-    }
+    // 4. MATCH LOG: one DATA row, LogConfig.RATE_HZ times a second
+    if (MatchLogger.isRowDue()) writeLogRow();   // match_s_left, health, drive, each subsystem, up_cell_a, tip_count
 }
 ```
 
-Why this order: state machines command first, so mechanisms act on this loop's commands; Drive comes after the mechanisms, so the pose is the newest when the rules run.
+Why this order: inside each subsystem, state machines command first, so mechanisms act on this loop's commands; Drive comes after the mechanisms, so the pose is the newest when the health rules run.
 
-**Why Robot, and not the state machines, updates the mechanisms.** A layer may call any layer below it. Every mechanism needs its `update()` once per loop even when no state machine is using it (the cameras read every loop; the launcher holds its speed), and a mechanism shared by two state machines must still be updated exactly once. So Robot owns "update every mechanism", and state machines only call mechanism verbs (`feeder.feedOne()`), never `update()`.
+### 3.1 `Subsystem` (mentor zone, `subsystems/Subsystem.java`)
 
-**Why a list and not a key-value map.** A `Map<String, Mechanism>` would let code look a mechanism up by a word, but it adds Java generics, string keys that can be mistyped (and only fail while the robot runs), and a harder loop. Robot never needs to look a mechanism up: each one has its own field name (`intake`), and the list is only for "do this to every mechanism". The list is written by name and walked with "for each", so there are no index numbers to remember.
+```java
+public class Subsystem {
+    protected Subsystem(String name)
+    protected final void addMechanism(Mechanism mechanism)            // constructor only
+    protected final void addStateMachine(StateMachine stateMachine)   // constructor only, after its mechanisms
+    public String getStatusText()              // hook: a few words for the header, "" = nothing
+    public final void update()                 // every state machine's update(), then every mechanism's runUpdate()
+    public final void stop()                   // every state machine's cancel(), then every mechanism's runStop()
+    public final void addTelemetry(Telemetry t)    // state machines, then mechanisms (each checks its own switch)
+    public final void addLogData()             // mechanisms, then state machines
+    public final String getFaultedNames()
+}
+```
+
+Log columns are read by name (`LogSummary`, `plot_match.py`), so their order may change when a part moves between subsystems.
+
+### 3.2 `StateMachine` (mentor zone, `statemachines/StateMachine.java`)
+
+An interface with the five methods every state machine already had: `update()`, `cancel()`, `isBusy()`, `addTelemetry(t)`, `addLogData()`. Each state machine `implements StateMachine`, so `Subsystem` can run any of them; the build fails if one is missing. The commands that start a job (`start(count)`) are each state machine's own. A state machine's `addTelemetry()` checks its own `TelemetryConfig` switch (`LaunchStateMachine`: `TelemetryConfig.LAUNCH`).
+
+### 3.3 The subsystems (student zone)
+
+| Subsystem (`robot.`…) | Owns | Menu | Mediator rule | `getStatusText()` |
+| --- | --- | --- | --- | --- |
+| `intake` (`IntakeSubsystem`) | Intake | `toggle()`, `collect()`, `reverse()`, `stop()`, `isOn()` | – (no state machine) | `intake ON` / `intake off` |
+| `shooter` (`ShooterSubsystem`) | Feeder, Launcher, LaunchStateMachine (+ Drive, only to ask where we are) | `launch(count)`, `cancelLaunch()`, `spinUp()`, `holdPreloads()`, `stop()`; questions `isLaunching()`, `isUpToSpeed()`, `getRpm()`, `getTargetRpm()`, `getAimHeadingDeg()`, `getDistanceToUpCellIn()` | `spinUp()` does nothing while launching (the state machine controls the speed) | `launcher READY` / `launcher spinning` / `launcher -` |
+| `vision` (`VisionSubsystem`) | HiveCamera, FrontCamera | none yet: questions are added when an OpMode needs one | – | – |
+
+Menu details: `launch(count)` = `launchStateMachine.start(count)` (feeding an empty slot does no harm); `cancelLaunch()` = `launchStateMachine.cancel()` (Auto's launch timeout, Test: Launch): balls held, flywheel at idle; `stop()` (from `Subsystem`) also stops the flywheel. `holdPreloads()`: Auto INIT only, grip the 4 POLLEN (G304). `getAimHeadingDeg()`: the heading that faces the upward CELL, plus `LauncherConfig.AIM_OFFSET_DEG`. `getDistanceToUpCellIn()`: or `LauncherConfig.DEFAULT_DISTANCE_IN` when the pose is not known.
+
+**A state machine that needs two subsystems' mechanisms** means those jobs belong together: merge the subsystems (mentor decision), never let a state machine reach into another subsystem.
+
+### 3.4 `Assists` (student zone, `drive/Assists.java`)
+
+| Method | Does |
+| --- | --- |
+| `toLaunchSpot()` / `toLoadingZone()` | S2 assists: refused (false, with a Drive warning) if `!drive.isPoseKnown()` or if the path fails `FieldPaths.avoidsHive`; else `drive.followPath(FieldPaths.toLaunchSpot(drive.getPose(), MatchInfo.isRed()))` and EVENT `ASSIST:<name>` |
+| `setPoseAtResetCorner()` | "Set pose here" (Q4): `drive.setPose(FieldPaths.resetCorner(isRed), "set pose here")` |
+
+**Why lists and not a key-value map.** A `Map<String, Subsystem>` would let code look one up by a word, but it adds string keys that can be mistyped (and only fail while the robot runs) and a harder loop. Nothing needs to look a part up: each has its own field name (`shooter`), and the lists are only for "do this to every part". They are written by name and walked with "for each", so there are no index numbers to remember.
 
 ---
 
@@ -341,7 +355,7 @@ There is no Storage mechanism: the hopper has no sensors, so the robot does not 
 | `update()` | Every `CameraConfig.HIVE_SAMPLE_MS` (default 100), read `blocks()` and keep them with their time |
 | Config | `HIVE_SAMPLE_MS`, `HIVE_IMAGE_WIDTH_PX` (320), the HuskyLens's learned ID for each CELL's tags (`RED_CELL_A_TAG_ID`, …) |
 | Log | `hive_cam_tag_id`, `hive_cam_offset_px`, `hive_cam_age_ms` |
-| Used by | Confirming `MatchInfo`'s upward CELL (optional, Q2), `Robot.getAimHeadingDeg()` |
+| Used by | Confirming `MatchInfo`'s upward CELL (optional, Q2), `ShooterSubsystem.getAimHeadingDeg()` |
 
 ### 5.5 FrontCamera (Logitech webcam, looks ahead)
 
@@ -382,9 +396,9 @@ There is no Storage mechanism: the hopper has no sensors, so the robot does not 
 
 ## 7. State machines
 
-Every state machine has the same four sections (R3): **1. States** (the `enum`, one comment per value), **2. Commands** (`start(...)`, `cancel()`: they only call `goTo`), **3. `update()`** (one `case` per state, marked DO / CHECK / GO), **4. Bookkeeping** (`goTo(state, reason)`, `isBusy()`, `getState()`, `addTelemetry(t)`, `addLogData()`). Every waiting state has a timeout that goes to `IDLE` with a logged reason. They get their mechanisms in the constructor (dependency injection) and never call each other or Robot.
+Every state machine has the same four sections (R3): **1. States** (the `enum`, one comment per value), **2. Commands** (`start(...)`, `cancel()`: they only call `goTo`), **3. `update()`** (one `case` per state, marked DO / CHECK / GO), **4. Bookkeeping** (`goTo(state, reason)`, `isBusy()`, `getState()`, `addTelemetry(t)`, `addLogData()`). Every waiting state has a timeout that goes to `IDLE` with a logged reason. They `implement StateMachine` (section 3.2), get their mechanisms in the constructor (dependency injection), live in the subsystem that owns those mechanisms, and never call each other, a subsystem or Robot.
 
-### 7.1 LaunchStateMachine (Feeder + Launcher + Drive)
+### 7.1 LaunchStateMachine (Feeder + Launcher + Drive; in ShooterSubsystem)
 
 ```
           start(count)          up to speed            FEED_MS passed
@@ -469,18 +483,18 @@ private void handleDriver() {
     boolean aim = driver.isRightBumperHeld();
     boolean sticksMoved = driver.areSticksMoved();      // deadzone is inside GamepadInput
 
-    // S2 assists: Robot refuses them (with a warning) while the pose is not known
-    if (goToLaunchSpot) robot.driveToLaunchSpot();
-    if (goToLoadingZone) robot.driveToLoadingZone();
+    // S2 assists: Assists refuses them (false, with a warning) while the pose is not known
+    if (goToLaunchSpot && !robot.assists.toLaunchSpot()) driver.rumble(RUMBLE_REFUSED_MS);
+    if (goToLoadingZone && !robot.assists.toLoadingZone()) driver.rumble(RUMBLE_REFUSED_MS);
 
     // Manual driving. Moving a stick ALWAYS takes the robot back, even in the middle of a path.
     if (sticksMoved || !robot.drive.isDrivingItself()) {
-        if (aim) robot.drive.driveWithSticksAimedAt(driver.getLeftStickY(), driver.getLeftStickX(), robot.getAimHeadingDeg());
+        if (aim) robot.drive.driveWithSticksAimedAt(driver.getLeftStickY(), driver.getLeftStickX(), robot.shooter.getAimHeadingDeg());
         else robot.drive.driveWithSticks(driver.getLeftStickY(), driver.getLeftStickX(), driver.getRightStickX());
     }
     if (faceAway) robot.drive.resetHeading();
     if (switchMode) robot.drive.switchDriveMode();
-    // D-pad left held 1 s: robot.setPoseAtResetCorner();  Back: MatchLogger.event("MARK", "driver")
+    // D-pad left held 1 s: robot.assists.setPoseAtResetCorner();  Back: MatchLogger.event("MARK", "driver")
 }
 
 private void handleOperator() {
@@ -492,12 +506,12 @@ private void handleOperator() {
     boolean spinUp = operator.isYPressed();
     boolean stopAll = operator.isDpadDownPressed();
 
-    if (intakeOnOff) robot.toggleIntake();
-    if (spitOut) robot.reverseIntake();        // also how opponent NECTAR goes back out (G408)
-    if (spitOutReleased) robot.stopIntake();
-    if (launchAll) robot.startLaunching(4);    // works from anywhere
-    if (tipped) robot.markHiveTipped();
-    if (spinUp) robot.spinUpLauncher();
+    if (intakeOnOff) robot.intake.toggle();
+    if (spitOut) robot.intake.reverse();       // also how opponent NECTAR goes back out (G408)
+    if (spitOutReleased) robot.intake.stop();
+    if (launchAll) robot.shooter.launch(4);    // works from anywhere
+    if (tipped) MatchInfo.markHiveTipped();
+    if (spinUp) robot.shooter.spinUp();
     if (stopAll) robot.stopMechanisms();
 }
 
@@ -511,16 +525,16 @@ private void rumbleForEvents() {
 
 ### 9.2 BioBuzzAuto
 
-INIT: gamepad 1 D-pad left/right switches the alliance; the screen also shows `AutoConfig.ROUTINE`, `START` and `START_DELAY_S` (set before the match; no menu). `init()`: build Robot, `MatchInfo.resetForNewMatch()`, `PoseMemory.clear()`, `robot.holdPreloads()` (the only actuator move in any INIT). `init_loop()`: alliance, then build the routine's paths from the planned places for the chosen alliance, draw them, and show `!!! PATH WARNING` if any path fails `isOnOwnSide` or `avoidsHive`. `start()`: `robot.startMatch("BioBuzzAuto", MatchClock.AUTO_S, "routine=... start=... delay_s=...")`, `drive.setStartingPose(...)`, EVENT `AUTO_PATH_OFFSIDE` if INIT warned. `loop()`: park-by guard, `runStep()`, `robot.update()`, `PoseMemory.save(...)`, telemetry. `stop()`: `robot.endMatch()`, save the pose. Paths are built when their step starts, from where the robot really is.
+INIT: gamepad 1 D-pad left/right switches the alliance; the screen also shows `AutoConfig.ROUTINE`, `START` and `START_DELAY_S` (set before the match; no menu). `init()`: build Robot, `MatchInfo.resetForNewMatch()`, `PoseMemory.clear()`, `robot.shooter.holdPreloads()` (the only actuator move in any INIT). `init_loop()`: alliance, then build the routine's paths from the planned places for the chosen alliance, draw them, and show `!!! PATH WARNING` if any path fails `isOnOwnSide` or `avoidsHive`. `start()`: `robot.startMatch("BioBuzzAuto", MatchClock.AUTO_S, "routine=... start=... delay_s=...")`, `drive.setStartingPose(...)`, EVENT `AUTO_PATH_OFFSIDE` if INIT warned. `loop()`: park-by guard, `runStep()`, `robot.update()`, `PoseMemory.save(...)`, telemetry. `stop()`: `robot.endMatch()`, save the pose. Paths are built when their step starts, from where the robot really is.
 
 | Step | First loop | Done when | Timeout (`AutoConfig`) |
 | --- | --- | --- | --- |
 | `WAIT_DELAY` | – | `AutoConfig.START_DELAY_S` passed | – |
 | `LEAVE` | `drive.followPath(FieldPaths.leaveWall(...))` | `drive.isPathDone()` | `DRIVE_TIMEOUT_MS` → `holdHere()`, go on |
-| `LAUNCH_PRELOADS` | `robot.startLaunching(4)` (from where the robot is: no launch zones) | `!robot.isLaunching()` | `LAUNCH_TIMEOUT_MS` → cancel, go on |
-| `COLLECT_GARDEN` (`LAUNCH_COLLECT_PARK` only) | `robot.startIntake()`, `followPath(throughGarden)` | path done | `COLLECT_TIMEOUT_MS` → `holdHere()` |
+| `LAUNCH_PRELOADS` | `robot.shooter.launch(4)` (from where the robot is: no launch zones) | `!robot.shooter.isLaunching()` | `LAUNCH_TIMEOUT_MS` → cancel, go on |
+| `COLLECT_GARDEN` (`LAUNCH_COLLECT_PARK` only) | `robot.intake.collect()`, `followPath(throughGarden)` | path done | `COLLECT_TIMEOUT_MS` → `holdHere()` |
 | `DRIVE_TO_LAUNCH` (`LAUNCH_COLLECT_PARK` only) | `followPath(gardenToLaunchSpot)`: back to the launch spot, facing the upward CELL (the GARDEN path ends facing away from it) | path done | `DRIVE_TIMEOUT_MS` → `holdHere()` |
-| `LAUNCH_AGAIN` (`LAUNCH_COLLECT_PARK` only) | `robot.stopIntake()`, `robot.startLaunching(4)` | `!robot.isLaunching()` | `LAUNCH_TIMEOUT_MS` → `stopLaunching()` |
+| `LAUNCH_AGAIN` (`LAUNCH_COLLECT_PARK` only) | `robot.intake.stop()`, `robot.shooter.launch(4)` | `!robot.shooter.isLaunching()` | `LAUNCH_TIMEOUT_MS` → `robot.shooter.cancelLaunch()` |
 | `PARK` | `robot.stopMechanisms()`, `followPath(toLoadingZone)` | path done | `PARK_TIMEOUT_MS` |
 | `DONE` | – | – | – |
 
@@ -611,8 +625,8 @@ All are mentor zone and share `helpers/FieldCheckHelper` (grades, results, `FIEL
 1. Copy `template/TemplateMechanism.java` to `mechanisms/FlowerArm.java`; rename; `extends Mechanism`; fill in the hooks you need.
 2. Add its devices to `HardwareNames` (with hub and port, and in `ALL_DEVICES`); check the motor and servo count.
 3. Add `configurations/FlowerArmConfig.java`.
-4. In `Robot`: one field, build it in the constructor, add its name to the `mechanisms` list. (Update, stop-all, telemetry and log now include it.)
-5. Add Robot methods for its actions (cancel any state machine that uses it).
+4. Decide which subsystem owns it (the job it helps). There: one field, `flowerArm = new FlowerArm(hardwareMap);` and `addMechanism(flowerArm);`. (Update, stop-all, telemetry and log now include it; `Robot` does not change.)
+5. Add menu methods in that subsystem for its actions (cancel any state machine there that uses it).
 6. Copy `template/TemplateMechanismTest.java` to `testing/FlowerArmTest.java`.
 7. Add gamepad 2 buttons in `handleOperator()`, and update the three cheat sheets.
 8. Add a `TelemetryConfig` switch if its lines are long.
@@ -621,12 +635,14 @@ All are mentor zone and share `helpers/FieldCheckHelper` (grades, results, `FIEL
 **Add a state machine**
 
 1. Copy `template/TemplateStateMachine.java` to `statemachines/<Task>StateMachine.java`; list its states; give every waiting state a timeout in a `*Config`.
-2. In `Robot`: one field, build it with the mechanisms it uses; one line each in `update()` (section 1, before the mechanisms), `stopMechanisms()` and telemetry. It never calls a mechanism's `update()`: Robot already does.
-3. Add a Robot start method; it cancels every state machine that shares a mechanism with this one.
+2. Keep `implements StateMachine`. In the subsystem that owns its mechanisms: one field, build it with its mechanisms, and `addStateMachine(...)` after `addMechanism(...)`. (Update before the mechanisms, stop-all, telemetry and log now include it.) It never calls a mechanism's `update()`: the subsystem already does. If its mechanisms are in two subsystems, ask a mentor (section 3.3).
+3. Add a menu method that starts it; it cancels every state machine in that subsystem that shares a mechanism with this one.
 4. Add a test OpMode (start / cancel) and the buttons or auto steps that start it.
 5. Update `HLD.md`, `LLD.md` (section 7, with the state table) and `README.md`.
 
-**Add an assist (S2):** a pose in `FieldConfig` → a path method in `FieldPaths` → a Robot method that checks `drive.isPoseKnown()` → one line in `handleDriver()` → cheat sheets.
+**Add a subsystem** (a new job of the robot): copy `template/TemplateSubsystem.java` to `subsystems/`; `addMechanism` / `addStateMachine` in its constructor; its menu; in `Robot` a public field, build it, add it to `subsystems` (`ADD A SUBSYSTEM HERE`); update `HLD.md`, `LLD.md` (section 3.3) and `README.md`.
+
+**Add an assist (S2):** a pose in `FieldConfig` → a path method in `FieldPaths` → a method in `Assists` that checks the pose and the HIVE → one line in `handleDriver()` → cheat sheets.
 
 **Add an auto step:** a `Step` value → a `case` (first loop, done, timeout) → a timeout in `AutoConfig` → the step table in this document.
 

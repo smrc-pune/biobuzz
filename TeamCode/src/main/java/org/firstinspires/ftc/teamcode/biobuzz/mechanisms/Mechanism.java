@@ -20,7 +20,8 @@ import org.firstinspires.ftc.teamcode.biobuzz.helpers.MatchLogger;
  *       @Override protected boolean isTelemetryOn() { return TelemetryConfig.INTAKE; }  // its switch
  *   }
  *
- * Robot calls runUpdate(), runStop(), addTelemetry() and addLogData() on every mechanism.
+ * Its subsystem calls runUpdate(), runStop(), addTelemetry() and addLogData() on every
+ * mechanism it owns (see subsystems/Subsystem.java).
  * If your mechanism throws an error (for example a cable came out), it is marked FAULTED:
  * it stops, an urgent ALERT says why, and the rest of the robot keeps running.
  *
@@ -58,7 +59,7 @@ public class Mechanism {
     /** Your switch in TelemetryConfig, so a student can hide these lines. A FAULTED line always shows. */
     protected boolean isTelemetryOn() { return true; }
 
-    // ==================== FIXED: Robot and test OpModes call these ====================
+    // ==================== FIXED: its subsystem and test OpModes call these ====================
 
     public final void runUpdate() {
         if (faulted) return;
@@ -82,7 +83,7 @@ public class Mechanism {
         else if (isTelemetryOn()) addDetails(t);
     }
 
-    /** Robot calls this for each match-log DATA row. */
+    /** Its subsystem calls this for each match-log DATA row. */
     public final void addLogData() {
         MatchLogger.value(name + "_faulted", faulted);
         addLogValues();

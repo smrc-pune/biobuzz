@@ -20,7 +20,8 @@ import org.firstinspires.ftc.teamcode.biobuzz.mechanisms.Mechanism;
  *      and the name in super("template").
  *   2. Add the device name to HardwareNames (with its hub and port, and in ALL_DEVICES).
  *   3. Copy configurations/TemplateConfig.java to RollerConfig.java.
- *   4. In Robot.java: a field, build it, and add it to the "mechanisms" list.
+ *   4. Give it to ONE subsystem: in that subsystem's constructor,
+ *      roller = new Roller(hardwareMap); addMechanism(roller); then add menu methods that use it.
  *
  * RULES: verbs (run(), stop()) and questions (isRunning()). No states, no timers: a job that
  * takes time goes in a state machine. Nothing moves in the constructor (rule G304.H).

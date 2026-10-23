@@ -4,7 +4,7 @@ Oct 19, 2026 · for mentor review before any code changes
 
 This review compares three things: the requirements (v1.4), the new design the team agreed on in discussion, and the BIOBUZZ Competition Manual (TU05). It lists every conflict, misalignment and gap found, with the fix applied in Requirements v2.0, `HLD.md` and `LLD.md`, and the questions that only the team can answer.
 
-**How to read it.** Section 1 is the design in one page, as it stands now (Requirements v2.3). Section 2 lists problems inside the old requirements. Section 3 lists what the game adds. Section 4 lists the design patterns used. Section 5 lists the questions and the team's answers. Sections 6 and 7 list the changes from the second and third review rounds; where a fix in sections 2–3 names `game/`, BLUE poses or NEAR/FAR, sections 6 and 7 replace it. (Sections 1–7 were written before the code changed; section 8 lists what was found while building it.)
+**How to read it.** Section 1 is the design in one page, as it stands now (Requirements v2.3). Section 2 lists problems inside the old requirements. Section 3 lists what the game adds. Section 4 lists the design patterns used. Section 5 lists the questions and the team's answers. Sections 6 and 7 list the changes from the second and third review rounds; where a fix in sections 2–3 names `game/`, BLUE poses or NEAR/FAR, sections 6 and 7 replace it. (Sections 1–7 were written before the code changed; section 8 lists what was found while building it; section 9 records the change to subsystems in v2.8, which replaces the Robot "menu" described in sections 1 and 4.)
 
 ---
 
@@ -200,3 +200,20 @@ These came up while writing the code. Each is resolved as below; details in `LLD
 | B8 | Every OpMode that builds `Robot` needs every mechanism device in the robot configuration | Intended; until the mechanisms exist, drive with Test: Drive |
 
 **Still open for the team** (unchanged): mechanism hardware, configuration names, field poses, odometry pods, camera details, the gamepad 2 map (Open items in the Requirements).
+
+---
+
+## 9. Robot split into subsystems (Oct 23, 2026, Requirements v2.8)
+
+**Why.** With every mechanism, every state machine and a method for every action in one file, `Robot.java` was the hardest file for a rookie to read (about 300 lines, seven `ADD ... HERE` spots). The team chose to split it into subsystems that OpModes call directly.
+
+| # | Before (v2.7) | Now (v2.8) | Why the old concern does not return |
+| --- | --- | --- | --- |
+| S1 | `robot.toggleIntake()`, `robot.startLaunching(4)`, `robot.driveToLaunchSpot()` | `robot.intake.toggle()`, `robot.shooter.launch(4)`, `robot.assists.toLaunchSpot()` | – |
+| S2 | Robot held five mechanisms and one state machine, listed by hand in update, stop, log and telemetry | Each subsystem owns its parts (`addMechanism`, `addStateMachine`); `Subsystem` runs them; Robot walks `{ intake, shooter, vision }` | C1 (one brain per mechanism, fake states): a subsystem has NO states; a state machine is still one task that may use several mechanisms |
+| S3 | Robot was the Mediator for every mechanism | Each subsystem is the Mediator for its own mechanisms (`spinUp()` waits while launching) | C12 (buttons fighting over a motor): a mechanism belongs to ONE subsystem and every state machine that uses it lives there, so a conflict can only happen inside one file. A task that needs two subsystems' mechanisms is a reason to merge them (mentor decision) |
+| S4 | Robot.isBusy() was removed (C3) | No subsystem-wide `isBusy()`; Auto still checks the one thing it started (`robot.shooter.isLaunching()`) | C3 |
+| S5 | State machines had no common type | `StateMachine` interface (five methods); the build fails if one is missing | R3 amended: one interface, a second base class (`Subsystem`), and a `List` inside `Subsystem.java`. Team generics stay forbidden: constructors write `feeder = new Feeder(hardwareMap); addMechanism(feeder);` |
+| S6 | `robot.markHiveTipped()` | `MatchInfo.markHiveTipped()` directly, as OpModes already call `MatchInfo.switchAlliance()` | – |
+| S7 | Match-log columns: health, drive, every mechanism, `launch_state`, HIVE | Grouped by subsystem: `intake_*`, then `feeder_*`, `launcher_*`, `launch_state`, then the cameras | `LogSummary` and `plot_match.py` read columns by name |
+

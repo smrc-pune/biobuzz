@@ -73,7 +73,7 @@ public class BioBuzzAuto extends OpMode {
         robot = new Robot(hardwareMap);
         MatchInfo.resetForNewMatch();   // a new match: the HIVE as set up, no TIPS
         PoseMemory.clear();             // TeleOp must not use the last match's pose
-        robot.holdPreloads();           // the ONLY move allowed in INIT (rule G304)
+        robot.shooter.holdPreloads();   // the ONLY move allowed in INIT (rule G304)
     }
 
     @Override
@@ -144,16 +144,16 @@ public class BioBuzzAuto extends OpMode {
                 break;
 
             case LAUNCH_PRELOADS:
-                if (firstLoop) robot.startLaunching(4);
+                if (firstLoop) robot.shooter.launch(4);
                 Step afterLaunch = Step.PARK;
                 if (AutoConfig.ROUTINE == AutoConfig.Routine.LAUNCH_COLLECT_PARK) afterLaunch = Step.COLLECT_GARDEN;
-                if (!robot.isLaunching()) goToStep(afterLaunch, "launched");
+                if (!robot.shooter.isLaunching()) goToStep(afterLaunch, "launched");
                 else if (isTimedOut(AutoConfig.LAUNCH_TIMEOUT_MS)) launchTimedOut(afterLaunch);
                 break;
 
             case COLLECT_GARDEN:
                 if (firstLoop) {
-                    robot.startIntake();
+                    robot.intake.collect();
                     robot.drive.followPath(FieldPaths.throughGarden(here, isRed));
                 }
                 if (robot.drive.isPathDone()) goToStep(Step.DRIVE_TO_LAUNCH, "garden done");
@@ -168,10 +168,10 @@ public class BioBuzzAuto extends OpMode {
 
             case LAUNCH_AGAIN:
                 if (firstLoop) {
-                    robot.stopIntake();
-                    robot.startLaunching(4);
+                    robot.intake.stop();
+                    robot.shooter.launch(4);
                 }
-                if (!robot.isLaunching()) goToStep(Step.PARK, "launched");
+                if (!robot.shooter.isLaunching()) goToStep(Step.PARK, "launched");
                 else if (isTimedOut(AutoConfig.LAUNCH_TIMEOUT_MS)) launchTimedOut(Step.PARK);
                 break;
 
@@ -210,7 +210,7 @@ public class BioBuzzAuto extends OpMode {
 
     /** A launch ran out of time: stop launching, write it down, go on. */
     private void launchTimedOut(Step next) {
-        robot.stopLaunching();
+        robot.shooter.cancelLaunch();
         MatchLogger.event("TIMEOUT", step.toString());
         goToStep(next, "TIMEOUT");
     }

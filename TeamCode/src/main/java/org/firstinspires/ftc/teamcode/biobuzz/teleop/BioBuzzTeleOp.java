@@ -53,10 +53,11 @@ import org.firstinspires.ftc.teamcode.biobuzz.helpers.PoseMemory;
  *
  * TO CHANGE A BUTTON: edit its line in handleDriver() or handleOperator() below, then the
  * list in ControlsConfig and the cheat sheet in TelemetryConfig.GAMEPAD*_HELP.
- * TO CHANGE WHAT A BUTTON DOES: look in Robot.java, then the mechanism or drive file.
+ * TO CHANGE WHAT A BUTTON DOES: open the subsystem it calls (robot.shooter.launch(4) is in
+ * subsystems/ShooterSubsystem.java), then the mechanism or state machine it uses.
  *
  * TRACING A BUG: start in loop(). Was the button read in handleDriver()/handleOperator()?
- * Was the Robot method called? Did telemetry show a WARNING (the command was refused)?
+ * Was the subsystem method called? Did telemetry show a WARNING (the command was refused)?
  */
 // @TeleOp puts this program on the Driver Station's TeleOp list, under this name and group.
 @TeleOp(name = "BioBuzz TeleOp", group = "BioBuzz")
@@ -69,7 +70,7 @@ public class BioBuzzTeleOp extends OpMode {
     private Telemetry t;             // where we write the text shown on the Driver Station AND Dashboard
     private GamepadInput driver;     // gamepad 1 - one GamepadInput per controller!
     private GamepadInput operator;   // gamepad 2
-    private Robot robot;             // the whole robot: drive, mechanisms, state machines
+    private Robot robot;             // the whole robot: drive, assists, intake, shooter, vision
 
     private boolean hasAutoPose = false;        // true if Autonomous left us the robot's position
     private boolean headingConfirmed = false;   // false until the driver presses Y (when no auto pose)
@@ -176,15 +177,15 @@ public class BioBuzzTeleOp extends OpMode {
         // STEP 2: COMMANDS. Each button calls one method.
 
         // ---- S2: assist buttons. ----
-        // robot.driveToLaunchSpot() starts the path and answers true, or refuses and answers
+        // robot.assists.toLaunchSpot() starts the path and answers true, or refuses and answers
         // false (position unknown, or the path would hit the HIVE; telemetry says which).
         // "&&" means AND, "!" means NOT. So the line reads: "if A was pressed AND the robot
         // did NOT accept it, buzz the gamepad".
-        if (goToLaunchSpot && !robot.driveToLaunchSpot()) driver.rumble(ControlsConfig.RUMBLE_REFUSED_MS);
-        if (goToLoadingZone && !robot.driveToLoadingZone()) driver.rumble(ControlsConfig.RUMBLE_REFUSED_MS);
+        if (goToLaunchSpot && !robot.assists.toLaunchSpot()) driver.rumble(ControlsConfig.RUMBLE_REFUSED_MS);
+        if (goToLoadingZone && !robot.assists.toLoadingZone()) driver.rumble(ControlsConfig.RUMBLE_REFUSED_MS);
         if (setPoseHere) {
             // The robot is sitting in our reset corner: now we know exactly where it is.
-            robot.setPoseAtResetCorner();
+            robot.assists.setPoseAtResetCorner();
             headingConfirmed = true;
             driver.rumble(ControlsConfig.RUMBLE_POSE_SET_MS);   // a long buzz = "S2 ready"
         }
@@ -199,7 +200,7 @@ public class BioBuzzTeleOp extends OpMode {
         // turns the robot to face the upward CELL. Aiming needs to know where we are (S2).
         if (sticksMoved || aim || !robot.drive.isDrivingItself()) {
             if (aim && robot.drive.isPoseKnown()) {
-                robot.drive.driveWithSticksAimedAt(driver.getLeftStickY(), driver.getLeftStickX(), robot.getAimHeadingDeg());
+                robot.drive.driveWithSticksAimedAt(driver.getLeftStickY(), driver.getLeftStickX(), robot.shooter.getAimHeadingDeg());
             } else {
                 robot.drive.driveWithSticks(driver.getLeftStickY(), driver.getLeftStickX(), driver.getRightStickX());
             }
@@ -223,7 +224,7 @@ public class BioBuzzTeleOp extends OpMode {
     // ==================== GAMEPAD 2: MECHANISMS ====================
 
     private void handleOperator() {
-        // Same pattern as handleDriver(): read every button ONCE, then one Robot method per button.
+        // Same pattern as handleDriver(): read every button ONCE, then one subsystem method per button.
         // TODO(BioBuzz): confirm this map once the robot is built.
         boolean intakeOnOff = operator.isAPressed();
         boolean spitOut = operator.isBHeld();             // every loop while held
@@ -234,13 +235,13 @@ public class BioBuzzTeleOp extends OpMode {
         boolean stopAll = operator.isDpadDownPressed();
         boolean mark = operator.isBackPressed();
 
-        if (intakeOnOff) robot.toggleIntake();
-        if (spitOut) robot.reverseIntake();          // also how opponent NECTAR goes back out (G408)
-        if (spitOutReleased) robot.stopIntake();
-        if (launchAll) robot.startLaunching(4);      // we can launch from anywhere
-        if (spinUp) robot.spinUpLauncher();
-        if (tipped) robot.markHiveTipped();          // the other CELL faces up now: aim and speed follow it
-        if (stopAll) robot.stopMechanisms();         // the emergency button: every mechanism stops
+        if (intakeOnOff) robot.intake.toggle();
+        if (spitOut) robot.intake.reverse();         // also how opponent NECTAR goes back out (G408)
+        if (spitOutReleased) robot.intake.stop();
+        if (launchAll) robot.shooter.launch(4);      // we can launch from anywhere
+        if (spinUp) robot.shooter.spinUp();
+        if (tipped) MatchInfo.markHiveTipped();      // the other CELL faces up now: aim and speed follow it
+        if (stopAll) robot.stopMechanisms();         // the emergency button: every subsystem stops
         if (mark) MatchLogger.event("MARK", "operator");
     }
 
