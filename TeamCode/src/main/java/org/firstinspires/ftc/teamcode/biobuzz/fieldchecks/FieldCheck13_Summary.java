@@ -27,10 +27,14 @@ public class FieldCheck13_Summary extends OpMode {
     private boolean logged = false;
 
     @Override
-    public void init() { t = DashboardTelemetry.create(telemetry); }
+    public void init() {
+        t = DashboardTelemetry.create(telemetry);
+    }
 
     @Override
-    public void init_loop() { show(); }
+    public void init_loop() {
+        show();
+    }
 
     @Override
     public void start() {
@@ -79,5 +83,7 @@ public class FieldCheck13_Summary extends OpMode {
     }
 
     @Override
-    public void stop() { MatchLogger.stop("field=" + FieldCheckConfig.FIELD_NAME); }
+    public void stop() {
+        MatchLogger.stop("field=" + FieldCheckConfig.FIELD_NAME);
+    }
 }

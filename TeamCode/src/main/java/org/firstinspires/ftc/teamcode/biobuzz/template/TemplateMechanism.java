@@ -47,7 +47,9 @@ public class TemplateMechanism extends Mechanism {
     }
 
     // ---- What you can ask it (questions) ----
-    public boolean isRunning() { return power != 0; }
+    public boolean isRunning() {
+        return power != 0;
+    }
 
     // ---- Filled in for Mechanism ----
     @Override

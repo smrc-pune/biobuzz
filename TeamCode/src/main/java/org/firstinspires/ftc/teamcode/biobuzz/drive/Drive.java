@@ -76,7 +76,9 @@ public class Drive {
     // ==================== SETUP (INIT and start only) ====================
 
     /** Which alliance we are on. It picks the "away from the drivers" heading. */
-    public void setAlliance(boolean isRed) { this.isRed = isRed; }
+    public void setAlliance(boolean isRed) {
+        this.isRed = isRed;
+    }
 
     /** The robot is at a known place (from Auto). Assists (S2) can be used. */
     public void setStartingPose(Pose pose) {
@@ -172,7 +174,9 @@ public class Drive {
         log.record("ROBOT-CENTRIC", "FIELD-CENTRIC", reason);
     }
 
-    public boolean isFieldCentric() { return fieldCentric; }
+    public boolean isFieldCentric() {
+        return fieldCentric;
+    }
 
     // ==================== PATH DRIVING (S2 assists, S3 Auto) ====================
 
@@ -183,16 +187,24 @@ public class Drive {
     }
 
     /** true while Pedro is driving a path or holding the robot still at the end of one. */
-    public boolean isDrivingItself() { return follower.following() || follower.holding(); }
+    public boolean isDrivingItself() {
+        return follower.following() || follower.holding();
+    }
 
     /** true once the path has reached its end (or there is no path). */
-    public boolean isPathDone() { return !follower.following(); }
+    public boolean isPathDone() {
+        return !follower.following();
+    }
 
     /** Stop where we are and hold this spot (an Auto step that ran out of time). */
-    public void holdHere() { follower.hold(follower.pose()); }
+    public void holdHere() {
+        follower.hold(follower.pose());
+    }
 
     /** Stop driving by itself and wait for the sticks. */
-    public void stopDrivingItself() { driveWithSticks(0, 0, 0); }
+    public void stopDrivingItself() {
+        driveWithSticks(0, 0, 0);
+    }
 
     // ==================== WHERE ARE WE? ====================
 
@@ -218,11 +230,19 @@ public class Drive {
         log.record("pose known", "pose UNKNOWN", reason);
     }
 
-    public boolean isPoseKnown() { return poseKnown; }
+    public boolean isPoseKnown() {
+        return poseKnown;
+    }
 
-    public Pose getPose() { return follower.pose(); }
-    public double getX() { return follower.pose().x(); }
-    public double getY() { return follower.pose().y(); }
+    public Pose getPose() {
+        return follower.pose();
+    }
+    public double getX() {
+        return follower.pose().x();
+    }
+    public double getY() {
+        return follower.pose().y();
+    }
 
     /** @return heading from -180 to 180, so "away" reads near 0 instead of jumping between 0 and 360. */
     public double getHeadingDegrees() {
@@ -238,13 +258,19 @@ public class Drive {
     }
 
     /** READY when all is well. Pedro reads the Pinpoint in update(); this just looks at the answer. */
-    public GoBildaPinpointDriver.DeviceStatus getPinpointStatus() { return pinpoint.getDeviceStatus(); }
+    public GoBildaPinpointDriver.DeviceStatus getPinpointStatus() {
+        return pinpoint.getDeviceStatus();
+    }
 
     /** Goes up by one every time our code sets the heading, so HealthMonitor knows it was not a jump. */
-    public int getHeadingSetCount() { return headingSetCount; }
+    public int getHeadingSetCount() {
+        return headingSetCount;
+    }
 
     /** Show a short message on telemetry, for example "assist refused: position unknown". */
-    public void warn(String message) { log.warn(message); }
+    public void warn(String message) {
+        log.warn(message);
+    }
 
     // ==================== FIELD CHECKS ONLY (fieldchecks/) ====================
 
@@ -253,7 +279,9 @@ public class Drive {
      * update() while the crew pushes the robot by hand: an idle follower brakes the motors
      * every update(), which would fight the push.
      */
-    public void updatePoseOnly() { follower.localizer.update(); }
+    public void updatePoseOnly() {
+        follower.localizer.update();
+    }
 
     /** Field Checks: "here is (0, 0), facing 0 deg", so a push or a path is measured from here. */
     public void zeroPose() {
@@ -267,21 +295,31 @@ public class Drive {
     }
 
     /** Field Check 07: let the wheels coast (no braking), the same call Pedro's deceleration tuner uses. */
-    public void coast() { follower.drivetrain.stop(false); }
+    public void coast() {
+        follower.drivetrain.stop(false);
+    }
 
     /** Speed along the robot's own front (in/s, + = forward), from the localizer. */
-    public double getForwardSpeedInPerS() { return follower.localizer.twist().toVector2D().x(); }
+    public double getForwardSpeedInPerS() {
+        return follower.localizer.twist().toVector2D().x();
+    }
 
     /** Speed toward the robot's own left (in/s, + = left), from the localizer. */
-    public double getLeftSpeedInPerS() { return follower.localizer.twist().toVector2D().y(); }
+    public double getLeftSpeedInPerS() {
+        return follower.localizer.twist().toVector2D().y();
+    }
 
     /** How fast the robot is moving, any direction (in/s). */
-    public double getSpeedInPerS() { return Math.hypot(follower.velocity().vx, follower.velocity().vy); }
+    public double getSpeedInPerS() {
+        return Math.hypot(follower.velocity().vx, follower.velocity().vy);
+    }
 
     // ==================== EVERY LOOP ====================
 
     /** Pedro must be updated EVERY loop: it reads the Pinpoint and sets the motor powers. */
-    public void update() { follower.update(); }
+    public void update() {
+        follower.update();
+    }
 
     public void addTelemetry(Telemetry t) {
         String mode = "FIELD-centric";

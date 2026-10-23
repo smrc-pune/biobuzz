@@ -36,7 +36,9 @@ public class StateLog {
     private final ElapsedTime sinceWarning = new ElapsedTime();
     private final ElapsedTime sinceChange = new ElapsedTime();
 
-    public StateLog(String name) { this.name = name; }
+    public StateLog(String name) {
+        this.name = name;
+    }
 
     /** Remember that we moved from one state to another, and why. */
     public void record(Object from, Object to, String reason) {

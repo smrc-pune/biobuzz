@@ -42,7 +42,9 @@ public class HiveCamera extends Mechanism {
     }
 
     // ---- What you can ask it ----
-    public boolean seesTag(int learnedId) { return findBlock(learnedId) != null; }
+    public boolean seesTag(int learnedId) {
+        return findBlock(learnedId) != null;
+    }
 
     /** Pixels right (+) or left (-) of the picture's middle; 0 if the tag is not seen. */
     public double getTagOffsetPx(int learnedId) {
@@ -63,7 +65,9 @@ public class HiveCamera extends Mechanism {
     }
 
     /** How many tags are in view. */
-    public int getTagCount() { return blocks.length; }
+    public int getTagCount() {
+        return blocks.length;
+    }
 
     /** The learned id of the first tag in view, or -1. */
     public int getFirstTagId() {
@@ -73,7 +77,9 @@ public class HiveCamera extends Mechanism {
         return blocks[0].id;
     }
 
-    public double getAgeMs() { return sinceRead.milliseconds(); }
+    public double getAgeMs() {
+        return sinceRead.milliseconds();
+    }
 
     private HuskyLens.Block findBlock(int learnedId) {
         for (HuskyLens.Block block : blocks) {
@@ -118,5 +124,7 @@ public class HiveCamera extends Mechanism {
     }
 
     @Override
-    protected boolean isTelemetryOn() { return TelemetryConfig.CAMERAS; }
+    protected boolean isTelemetryOn() {
+        return TelemetryConfig.CAMERAS;
+    }
 }

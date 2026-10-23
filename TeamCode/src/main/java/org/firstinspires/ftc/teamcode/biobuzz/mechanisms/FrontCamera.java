@@ -107,9 +107,13 @@ public class FrontCamera extends Mechanism {
     // ---- What it can do ----
 
     /** Stop sending pictures to the processors (saves the Control Hub's CPU). */
-    public void pause() { portal.stopStreaming(); }
+    public void pause() {
+        portal.stopStreaming();
+    }
 
-    public void resume() { portal.resumeStreaming(); }
+    public void resume() {
+        portal.resumeStreaming();
+    }
 
     public void setPreview(boolean on) {
         if (on) {
@@ -120,7 +124,9 @@ public class FrontCamera extends Mechanism {
     }
 
     // ---- What you can ask it ----
-    public boolean seesTag(int id) { return findTag(id) >= 0; }
+    public boolean seesTag(int id) {
+        return findTag(id) >= 0;
+    }
 
     /** Distance from the camera to the tag, in inches (0 if not seen). */
     public double getTagRangeIn(int id) {
@@ -149,7 +155,9 @@ public class FrontCamera extends Mechanism {
         return tagYawDeg[slot];
     }
 
-    public int getTagCount() { return tagCount; }
+    public int getTagCount() {
+        return tagCount;
+    }
 
     /** The id of the first tag in view, or -1. */
     public int getFirstTagId() {
@@ -159,20 +167,38 @@ public class FrontCamera extends Mechanism {
         return tagIds[0];
     }
 
-    public boolean seesPollen() { return seesPollen; }
-    public boolean seesRedNectar() { return seesRedNectar; }
-    public boolean seesBlueNectar() { return seesBlueNectar; }
+    public boolean seesPollen() {
+        return seesPollen;
+    }
+    public boolean seesRedNectar() {
+        return seesRedNectar;
+    }
+    public boolean seesBlueNectar() {
+        return seesBlueNectar;
+    }
 
     /** Degrees the biggest POLLEN is to the RIGHT (+) of the picture's middle (0 if none). */
-    public double getPollenBearingDeg() { return pollenBearingDeg; }
-    public double getRedNectarBearingDeg() { return redNectarBearingDeg; }
-    public double getBlueNectarBearingDeg() { return blueNectarBearingDeg; }
+    public double getPollenBearingDeg() {
+        return pollenBearingDeg;
+    }
+    public double getRedNectarBearingDeg() {
+        return redNectarBearingDeg;
+    }
+    public double getBlueNectarBearingDeg() {
+        return blueNectarBearingDeg;
+    }
 
-    public double getFps() { return portal.getFps(); }
+    public double getFps() {
+        return portal.getFps();
+    }
 
-    public String getCameraState() { return portal.getCameraState().toString(); }
+    public String getCameraState() {
+        return portal.getCameraState().toString();
+    }
 
-    public double getAgeMs() { return sinceUpdate.milliseconds(); }
+    public double getAgeMs() {
+        return sinceUpdate.milliseconds();
+    }
 
     private int findTag(int id) {
         for (int slot = 0; slot < tagCount; slot++) {
@@ -286,5 +312,7 @@ public class FrontCamera extends Mechanism {
     }
 
     @Override
-    protected boolean isTelemetryOn() { return TelemetryConfig.CAMERAS; }
+    protected boolean isTelemetryOn() {
+        return TelemetryConfig.CAMERAS;
+    }
 }

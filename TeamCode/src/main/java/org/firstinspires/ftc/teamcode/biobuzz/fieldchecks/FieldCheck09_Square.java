@@ -48,7 +48,9 @@ public class FieldCheck09_Square extends OpMode {
     }
 
     @Override
-    public void start() { FieldCheckHelper.start("FieldCheck09_Square", battery.getVoltage()); }
+    public void start() {
+        FieldCheckHelper.start("FieldCheck09_Square", battery.getVoltage());
+    }
 
     @Override
     public void loop() {

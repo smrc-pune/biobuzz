@@ -112,18 +112,42 @@ public class LogSummary {
 
     // ==================== answers ====================
 
-    public String getFileName() { return fileName; }
-    public String getOpModeName() { return opModeName; }
-    public String getAlliance() { return alliance; }
-    public double getDurationS() { return durationS; }
-    public double getWorstLoopMs() { return worstLoopMs; }
-    public double getLowestBatteryV() { return lowestBatteryV; }
-    public double getBatteryAtPlayV() { return batteryAtPlayV; }
-    public int getAlertCount() { return alertCount; }
-    public int getTimeoutCount() { return timeoutCount; }
-    public int getRowCount() { return rowCount; }
-    public boolean hasEndLine() { return endedCleanly; }
-    public String getLastAlert() { return lastAlert; }
+    public String getFileName() {
+        return fileName;
+    }
+    public String getOpModeName() {
+        return opModeName;
+    }
+    public String getAlliance() {
+        return alliance;
+    }
+    public double getDurationS() {
+        return durationS;
+    }
+    public double getWorstLoopMs() {
+        return worstLoopMs;
+    }
+    public double getLowestBatteryV() {
+        return lowestBatteryV;
+    }
+    public double getBatteryAtPlayV() {
+        return batteryAtPlayV;
+    }
+    public int getAlertCount() {
+        return alertCount;
+    }
+    public int getTimeoutCount() {
+        return timeoutCount;
+    }
+    public int getRowCount() {
+        return rowCount;
+    }
+    public boolean hasEndLine() {
+        return endedCleanly;
+    }
+    public String getLastAlert() {
+        return lastAlert;
+    }
 
     /** "2026-10-18 14:32" from a name like 2026-10-18_14-32-05_BioBuzzTeleOp_RED.csv */
     public String getStartText() {

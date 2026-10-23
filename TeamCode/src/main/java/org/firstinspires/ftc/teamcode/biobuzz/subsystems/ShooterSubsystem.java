@@ -46,10 +46,14 @@ public class ShooterSubsystem extends Subsystem {
     // ==================== THE MENU ====================
 
     /** Launch this many balls, from wherever we are. Feeding an empty slot does no harm. */
-    public void launch(int count) { launchStateMachine.start(count); }
+    public void launch(int count) {
+        launchStateMachine.start(count);
+    }
 
     /** Stop launching at once: balls held back, flywheel at idle (Auto's launch timeout). */
-    public void cancelLaunch() { launchStateMachine.cancel(); }
+    public void cancelLaunch() {
+        launchStateMachine.cancel();
+    }
 
     /** Spin the flywheel up early, for the distance to the upward CELL from here (operator's Y). */
     public void spinUp() {
@@ -60,22 +64,34 @@ public class ShooterSubsystem extends Subsystem {
     }
 
     /** Auto INIT only: hold the 4 preloaded balls (the only move allowed before PLAY, G304). */
-    public void holdPreloads() { feeder.hold(); }
+    public void holdPreloads() {
+        feeder.hold();
+    }
 
     // stop() comes from Subsystem: launch cancelled, feeder and flywheel stopped.
 
     // ==================== QUESTIONS ====================
 
-    public boolean isLaunching() { return launchStateMachine.isBusy(); }
+    public boolean isLaunching() {
+        return launchStateMachine.isBusy();
+    }
 
-    public boolean isUpToSpeed() { return launcher.isUpToSpeed(); }
+    public boolean isUpToSpeed() {
+        return launcher.isUpToSpeed();
+    }
 
-    public double getRpm() { return launcher.getRpm(); }
+    public double getRpm() {
+        return launcher.getRpm();
+    }
 
-    public double getTargetRpm() { return launcher.getTargetRpm(); }
+    public double getTargetRpm() {
+        return launcher.getTargetRpm();
+    }
 
     /** The heading that points the launcher at the upward CELL from where we are (aim button). */
-    public double getAimHeadingDeg() { return FieldPaths.aimHeadingDeg(drive.getPose(), MatchInfo.isRed()); }
+    public double getAimHeadingDeg() {
+        return FieldPaths.aimHeadingDeg(drive.getPose(), MatchInfo.isRed());
+    }
 
     /** Inches to the upward CELL, or LauncherConfig.DEFAULT_DISTANCE_IN when the pose is unknown (S1). */
     public double getDistanceToUpCellIn() {

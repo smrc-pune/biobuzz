@@ -209,20 +209,32 @@ public class Mechanism {
     private boolean faulted = false;
     private String faultReason = "";
 
-    public Mechanism(String name) { this.name = name; }
+    public Mechanism(String name) {
+        this.name = name;
+    }
 
     // ===== HOOKS: your mechanism overrides these (all optional) =====
     /** Every loop: control loops and sensor reads. Never wait or sleep here. */
-    protected void update() { }
+    protected void update() {
+        // empty here: filled in with @Override
+    }
     /** Put the devices in their safe state: motors off, servos where they hold nothing. */
-    protected void stop() { }
+    protected void stop() {
+        // empty here: filled in with @Override
+    }
     /** Your own telemetry lines (powers, speeds, sensor values). */
-    protected void addDetails(Telemetry t) { }
+    protected void addDetails(Telemetry t) {
+        // empty here: filled in with @Override
+    }
     /** Match-log columns, the same every row: MatchLogger.value("intake_power", power);
      *  Log values kept in fields; do NOT read hardware here (this also runs while FAULTED). */
-    protected void addLogValues() { }
+    protected void addLogValues() {
+        // empty here: filled in with @Override
+    }
     /** Your TelemetryConfig switch (return TelemetryConfig.INTAKE;). A FAULTED line always shows. */
-    protected boolean isTelemetryOn() { return true; }
+    protected boolean isTelemetryOn() {
+        return true;
+    }
 
     // ===== FIXED: Robot and test OpModes call these. Do not override. =====
     public final void runUpdate() {
@@ -257,8 +269,12 @@ public class Mechanism {
         addLogValues();
     }
 
-    public final boolean isFaulted() { return faulted; }
-    public final String getName() { return name; }
+    public final boolean isFaulted() {
+        return faulted;
+    }
+    public final String getName() {
+        return name;
+    }
 
     /** A mechanism may call this itself, for example when it sees a problem. */
     protected final void markFaulted(String reason) {
@@ -308,13 +324,21 @@ public class Intake extends Mechanism {
     }
 
     // ---- What the intake can do ----
-    public void collect() { roller.setPower(IntakeConfig.COLLECT_POWER); }
-    public void reverse() { roller.setPower(IntakeConfig.REVERSE_POWER); }
-    public boolean isOn()  { return roller.getPower() != 0; }
+    public void collect() {
+        roller.setPower(IntakeConfig.COLLECT_POWER);
+    }
+    public void reverse() {
+        roller.setPower(IntakeConfig.REVERSE_POWER);
+    }
+    public boolean isOn() {
+        return roller.getPower() != 0;
+    }
 
     // ---- Filled in for Mechanism ----
     @Override
-    protected void stop() { roller.setPower(0); }
+    protected void stop() {
+        roller.setPower(0);
+    }
 
     @Override
     protected void addDetails(Telemetry t) {
@@ -482,8 +506,16 @@ public void init_loop()  { D-pad left/right switches the alliance; show battery 
 public void start()      { robot.startMatch("BioBuzzTeleOp", MatchClock.TELEOP_S); drive.setAlliance(MatchInfo.isRed());
                            pose from PoseMemory -> drive.setStartingPose (pose known)
                            else drive.setStartingPoseFacingAway() (S1) }
-public void loop()       { handleDriver(); handleOperator(); robot.update(); rumbleForEvents(); showTelemetry(); }
-public void stop()       { robot.endMatch(); }
+public void loop() {
+    handleDriver();
+    handleOperator();
+    robot.update();
+    rumbleForEvents();
+    showTelemetry();
+}
+public void stop() {
+    robot.endMatch();
+}
 
 private void handleDriver() {
     boolean faceAway = driver.isYPressed();

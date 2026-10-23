@@ -43,20 +43,28 @@ public class Subsystem {
     private final List<StateMachine> stateMachines = new ArrayList<>();
     private final List<Mechanism> mechanisms = new ArrayList<>();
 
-    public Subsystem(String name) { this.name = name; }
+    public Subsystem(String name) {
+        this.name = name;
+    }
 
     // ==================== FOR YOUR SUBSYSTEM'S CONSTRUCTOR ====================
 
     /** This subsystem owns this mechanism from now on: it updates, stops, shows and logs it. */
-    protected final void addMechanism(Mechanism mechanism) { mechanisms.add(mechanism); }
+    protected final void addMechanism(Mechanism mechanism) {
+        mechanisms.add(mechanism);
+    }
 
     /** This subsystem runs this state machine from now on. Add it AFTER the mechanisms it uses. */
-    protected final void addStateMachine(StateMachine stateMachine) { stateMachines.add(stateMachine); }
+    protected final void addStateMachine(StateMachine stateMachine) {
+        stateMachines.add(stateMachine);
+    }
 
     // ==================== HOOK: your subsystem may fill this in ====================
 
     /** A few words for the telemetry header, for example "intake ON". "" = nothing. */
-    public String getStatusText() { return ""; }
+    public String getStatusText() {
+        return "";
+    }
 
     // ==================== FIXED: Robot calls these ====================
 
@@ -110,5 +118,7 @@ public class Subsystem {
         return names.trim();
     }
 
-    public final String getName() { return name; }
+    public final String getName() {
+        return name;
+    }
 }

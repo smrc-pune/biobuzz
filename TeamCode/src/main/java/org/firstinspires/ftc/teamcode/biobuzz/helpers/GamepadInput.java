@@ -118,10 +118,18 @@ public class GamepadInput {
     }
 
     // ========== STICKS (-1.0 to 1.0, deadzone applied) ==========
-    public double getLeftStickY()  { return deadzone(-gamepad.left_stick_y); }   // up = positive
-    public double getLeftStickX()  { return deadzone(gamepad.left_stick_x); }    // right = positive
-    public double getRightStickY() { return deadzone(-gamepad.right_stick_y); }  // up = positive
-    public double getRightStickX() { return deadzone(gamepad.right_stick_x); }   // right = positive
+    public double getLeftStickY() {
+        return deadzone(-gamepad.left_stick_y);   // up = positive
+    }
+    public double getLeftStickX() {
+        return deadzone(gamepad.left_stick_x);   // right = positive
+    }
+    public double getRightStickY() {
+        return deadzone(-gamepad.right_stick_y);   // up = positive
+    }
+    public double getRightStickX() {
+        return deadzone(gamepad.right_stick_x);   // right = positive
+    }
 
     /** true if the driving sticks are pushed past the deadzone (the driver wants control). */
     public boolean areSticksMoved() {
@@ -129,46 +137,114 @@ public class GamepadInput {
     }
 
     // ========== TRIGGERS (0.0 to 1.0) ==========
-    public double getLeftTrigger()  { return gamepad.left_trigger; }
-    public double getRightTrigger() { return gamepad.right_trigger; }
+    public double getLeftTrigger() {
+        return gamepad.left_trigger;
+    }
+    public double getRightTrigger() {
+        return gamepad.right_trigger;
+    }
 
     // ========== PRESSED: true once per press ==========
-    public boolean isAPressed() { return isNewPress(A, gamepad.a); }
-    public boolean isBPressed() { return isNewPress(B, gamepad.b); }
-    public boolean isXPressed() { return isNewPress(X, gamepad.x); }
-    public boolean isYPressed() { return isNewPress(Y, gamepad.y); }
-    public boolean isDpadUpPressed()    { return isNewPress(DPAD_UP, gamepad.dpad_up); }
-    public boolean isDpadDownPressed()  { return isNewPress(DPAD_DOWN, gamepad.dpad_down); }
-    public boolean isDpadLeftPressed()  { return isNewPress(DPAD_LEFT, gamepad.dpad_left); }
-    public boolean isDpadRightPressed() { return isNewPress(DPAD_RIGHT, gamepad.dpad_right); }
-    public boolean isLeftBumperPressed()  { return isNewPress(LEFT_BUMPER, gamepad.left_bumper); }
-    public boolean isRightBumperPressed() { return isNewPress(RIGHT_BUMPER, gamepad.right_bumper); }
-    public boolean isLeftTriggerPressed()  { return isNewPress(LEFT_TRIGGER, isLeftTriggerHeld()); }
-    public boolean isRightTriggerPressed() { return isNewPress(RIGHT_TRIGGER, isRightTriggerHeld()); }
-    public boolean isStartPressed() { return isNewPress(START, gamepad.start); }
-    public boolean isBackPressed()  { return isNewPress(BACK, gamepad.back); }
-    public boolean isLeftStickButtonPressed()  { return isNewPress(LEFT_STICK_BUTTON, gamepad.left_stick_button); }
-    public boolean isRightStickButtonPressed() { return isNewPress(RIGHT_STICK_BUTTON, gamepad.right_stick_button); }
+    public boolean isAPressed() {
+        return isNewPress(A, gamepad.a);
+    }
+    public boolean isBPressed() {
+        return isNewPress(B, gamepad.b);
+    }
+    public boolean isXPressed() {
+        return isNewPress(X, gamepad.x);
+    }
+    public boolean isYPressed() {
+        return isNewPress(Y, gamepad.y);
+    }
+    public boolean isDpadUpPressed() {
+        return isNewPress(DPAD_UP, gamepad.dpad_up);
+    }
+    public boolean isDpadDownPressed() {
+        return isNewPress(DPAD_DOWN, gamepad.dpad_down);
+    }
+    public boolean isDpadLeftPressed() {
+        return isNewPress(DPAD_LEFT, gamepad.dpad_left);
+    }
+    public boolean isDpadRightPressed() {
+        return isNewPress(DPAD_RIGHT, gamepad.dpad_right);
+    }
+    public boolean isLeftBumperPressed() {
+        return isNewPress(LEFT_BUMPER, gamepad.left_bumper);
+    }
+    public boolean isRightBumperPressed() {
+        return isNewPress(RIGHT_BUMPER, gamepad.right_bumper);
+    }
+    public boolean isLeftTriggerPressed() {
+        return isNewPress(LEFT_TRIGGER, isLeftTriggerHeld());
+    }
+    public boolean isRightTriggerPressed() {
+        return isNewPress(RIGHT_TRIGGER, isRightTriggerHeld());
+    }
+    public boolean isStartPressed() {
+        return isNewPress(START, gamepad.start);
+    }
+    public boolean isBackPressed() {
+        return isNewPress(BACK, gamepad.back);
+    }
+    public boolean isLeftStickButtonPressed() {
+        return isNewPress(LEFT_STICK_BUTTON, gamepad.left_stick_button);
+    }
+    public boolean isRightStickButtonPressed() {
+        return isNewPress(RIGHT_STICK_BUTTON, gamepad.right_stick_button);
+    }
 
     // ========== HELD: true every loop while down ==========
-    public boolean isAHeld() { return gamepad.a; }
-    public boolean isBHeld() { return gamepad.b; }
-    public boolean isXHeld() { return gamepad.x; }
-    public boolean isYHeld() { return gamepad.y; }
-    public boolean isLeftBumperHeld()  { return gamepad.left_bumper; }
-    public boolean isRightBumperHeld() { return gamepad.right_bumper; }
-    public boolean isLeftTriggerHeld()  { return gamepad.left_trigger > ControlsConfig.TRIGGER_THRESHOLD; }
-    public boolean isRightTriggerHeld() { return gamepad.right_trigger > ControlsConfig.TRIGGER_THRESHOLD; }
-    public boolean isLeftStickButtonHeld()  { return gamepad.left_stick_button; }
-    public boolean isRightStickButtonHeld() { return gamepad.right_stick_button; }
+    public boolean isAHeld() {
+        return gamepad.a;
+    }
+    public boolean isBHeld() {
+        return gamepad.b;
+    }
+    public boolean isXHeld() {
+        return gamepad.x;
+    }
+    public boolean isYHeld() {
+        return gamepad.y;
+    }
+    public boolean isLeftBumperHeld() {
+        return gamepad.left_bumper;
+    }
+    public boolean isRightBumperHeld() {
+        return gamepad.right_bumper;
+    }
+    public boolean isLeftTriggerHeld() {
+        return gamepad.left_trigger > ControlsConfig.TRIGGER_THRESHOLD;
+    }
+    public boolean isRightTriggerHeld() {
+        return gamepad.right_trigger > ControlsConfig.TRIGGER_THRESHOLD;
+    }
+    public boolean isLeftStickButtonHeld() {
+        return gamepad.left_stick_button;
+    }
+    public boolean isRightStickButtonHeld() {
+        return gamepad.right_stick_button;
+    }
 
     // ========== RELEASED: true once, on the loop the button comes back up ==========
-    public boolean wasAReleased() { return isNewRelease(A, gamepad.a); }
-    public boolean wasBReleased() { return isNewRelease(B, gamepad.b); }
-    public boolean wasXReleased() { return isNewRelease(X, gamepad.x); }
-    public boolean wasYReleased() { return isNewRelease(Y, gamepad.y); }
-    public boolean wasLeftBumperReleased()  { return isNewRelease(LEFT_BUMPER, gamepad.left_bumper); }
-    public boolean wasRightBumperReleased() { return isNewRelease(RIGHT_BUMPER, gamepad.right_bumper); }
+    public boolean wasAReleased() {
+        return isNewRelease(A, gamepad.a);
+    }
+    public boolean wasBReleased() {
+        return isNewRelease(B, gamepad.b);
+    }
+    public boolean wasXReleased() {
+        return isNewRelease(X, gamepad.x);
+    }
+    public boolean wasYReleased() {
+        return isNewRelease(Y, gamepad.y);
+    }
+    public boolean wasLeftBumperReleased() {
+        return isNewRelease(LEFT_BUMPER, gamepad.left_bumper);
+    }
+    public boolean wasRightBumperReleased() {
+        return isNewRelease(RIGHT_BUMPER, gamepad.right_bumper);
+    }
 
     // ========== HELD FOR: true once, after the button has been held this long ==========
     public boolean isDpadLeftHeldFor(double milliseconds) {
@@ -178,7 +254,9 @@ public class GamepadInput {
     // ========== FEEDBACK to the person holding the gamepad ==========
 
     /** Buzz the gamepad for this many milliseconds. Durations are named in ControlsConfig. */
-    public void rumble(int milliseconds) { gamepad.rumble(milliseconds); }
+    public void rumble(int milliseconds) {
+        gamepad.rumble(milliseconds);
+    }
 
     /** Set the light bar colour on PS4/PS5 gamepads (does nothing on others). Values 0.0 to 1.0. */
     public void setLedColor(double red, double green, double blue) {
@@ -186,5 +264,7 @@ public class GamepadInput {
     }
 
     /** @return the time (ms) the Driver Station last sent new input for this gamepad. */
-    public long getLastUpdateMs() { return gamepad.timestamp; }
+    public long getLastUpdateMs() {
+        return gamepad.timestamp;
+    }
 }

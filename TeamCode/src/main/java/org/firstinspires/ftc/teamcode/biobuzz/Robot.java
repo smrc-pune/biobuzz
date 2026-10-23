@@ -102,7 +102,9 @@ public class Robot {
     }
 
     /** @return true ONCE for each new urgent ALERT. The OpMode rumbles the gamepads. */
-    public boolean hasNewUrgentAlert() { return Alerts.takeUrgent(); }
+    public boolean hasNewUrgentAlert() {
+        return Alerts.takeUrgent();
+    }
 
     /** The names of every FAULTED mechanism, for example "intake launcher", or "" if none. */
     public String getFaultedMechanisms() {

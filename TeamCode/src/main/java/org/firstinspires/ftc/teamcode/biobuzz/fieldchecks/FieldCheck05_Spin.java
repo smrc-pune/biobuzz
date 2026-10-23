@@ -44,7 +44,9 @@ public class FieldCheck05_Spin extends OpMode {
     }
 
     @Override
-    public void start() { FieldCheckHelper.start("FieldCheck05_Spin", battery.getVoltage()); }
+    public void start() {
+        FieldCheckHelper.start("FieldCheck05_Spin", battery.getVoltage());
+    }
 
     @Override
     public void loop() {
@@ -89,5 +91,7 @@ public class FieldCheck05_Spin extends OpMode {
     }
 
     @Override
-    public void stop() { FieldCheckHelper.stop(); }
+    public void stop() {
+        FieldCheckHelper.stop();
+    }
 }

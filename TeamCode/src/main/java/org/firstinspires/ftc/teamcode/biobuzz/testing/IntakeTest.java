@@ -36,7 +36,9 @@ public class IntakeTest extends OpMode {
     }
 
     @Override
-    public void start() { MatchLogger.start("IntakeTest", battery.getVoltage()); }
+    public void start() {
+        MatchLogger.start("IntakeTest", battery.getVoltage());
+    }
 
     @Override
     public void loop() {

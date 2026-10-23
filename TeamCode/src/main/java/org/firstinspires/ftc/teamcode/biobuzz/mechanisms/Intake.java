@@ -41,16 +41,26 @@ public class Intake extends Mechanism {
     }
 
     // ---- What the intake can do ----
-    public void collect() { setPower(IntakeConfig.COLLECT_POWER); }
+    public void collect() {
+        setPower(IntakeConfig.COLLECT_POWER);
+    }
 
-    public void reverse() { setPower(IntakeConfig.REVERSE_POWER); }
+    public void reverse() {
+        setPower(IntakeConfig.REVERSE_POWER);
+    }
 
     // ---- What you can ask it ----
-    public boolean isCollecting() { return power > 0; }
+    public boolean isCollecting() {
+        return power > 0;
+    }
 
-    public boolean isReversing() { return power < 0; }
+    public boolean isReversing() {
+        return power < 0;
+    }
 
-    public double getPower() { return power; }
+    public double getPower() {
+        return power;
+    }
 
     private void setPower(double newPower) {
         if (isFaulted()) {
@@ -86,8 +96,12 @@ public class Intake extends Mechanism {
     }
 
     @Override
-    protected void addLogValues() { MatchLogger.value("intake_power", power); }
+    protected void addLogValues() {
+        MatchLogger.value("intake_power", power);
+    }
 
     @Override
-    protected boolean isTelemetryOn() { return TelemetryConfig.INTAKE; }
+    protected boolean isTelemetryOn() {
+        return TelemetryConfig.INTAKE;
+    }
 }

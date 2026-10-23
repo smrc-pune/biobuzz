@@ -99,7 +99,9 @@ public class FieldDrawing {
     }
 
     /** A number for the Dashboard's Graph view (launcher speed, loop time, battery). */
-    public static void graph(String name, double value) { packet.put(name, value); }
+    public static void graph(String name, double value) {
+        packet.put(name, value);
+    }
 
     /** Send this loop's drawing and graph numbers, at most every TelemetryConfig.DS_TRANSMIT_INTERVAL_MS. */
     public static void send() {

@@ -37,14 +37,20 @@ public class IntakeSubsystem extends Subsystem {
     }
 
     /** Pull balls in. */
-    public void collect() { intake.collect(); }
+    public void collect() {
+        intake.collect();
+    }
 
     /** Spit balls out while the operator holds B (also how opponent NECTAR goes back out, G408). */
-    public void reverse() { intake.reverse(); }
+    public void reverse() {
+        intake.reverse();
+    }
 
     // stop() comes from Subsystem: the roller off.
 
-    public boolean isOn() { return intake.isCollecting(); }
+    public boolean isOn() {
+        return intake.isCollecting();
+    }
 
     @Override
     public String getStatusText() {

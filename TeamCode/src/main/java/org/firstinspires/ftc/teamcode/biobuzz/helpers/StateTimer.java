@@ -20,12 +20,20 @@ public class StateTimer {
     private final ElapsedTime timer = new ElapsedTime();
 
     /** Start counting from zero again. */
-    public void reset() { timer.reset(); }
+    public void reset() {
+        timer.reset();
+    }
 
-    public double seconds() { return timer.seconds(); }
+    public double seconds() {
+        return timer.seconds();
+    }
 
-    public double milliseconds() { return timer.milliseconds(); }
+    public double milliseconds() {
+        return timer.milliseconds();
+    }
 
     /** @return true once at least this many milliseconds have passed since the last reset(). */
-    public boolean isTimeUp(double milliseconds) { return timer.milliseconds() >= milliseconds; }
+    public boolean isTimeUp(double milliseconds) {
+        return timer.milliseconds() >= milliseconds;
+    }
 }

@@ -77,5 +77,7 @@ public class FieldCheck03_Still extends OpMode {
     }
 
     @Override
-    public void stop() { FieldCheckHelper.stop(); }
+    public void stop() {
+        FieldCheckHelper.stop();
+    }
 }

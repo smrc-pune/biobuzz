@@ -37,14 +37,22 @@ public class MatchClock {
         leftS = Math.max(0, lengthS - sinceStart.seconds());
     }
 
-    public boolean hasStarted() { return lengthS > 0; }
+    public boolean hasStarted() {
+        return lengthS > 0;
+    }
 
     /** true when this clock was started for TeleOp (2:00). */
-    public boolean isTeleOp() { return lengthS == TELEOP_S; }
+    public boolean isTeleOp() {
+        return lengthS == TELEOP_S;
+    }
 
-    public double secondsSinceStart() { return sinceStart.seconds(); }
+    public double secondsSinceStart() {
+        return sinceStart.seconds();
+    }
 
-    public double secondsLeft() { return leftS; }
+    public double secondsLeft() {
+        return leftS;
+    }
 
     /** @return true on the one loop where the time left goes down to "seconds". */
     public boolean justReachedSecondsLeft(double seconds) {

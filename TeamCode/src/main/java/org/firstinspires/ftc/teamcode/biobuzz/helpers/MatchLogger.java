@@ -52,7 +52,9 @@ public class MatchLogger {
     private static int rowCount = 0;
 
     /** PLAY: open a new file (if LogConfig.ENABLED) and write the # lines. */
-    public static void start(String opModeName, double batteryVolts) { start(opModeName, batteryVolts, ""); }
+    public static void start(String opModeName, double batteryVolts) {
+        start(opModeName, batteryVolts, "");
+    }
 
     /** The same, with one more # line, for example "routine=LAUNCH_PARK start=WALL_MIDDLE delay_s=0". */
     public static void start(String opModeName, double batteryVolts, String extraHeader) {
@@ -149,7 +151,9 @@ public class MatchLogger {
     }
 
     /** The folder the log files go in (LogSummary reads them from here). */
-    public static File getFolder() { return FOLDER; }
+    public static File getFolder() {
+        return FOLDER;
+    }
 
     /** @return free storage on the Control Hub, in MB (Robot Check wants more than 50). */
     public static double getFreeStorageMb() {

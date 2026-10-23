@@ -54,7 +54,9 @@ public class FieldCheck08_Line extends OpMode {
     }
 
     @Override
-    public void start() { FieldCheckHelper.start("FieldCheck08_Line", battery.getVoltage()); }
+    public void start() {
+        FieldCheckHelper.start("FieldCheck08_Line", battery.getVoltage());
+    }
 
     @Override
     public void loop() {

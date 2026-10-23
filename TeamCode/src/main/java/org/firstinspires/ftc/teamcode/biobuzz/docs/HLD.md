@@ -169,7 +169,9 @@ public ShooterSubsystem(HardwareMap hardwareMap, Drive drive) {
     addMechanism(launcher);
     addStateMachine(launchStateMachine);
 }
-public void launch(int count) { launchStateMachine.start(count); }   // the menu
+public void launch(int count) {
+    launchStateMachine.start(count);   // the menu
+}
 ```
 
 | Subsystem | Owns | Menu (examples) |

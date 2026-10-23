@@ -54,7 +54,9 @@ public class FieldCheck04_Push extends OpMode {
     }
 
     @Override
-    public void start() { FieldCheckHelper.start("FieldCheck04_Push", battery.getVoltage()); }
+    public void start() {
+        FieldCheckHelper.start("FieldCheck04_Push", battery.getVoltage());
+    }
 
     @Override
     public void loop() {
@@ -111,5 +113,7 @@ public class FieldCheck04_Push extends OpMode {
     }
 
     @Override
-    public void stop() { FieldCheckHelper.stop(); }
+    public void stop() {
+        FieldCheckHelper.stop();
+    }
 }

@@ -236,7 +236,9 @@ public class BioBuzzAuto extends OpMode {
         stepTimer.reset();
     }
 
-    private boolean isTimedOut(double timeoutMs) { return stepTimer.isTimeUp(timeoutMs); }
+    private boolean isTimedOut(double timeoutMs) {
+        return stepTimer.isTimeUp(timeoutMs);
+    }
 
     /** A drive step ran out of time: stop where we are, write it down, go on. */
     private void driveTimedOut(Step next) {

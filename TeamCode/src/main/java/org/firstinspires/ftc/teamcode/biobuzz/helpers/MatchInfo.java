@@ -33,7 +33,9 @@ public class MatchInfo {
     private static boolean hasTipped = false;
     private static final ElapsedTime sinceTip = new ElapsedTime();
 
-    public static boolean isRed() { return alliance == AllianceColor.RED; }
+    public static boolean isRed() {
+        return alliance == AllianceColor.RED;
+    }
 
     /** Auto init() only: the HIVE as the field crew set it up, no TIPS yet. */
     public static void resetForNewMatch() {
@@ -51,7 +53,9 @@ public class MatchInfo {
         MatchLogger.event("HIVE_TIP", tipCount + " (up CELL " + getUpCellName() + ")");
     }
 
-    public static boolean isCellAUp() { return cellAUp; }
+    public static boolean isCellAUp() {
+        return cellAUp;
+    }
 
     public static String getUpCellName() {
         if (cellAUp) {
@@ -60,10 +64,14 @@ public class MatchInfo {
         return "B";
     }
 
-    public static int getTipCount() { return tipCount; }
+    public static int getTipCount() {
+        return tipCount;
+    }
 
     /** The human player may enter one NECTAR per TIP of our HIVE (rule G426), and any after 1:00 left. */
-    public static int getNectarAllowed() { return tipCount; }
+    public static int getNectarAllowed() {
+        return tipCount;
+    }
 
     /** Seconds since the last TIP; a big number if there was none. The launcher waits after a TIP. */
     public static double secondsSinceTip() {

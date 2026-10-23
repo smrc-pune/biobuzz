@@ -354,12 +354,16 @@ A new mechanism or state machine usually goes into an EXISTING subsystem (one
 `addMechanism(...)` line and a menu method there); `Robot.java` does not change. Only a new
 job of the robot gets a new subsystem, at the `ADD A SUBSYSTEM HERE` spot in `Robot.java`.
 
-**Every `if` gets braces.** Even when only one line runs, write it with `{` and `}` and the
-body on its own line, like every file in this folder:
+**Every `if` and every method gets braces on their own lines.** Even when only one line runs,
+write it with `{` and `}` and the body on its own line, like every file in this folder:
 
 ```java
 if (isFaulted()) {
     return;
+}
+
+public boolean isOn() {
+    return intake.isCollecting();
 }
 ```
 
@@ -417,7 +421,7 @@ true only on the one loop when the button goes from up to down. Read each button
 | 8 | Mechanisms: Intake, Feeder, Launcher, HIVE camera, front camera; LaunchStateMachine; aim button; gamepad 2 map; one test each | Done (device names, ports and numbers are first guesses: TODO(BioBuzz)) |
 | 9 | Guides (section 12), TROUBLESHOOTING.md, HLD/LLD updated, UPSTREAM.md, tools/plot_match.py | Done |
 | 10 | Subsystems (Requirements v2.8): `Robot` split into `intake`, `shooter`, `vision` and `assists`; `Subsystem` and `StateMachine` base classes, `TemplateSubsystem` | Done (OpModes now call `robot.shooter.launch(4)`, ...) |
-| 11 | Easier to read (Requirements v2.9): `Assists` renamed `DriveToSpot` (`robot.driveToSpot.launchSpot()`; "set pose here" is now `robot.drive.setPoseAtResetCorner()`); every `if` / `else` has `{ }` on its own lines | Done |
+| 11 | Easier to read (Requirements v2.9): `Assists` renamed `DriveToSpot` (`robot.driveToSpot.launchSpot()`; "set pose here" is now `robot.drive.setPoseAtResetCorner()`); every `if` / `else` and every method has `{ }` on its own lines | Done |
 
 > **Important:** Pedro's `pedro/Constants.java` is still the empty Quickstart file.
 > Until it is filled in at drive tuning, every BioBuzz OpMode that drives stops at INIT

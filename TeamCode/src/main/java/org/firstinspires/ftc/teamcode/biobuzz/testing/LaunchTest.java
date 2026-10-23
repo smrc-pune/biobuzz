@@ -76,5 +76,7 @@ public class LaunchTest extends OpMode {
     }
 
     @Override
-    public void stop() { robot.endMatch(); }
+    public void stop() {
+        robot.endMatch();
+    }
 }

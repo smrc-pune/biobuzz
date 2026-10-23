@@ -151,7 +151,9 @@ public class HealthMonitor {
 
     // ==================== for telemetry and the match log ====================
 
-    public double getLoopMs() { return loopMs; }
+    public double getLoopMs() {
+        return loopMs;
+    }
 
     /** Loop time and battery columns of a DATA row. */
     public void addLogData() {

@@ -43,7 +43,9 @@ public class FieldCheck10_Wall extends OpMode {
     }
 
     @Override
-    public void start() { FieldCheckHelper.start("FieldCheck10_Wall", battery.getVoltage()); }
+    public void start() {
+        FieldCheckHelper.start("FieldCheck10_Wall", battery.getVoltage());
+    }
 
     @Override
     public void loop() {
@@ -73,5 +75,7 @@ public class FieldCheck10_Wall extends OpMode {
     }
 
     @Override
-    public void stop() { FieldCheckHelper.stop(); }
+    public void stop() {
+        FieldCheckHelper.stop();
+    }
 }

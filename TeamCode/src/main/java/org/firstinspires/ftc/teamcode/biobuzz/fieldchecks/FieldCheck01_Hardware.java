@@ -107,5 +107,7 @@ public class FieldCheck01_Hardware extends OpMode {
     }
 
     @Override
-    public void stop() { FieldCheckHelper.stop(); }
+    public void stop() {
+        FieldCheckHelper.stop();
+    }
 }

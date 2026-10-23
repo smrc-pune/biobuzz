@@ -36,28 +36,40 @@ public class Mechanism {
     private boolean faulted = false;
     private String faultReason = "";
 
-    public Mechanism(String name) { this.name = name; }
+    public Mechanism(String name) {
+        this.name = name;
+    }
 
     // ==================== HOOKS: your mechanism fills these in ====================
 
     /** Every loop: control loops and sensor reads. Never wait or sleep here. */
-    protected void update() { }
+    protected void update() {
+        // empty here: your mechanism fills it in with @Override
+    }
 
     /** Put the devices in their safe state: motors off, servos where they hold nothing. */
-    protected void stop() { }
+    protected void stop() {
+        // empty here: your mechanism fills it in with @Override
+    }
 
     /** Your own telemetry lines (powers, speeds, sensor values). */
-    protected void addDetails(Telemetry t) { }
+    protected void addDetails(Telemetry t) {
+        // empty here: your mechanism fills it in with @Override
+    }
 
     /**
      * Your match-log columns, the same ones in the same order every time, for example
      * MatchLogger.value("intake_power", power). Log numbers you already keep in fields:
      * do NOT read hardware here (this also runs while FAULTED).
      */
-    protected void addLogValues() { }
+    protected void addLogValues() {
+        // empty here: your mechanism fills it in with @Override
+    }
 
     /** Your switch in TelemetryConfig, so a student can hide these lines. A FAULTED line always shows. */
-    protected boolean isTelemetryOn() { return true; }
+    protected boolean isTelemetryOn() {
+        return true;
+    }
 
     // ==================== FIXED: its subsystem and test OpModes call these ====================
 
@@ -94,9 +106,13 @@ public class Mechanism {
         addLogValues();
     }
 
-    public final boolean isFaulted() { return faulted; }
+    public final boolean isFaulted() {
+        return faulted;
+    }
 
-    public final String getName() { return name; }
+    public final String getName() {
+        return name;
+    }
 
     /** A mechanism may call this itself, for example when it sees a motor stall. */
     protected final void markFaulted(String reason) {

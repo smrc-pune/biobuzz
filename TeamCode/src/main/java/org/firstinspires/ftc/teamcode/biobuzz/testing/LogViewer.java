@@ -39,10 +39,14 @@ public class LogViewer extends OpMode {
     }
 
     @Override
-    public void init_loop() { show(); }
+    public void init_loop() {
+        show();
+    }
 
     @Override
-    public void loop() { show(); }
+    public void loop() {
+        show();
+    }
 
     private void show() {
         if (pad.isAPressed()) {

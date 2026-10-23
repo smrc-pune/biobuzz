@@ -39,7 +39,9 @@ public class TemplateSubsystem extends Subsystem {
     // ==================== THE MENU ====================
 
     /** Run the mechanism for TemplateConfig.RUN_TIME_MS, then stop (the state machine times it). */
-    public void runForAWhile() { stateMachine.start(); }
+    public void runForAWhile() {
+        stateMachine.start();
+    }
 
     /** Run the mechanism until told to stop. The state machine must not fight it: cancel it first. */
     public void run() {
@@ -49,7 +51,9 @@ public class TemplateSubsystem extends Subsystem {
 
     // stop() comes from Subsystem: the state machine cancelled, the mechanism stopped.
 
-    public boolean isRunning() { return mechanism.isRunning(); }
+    public boolean isRunning() {
+        return mechanism.isRunning();
+    }
 
     @Override
     public String getStatusText() {

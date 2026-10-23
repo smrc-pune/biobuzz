@@ -52,19 +52,27 @@ public class Launcher extends Mechanism {
     // ---- What the launcher can do ----
 
     /** Spin at the right speed to reach the upward CELL from this distance (inches). */
-    public void spinUpFor(double distanceIn) { setTargetRpm(rpmForDistance(distanceIn)); }
+    public void spinUpFor(double distanceIn) {
+        setTargetRpm(rpmForDistance(distanceIn));
+    }
 
     /** Spin at the idle speed between launches. */
-    public void idle() { setTargetRpm(LauncherConfig.IDLE_RPM); }
+    public void idle() {
+        setTargetRpm(LauncherConfig.IDLE_RPM);
+    }
 
     // ---- What you can ask it ----
     public boolean isUpToSpeed() {
         return targetRpm > 0 && Math.abs(rpm - targetRpm) <= LauncherConfig.SPEED_TOLERANCE_RPM;
     }
 
-    public double getRpm() { return rpm; }
+    public double getRpm() {
+        return rpm;
+    }
 
-    public double getTargetRpm() { return targetRpm; }
+    public double getTargetRpm() {
+        return targetRpm;
+    }
 
     /**
      * The speed table: straight-line in-between values, the end values beyond the ends.
@@ -146,5 +154,7 @@ public class Launcher extends Mechanism {
     }
 
     @Override
-    protected boolean isTelemetryOn() { return TelemetryConfig.LAUNCHER; }
+    protected boolean isTelemetryOn() {
+        return TelemetryConfig.LAUNCHER;
+    }
 }

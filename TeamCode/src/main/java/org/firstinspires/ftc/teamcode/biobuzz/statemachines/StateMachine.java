@@ -25,17 +25,27 @@ import org.firstinspires.ftc.robotcore.external.Telemetry;
 public class StateMachine {
 
     /** One small step. Its subsystem calls it once per loop, BEFORE its mechanisms update. */
-    public void update() { }
+    public void update() {
+        // empty here: your state machine fills it in with @Override
+    }
 
     /** Stop the job at once and go to the safe state (stop-all, or a timeout in Auto). */
-    public void cancel() { }
+    public void cancel() {
+        // empty here: your state machine fills it in with @Override
+    }
 
     /** @return true while the job is running (not IDLE). */
-    public boolean isBusy() { return false; }
+    public boolean isBusy() {
+        return false;
+    }
 
     /** The state, the "last change" line, and anything else worth seeing. */
-    public void addTelemetry(Telemetry t) { }
+    public void addTelemetry(Telemetry t) {
+        // empty here: your state machine fills it in with @Override
+    }
 
     /** Its match-log columns, for example MatchLogger.value("launch_state", ...). */
-    public void addLogData() { }
+    public void addLogData() {
+        // empty here: your state machine fills it in with @Override
+    }
 }

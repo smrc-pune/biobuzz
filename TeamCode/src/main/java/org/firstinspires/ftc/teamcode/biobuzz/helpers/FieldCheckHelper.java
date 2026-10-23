@@ -39,7 +39,9 @@ public class FieldCheckHelper {
     }
 
     /** STOP: close the match log. */
-    public static void stop() { MatchLogger.stop("field=" + FieldCheckConfig.FIELD_NAME); }
+    public static void stop() {
+        MatchLogger.stop("field=" + FieldCheckConfig.FIELD_NAME);
+    }
 
     /** Grade an error against a tolerance: PASS, WARN (up to 2x) or FAIL. */
     public static String grade(double error, double tolerance) {
@@ -120,7 +122,13 @@ public class FieldCheckHelper {
         }
     }
 
-    public static double getRestingBatteryV() { return restingBatteryV; }
-    public static double getLowestDrivingBatteryV() { return lowestDrivingBatteryV; }
-    public static boolean doesBatteryDiffer() { return batteryDiffers; }
+    public static double getRestingBatteryV() {
+        return restingBatteryV;
+    }
+    public static double getLowestDrivingBatteryV() {
+        return lowestDrivingBatteryV;
+    }
+    public static boolean doesBatteryDiffer() {
+        return batteryDiffers;
+    }
 }

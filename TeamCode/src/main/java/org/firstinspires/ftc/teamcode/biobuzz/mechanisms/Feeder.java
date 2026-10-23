@@ -53,7 +53,9 @@ public class Feeder extends Mechanism {
     }
 
     // ---- What you can ask it ----
-    public boolean isFeeding() { return feeding; }
+    public boolean isFeeding() {
+        return feeding;
+    }
 
     private void moveTo(double newPosition) {
         if (newPosition == position) {
@@ -80,8 +82,12 @@ public class Feeder extends Mechanism {
     }
 
     @Override
-    protected void addLogValues() { MatchLogger.value("feeder_feeding", feeding); }
+    protected void addLogValues() {
+        MatchLogger.value("feeder_feeding", feeding);
+    }
 
     @Override
-    protected boolean isTelemetryOn() { return TelemetryConfig.FEEDER; }
+    protected boolean isTelemetryOn() {
+        return TelemetryConfig.FEEDER;
+    }
 }

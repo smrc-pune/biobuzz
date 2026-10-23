@@ -37,7 +37,9 @@ public class FeederTest extends OpMode {
     }
 
     @Override
-    public void start() { MatchLogger.start("FeederTest", battery.getVoltage()); }
+    public void start() {
+        MatchLogger.start("FeederTest", battery.getVoltage());
+    }
 
     @Override
     public void loop() {

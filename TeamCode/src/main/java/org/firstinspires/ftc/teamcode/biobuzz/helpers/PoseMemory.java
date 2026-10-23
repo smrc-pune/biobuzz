@@ -32,14 +32,22 @@ public class PoseMemory {
     }
 
     /** @return true if an Autonomous saved a pose since the app started. */
-    public static boolean hasPose() { return savedPose != null; }
+    public static boolean hasPose() {
+        return savedPose != null;
+    }
 
     /** @return the saved pose, or null if there is none (check hasPose() first). */
-    public static Pose getPose() { return savedPose; }
+    public static Pose getPose() {
+        return savedPose;
+    }
 
     /** @return seconds since the pose was saved, so TeleOp can tell an old pose from a fresh one. */
-    public static double secondsSinceSaved() { return sinceSaved.seconds(); }
+    public static double secondsSinceSaved() {
+        return sinceSaved.seconds();
+    }
 
     /** Forget the saved pose, for example after TeleOp has used it. */
-    public static void clear() { savedPose = null; }
+    public static void clear() {
+        savedPose = null;
+    }
 }

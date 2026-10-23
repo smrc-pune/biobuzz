@@ -63,7 +63,9 @@ public class TemplateStateMachine extends StateMachine {
 
     /** Stop at once. */
     @Override
-    public void cancel() { goTo(State.IDLE, "cancel"); }
+    public void cancel() {
+        goTo(State.IDLE, "cancel");
+    }
 
     // ==================== 3. UPDATE (once per loop, its subsystem calls it) ====================
 
@@ -106,13 +108,21 @@ public class TemplateStateMachine extends StateMachine {
     }
 
     @Override
-    public boolean isBusy() { return state != State.IDLE; }
+    public boolean isBusy() {
+        return state != State.IDLE;
+    }
 
-    public State getState() { return state; }
+    public State getState() {
+        return state;
+    }
 
     @Override
-    public void addTelemetry(Telemetry t) { log.addTo(t, state, timer, isBusy()); }
+    public void addTelemetry(Telemetry t) {
+        log.addTo(t, state, timer, isBusy());
+    }
 
     @Override
-    public void addLogData() { MatchLogger.value("template_state", state.ordinal()); }
+    public void addLogData() {
+        MatchLogger.value("template_state", state.ordinal());
+    }
 }

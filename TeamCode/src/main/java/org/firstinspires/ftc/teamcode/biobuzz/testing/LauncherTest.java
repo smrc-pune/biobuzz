@@ -45,7 +45,9 @@ public class LauncherTest extends OpMode {
     }
 
     @Override
-    public void start() { MatchLogger.start("LauncherTest", battery.getVoltage()); }
+    public void start() {
+        MatchLogger.start("LauncherTest", battery.getVoltage());
+    }
 
     @Override
     public void loop() {

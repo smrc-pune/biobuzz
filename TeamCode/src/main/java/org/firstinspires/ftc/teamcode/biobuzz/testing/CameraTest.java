@@ -42,10 +42,14 @@ public class CameraTest extends OpMode {
     }
 
     @Override
-    public void init_loop() { showCameras(); }
+    public void init_loop() {
+        showCameras();
+    }
 
     @Override
-    public void loop() { showCameras(); }
+    public void loop() {
+        showCameras();
+    }
 
     private void showCameras() {
         if (pad.isXPressed()) {
