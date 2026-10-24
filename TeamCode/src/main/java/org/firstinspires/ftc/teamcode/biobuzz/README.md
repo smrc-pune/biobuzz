@@ -526,7 +526,8 @@ cleanly.
 | `BioBuzz-Requirements.md`, `DESIGN-REVIEW.md` | the rules the code follows, and why |
 
 Changes to Quickstart files (outside `biobuzz/`) are listed in `UPSTREAM.md` at the
-repository root.
+repository root. The repository's front page on GitHub is `.github/README.md`: it points
+here. At each release, update its **Status** line.
 
 
 ---
