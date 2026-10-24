@@ -68,9 +68,10 @@ The summary prints, for each ALERT, the battery voltage at that moment and the l
 
 ## The 5-minute debrief
 
-1. Copy the files. 2. `plot_match.py --match <Auto file>`. 3. Ask the drive team what felt wrong,
-and when; find it on the plot. 4. Fill one row of the match sheet: match number (from the event
-schedule), log files, field, resting and lowest voltage, clean end, symptom (in the drive
-team's words), evidence (time, plot), cause, fix. 5. Anything new goes into `DEBUGGING.md`.
+1. Copy the files.
+2. `plot_match.py --match <Auto file>`.
+3. Ask the drive team what felt wrong, and when; find it on the plot.
+4. Fill one row of the match sheet: match number (from the event schedule), log files, field, resting and lowest voltage, clean end, symptom (in the drive team's words), evidence (time, plot), cause, fix.
+5. Anything new goes into `DEBUGGING.md`.
 
 Phone or stream video lines up with the log at the `PLAY` event.
