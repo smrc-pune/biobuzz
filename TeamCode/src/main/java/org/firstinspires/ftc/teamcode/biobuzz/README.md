@@ -429,6 +429,7 @@ true only on the one loop when the button goes from up to down. Read each button
 | --- | --- | --- |
 | `v0.1` | 2026-10-24 | First student version: steps 1–11, Pedro 3.0.2. Not run on the robot yet |
 | `v0.1.1` | 2026-10-24 | The repository's own front page (`.github/README.md`). Docs only |
+| `v0.1.2` | 2026-10-24 | Every decision from Oct 23–24 written into the design docs (Requirements v2.10, design review section 10). Docs only |
 
 > **Important:** Pedro's `pedro/Constants.java` is still the empty Quickstart file.
 > Until it is filled in at drive tuning, every BioBuzz OpMode that drives stops at INIT
