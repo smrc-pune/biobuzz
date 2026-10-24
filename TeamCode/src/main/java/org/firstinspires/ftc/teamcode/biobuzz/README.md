@@ -514,7 +514,7 @@ cleanly.
 | `CONTROLS.md` | know what every button does (print it for the drive team) |
 | `HOW_TO_ADD_A_MECHANISM.md` | add a mechanism or a state machine from the templates |
 | `AUTO_GUIDE.md` | measure poses, change Autonomous, add a step or a start position |
-| `TUNING.md` | tune the drive (Pedro) and the mechanisms, in the right order |
+| `TUNING.md` | tune the drive (with our Pedro tuning kit) and the mechanisms, in the right order |
 | `MATCH_DAY.md` | check the robot on a new field, before and between matches; recovery buttons |
 | `MATCH_LOGS.md` | copy and read match logs; use Log Viewer and `tools/plot_match.py` |
 | `DEBUGGING.md` | find out what is wrong: the 6 questions, every ALERT, a symptom table |

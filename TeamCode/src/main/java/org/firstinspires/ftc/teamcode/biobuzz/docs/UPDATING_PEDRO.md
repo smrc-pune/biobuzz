@@ -35,4 +35,5 @@ before an event.**
 
 Every change to a Quickstart-owned file is listed in `UPSTREAM.md`. Today: the FTC Dashboard
 block at the end of `build.dependencies.gradle` and `.gitignore` lines. At drive tuning,
-`Constants.java` and `Tuning.java` get their one-time fill-in.
+`Constants.java` and `Tuning.java` get their one-time fill-in (`Tuning.java` from our
+[Pedro tuning kit](https://github.com/smrc-pune/pedropathing/tree/main/pedro-tuning-kit)).

@@ -5,7 +5,7 @@ needs the one before it. Tick the boxes as you go, and write the date next to ea
 The other guides explain the details; this page tells you which one to open, and when.
 
 **Who:** most steps are for students. The steps marked **(mentor)** need a mentor there.
-**Time:** about 4 to 6 sessions, and drive tuning is the longest step.
+**Time:** about 4 to 6 sessions. Drive tuning (step 6) is the longest: it has its own kit.
 
 **Safety, every time the robot is powered:**
 - Wheels off the floor (on blocks) unless the step says "on the floor".
@@ -39,7 +39,7 @@ Open `configurations/HardwareNames.java`. It is the wiring sheet.
 
 - [ ] Driver Station: ⋮ → **Configure Robot** → a new configuration named `BioBuzz`.
 - [ ] Every device on the hub and port from step 1, with **exactly** the same name
-      (capital letters count). The Pinpoint (goBILDA Pinpoint) on its I2C bus; the HuskyLens
+      (capital letters count). The Pinpoint (goBILDA Pinpoint) on an I2C bus **other than 0** (Pedro needs this); the HuskyLens
       as "HuskyLens"; the webcam under the Control Hub's USB devices.
 - [ ] Save, and make it the **active** configuration.
 
@@ -76,18 +76,30 @@ Run **Robot Check** (group "Tests"). A = next step, B = repeat.
 
 **Done when:** READY FOR MATCH. (Drive tuning in step 6 may change wheel directions again.)
 
-## Step 6 – Drive tuning (mentor)
+## Step 6 – Drive tuning with the Pedro tuning kit (mentor)
 
 Until this step, every OpMode that drives stops at INIT with **"DRIVE NOT SET UP"**. That is
-expected.
+expected. Drive tuning has its own kit and checklist, in a separate repository:
+**[smrc-pune/pedropathing → pedro-tuning-kit](https://github.com/smrc-pune/pedropathing/tree/main/pedro-tuning-kit)**. `TUNING.md` explains how it
+fits our code.
 
-- [ ] **(mentor)** Fill in `pedro/Constants.java` once (drivetrain, Pinpoint, Foresight) and
-      write the change in `UPSTREAM.md` (`TUNING.md`, "Once, at the first tuning").
-- [ ] Run the tuners **in order**: Pinpoint tuner → localization push tests → Mecanum tuner
-      → Foresight tuner → Tests (`TUNING.md`, the table). Each row says what good looks like.
-- [ ] Commit `pedro/Constants.java` with the date.
+- [ ] Print the kit's [**Tuning Checklist**](https://github.com/smrc-pune/pedropathing/blob/main/pedro-tuning-kit/docs/pedro-tuning/Tuning_Checklist.md) (there is a PDF).
+      Keep the [Constants Explained guide](https://github.com/smrc-pune/pedropathing/blob/main/pedro-tuning-kit/docs/pedro-tuning/Pedro_Pathing_Constants_Explained.md) open.
+- [ ] **(mentor)** Give `pedro/Constants.java` its three blocks, `drivetrainConfig`,
+      `localizerConfig`, `foresightConfig`, and `create(hardwareMap)`. Copy the kit's staged
+      `Tuning.java` over `pedro/Tuning.java`. Write both changes in `UPSTREAM.md`
+      (`TUNING.md`, "Before Stage 0").
+- [ ] Stage 0 – Before you start. Gate 0 passed.
+- [ ] Stage 1 – Mecanum (motor directions). Gate 1 passed; **FRONT** taped on the robot.
+      Put the directions it found into `HardwareNames.MOTOR_DRIVE_*_REVERSED`.
+- [ ] Stage 2 – Pinpoint (pod directions, offsets). Gates 2a, 2b, 2c passed.
+- [ ] Stage 3 – Foresight, run 2–3 times, averaged in the
+      (downloaded) [tuning checker](https://github.com/smrc-pune/pedropathing/blob/main/pedro-tuning-kit/docs/pedro-tuning/tuning-checker/index.html). Gate 3 passed.
+- [ ] Stage 4 – Wire it in (`new Foresight(foresightConfig)`, not `null`). Gate 4 passed.
+- [ ] Stage 5 – Tests: Hold, Line, Curved, Interpolation all pass.
+- [ ] The kit's sign-off log filled in. `pedro/Constants.java` committed with the date.
 
-**Done when:** "DRIVE NOT SET UP" is gone, and Pedro's square test ends close to its start.
+**Done when:** every gate in the kit's sign-off log is signed, and "DRIVE NOT SET UP" is gone.
 
 ## Step 7 – Driving by hand (on the floor)
 
@@ -192,7 +204,7 @@ is done, delete the TODO line it answers.
 
 | File | The TODO | Step |
 | --- | --- | --- |
-| `configurations/HardwareNames.java` | names, ports, directions, the localizer | 1, 4, 6 |
+| `configurations/HardwareNames.java` | names, ports, directions, the localizer | 1, 4, 6 (kit Stage 1) |
 | `configurations/FeederConfig.java`, `mechanisms/Feeder.java` | feeder positions; servo or motor | 4, 8 |
 | `configurations/LauncherConfig.java` | the speed table | 8 |
 | `configurations/CameraConfig.java`, `mechanisms/FrontCamera.java` | tag IDs, mounting, colours, the BIOBUZZ tag library | 9 |
