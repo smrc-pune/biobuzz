@@ -1,6 +1,6 @@
 # BioBuzz Software – Design Review
 
-Oct 19, 2026 · for mentor review before any code changes
+Oct 19, 2026 (updated Oct 24, 2026) · started as the mentor review before any code changes; later sections record decisions made while building
 
 This review compares three things: the requirements (v1.4), the new design the team agreed on in discussion, and the BIOBUZZ Competition Manual (TU05). It lists every conflict, misalignment and gap found, with the fix applied in Requirements v2.0, `HLD.md` and `LLD.md`, and the questions that only the team can answer.
 
@@ -216,4 +216,22 @@ These came up while writing the code. Each is resolved as below; details in `LLD
 | S5 | State machines had no common type | `StateMachine`, a plain base class like `Mechanism` (five methods to override). An interface was tried first and dropped: it is a second idea for students to learn. The cost: the build does not catch a missing `cancel()`, so the template has all five | R3 amended: two more base classes (`Subsystem`, `StateMachine`) and a `List` inside `Subsystem.java`. Interfaces and team generics stay forbidden: constructors write `feeder = new Feeder(hardwareMap); addMechanism(feeder);` |
 | S6 | `robot.markHiveTipped()` | `MatchInfo.markHiveTipped()` directly, as OpModes already call `MatchInfo.switchAlliance()` | – |
 | S7 | Match-log columns: health, drive, every mechanism, `launch_state`, HIVE | Grouped by subsystem: `intake_*`, then `feeder_*`, `launcher_*`, `launch_state`, then the cameras | `LogSummary` and `plot_match.py` read columns by name |
+
+## 10. Readability, tuning and how we work (Oct 23–24, 2026, Requirements v2.9–v2.10)
+
+Decisions made after step 10, with the reason for each, so they are not re-argued later.
+
+| # | Decision | Why | Rejected |
+| --- | --- | --- | --- |
+| P1 | `Assists` renamed `DriveToSpot`: `robot.driveToSpot.launchSpot()`, `loadingZone()` | "Assists" did not say what the class does; the new call reads as a sentence | – |
+| P2 | "Set pose here" moved to `robot.drive.setPoseAtResetCorner()` | It does not drive anywhere, so it did not belong in `DriveToSpot`; the pose belongs to `Drive` | – |
+| P3 | Every `if` / `else` and every method has `{ }` with the body on its own lines, even one line (R3) | Students can always see what an `if` controls, and adding a second line cannot break it. 292 `if`s and 195 methods reformatted; empty hooks get a comment inside | Keep one-line forms for short code |
+| P4 | `pedro/` (the Quickstart) is not reformatted | Quickstart merges stay clean | – |
+| P5 | Hiding test OpModes with one switch: a future improvement, not built | Needs `@OpModeRegistrar`, the `@TeleOp` line removed from 25 files, and one more step for every new test; a Dashboard switch cannot work (the list is built at app start) | Build it now |
+| P6 | Drive tuning follows the team's Pedro tuning kit (`smrc-pune/pedropathing`), linked, not copied | One source for the tuning steps; the kit has gates, a sign-off log and a value checker. Its order (Mecanum, then Pinpoint, then Foresight) replaced ours (Pinpoint first) | Copy the steps into `TUNING.md` |
+| P7 | Quickstart merged to `9dc8978` (Pedro 3.0.2) before tuning | The Foresight tuner's NaN and runaway stops, and its braking fix, protect the first tuning runs | Wait until after tuning |
+| P8 | `master` = students' version; `biobuzz-dev` = mentor work; tagged releases | Students always have code that builds while work continues; values (students) and structure (mentors) change in different places | Everyone on one branch |
+| P9 | Front page in `.github/README.md` | GitHub shows it in place of the SDK's `README.md`, which FIRST rewrites every SDK release: editing that file would conflict at every update | Replace the root `README.md` |
+| P10 | Release builds use the shared FTC debug key | Release and debug install over each other; no key file to share or leak | A team signing key |
+| P11 | No code shrinking (`minifyEnabled` off) | OpModes and `@Config` classes are found by reflection; most of the APK is the SDK | R8 / ProGuard |
 

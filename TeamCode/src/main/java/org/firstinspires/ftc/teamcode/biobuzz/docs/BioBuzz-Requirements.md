@@ -1,8 +1,8 @@
 # BioBuzz Robot Software – Requirements
 
-Oct 23, 2026 · @Girish
+Oct 24, 2026 · @Girish
 
-**Version 2.9**
+**Version 2.10**
 
 ## Contents
 
@@ -164,8 +164,24 @@ biobuzz/                                  repo root = Quickstart root
 2. On a branch named `update-quickstart-<yyyy-mm-dd>`, run `git fetch quickstart`, then `git merge quickstart/master`.
 3. If `pedro/Constants.java` or `pedro/Tuning.java` conflicts, keep our values and tuner list, and take the Quickstart's new structure.
 4. Build. Run the Quickstart's `Tests` OpModes, then Field Checks 01 to 09 at home, and compare them with the baseline.
-5. Merge to `main` only if everything passes. Record the Quickstart commit and the test results in `UPSTREAM.md`.
+5. Merge to `master` (through `biobuzz-dev`, see Branches and releases) only if everything passes. Record the Quickstart commit and the test results in `UPSTREAM.md`.
 6. `docs/UPDATING_PEDRO.md` MUST walk a student through these steps, including how to resolve a `Constants.java` conflict.
+
+**Branches and releases** (agreed 2026-10-24)
+
+- `master` is the **students' version**. It MUST always build, and it is what runs on the robot at practice. Nobody commits to it directly.
+- Students work on **one branch per task** and open a **pull request** to `master`; a mentor reviews it.
+- `biobuzz-dev` is where mentors (and the AI) build bigger changes. It reaches `master` in tested batches, only with a mentor's OK, as a **fast-forward or merge followed by a tag**: `v0.1`, `v0.1.1`, ... (the next feature batch is `v0.2`). Each tag has a short release note as its message.
+- `master` is merged back into `biobuzz-dev` often, so tuned values students change on `master` are not lost.
+- **Students own the values, mentors own the structure:** `biobuzz-dev` does not change tuned numbers in `configurations/`, `FieldConfig` or `pedro/Constants.java` unless a value is added or removed. Code-wide changes (renames, reformatting) are announced and merged just before a release, after students have merged their open branches.
+- Practice uses `master`. Anyone who deploys another branch deploys `master` again before handing the robot back.
+- **At each release:** update the **Status** line in `.github/README.md` (the repository's front page on GitHub, which GitHub shows in place of the SDK's `README.md`) and the Releases table in the student guide, section 9.
+
+**What goes into the APK**
+
+- Only code from `src/main/java` (`.java`, `.kt`) and the files under `src/main/assets` and `src/main/res` are packaged. The `.md` guides next to the code are NOT in the APK, so they cost nothing on the robot.
+- `src/main/assets` holds only `images/field-biobuzz.png` (the Dashboard field). Guides, PDFs and pictures for people MUST NOT go under `assets`, `res` or `resources`.
+- The release build does not shrink code (`minifyEnabled` stays off): the SDK finds OpModes, and the Dashboard finds `@Config` classes, by reflection, and shrinking would remove them. Most of the APK size (about 51–56 MB) is the SDK itself (OpenCV for two CPU types, OnBot Java); it is not worth reducing.
 
 ## Code layout (R10)
 
@@ -781,6 +797,10 @@ The team MUST give the AI the facts below before it writes BioBuzz-specific code
 - [ ] Gamepad 2 map confirmed, once the mechanisms are built
 - [x] Autonomous routines for the first competition: `LAUNCH_PARK` and `LAUNCH_COLLECT_PARK` (Q10; no launch zones)
 - [x] FLOWER scoring: not planned (Q3)
+- [ ] Team number and team name, for the front page (`.github/README.md`) and the Driver Station name
+- [ ] Students added to the private `smrc-pune/biobuzz` repository (collaborators or an organization team), so they can clone it
+- [ ] After drive tuning: the robot tests for the Pedro 3.0.2 merge (the tuning kit's Stage 5 tests and Field Checks 01–09), recorded in `UPSTREAM.md`
+- [ ] Confirm on the robot that Pedro 3.0.2 still sends stick powers straight to the motors in manual driving (Driving section; checked only in 3.0.1)
 
 **Acceptance checklist** (mentor signs off)
 
@@ -806,6 +826,7 @@ The team MUST give the AI the facts below before it writes BioBuzz-specific code
 
 | Version | Date | Changes |
 | --- | --- | --- |
+| 2.10 | 2026-10-24 | Quickstart merged to `9dc8978` (Pedro 3.0.2, Foresight tuner safety fixes; `UPSTREAM.md`). Drive tuning follows the team's Pedro tuning kit. New sections in Base project and repository: **Branches and releases** (`master` = students' version, `biobuzz-dev` = mentor work, tagged releases `v0.1`, `v0.1.1`) and **What goes into the APK**. Front page `.github/README.md`. New guide `NEW_ROBOT_CHECKLIST.md`. Future improvements: hide test OpModes with one switch, a build check on pull requests, a version line at INIT. New open items: team number and name, student access, robot tests after the Pedro merge. |
 | 2.9 | 2026-10-23 | `drive/Assists.java` renamed `drive/DriveToSpot.java`, so the name says what it does: `robot.driveToSpot.launchSpot()`, `robot.driveToSpot.loadingZone()`. "Set pose here" does not drive, so it moved to `robot.drive.setPoseAtResetCorner()`. The EVENT names (`ASSIST:<name>`) are unchanged. Hiding the test OpModes with one switch added to Future improvements. New guide `docs/NEW_ROBOT_CHECKLIST.md`. Drive tuning follows the team's Pedro tuning kit (separate repository). **R3:** every `if` / `else` and every method has `{ }` with the body on its own lines, even for one line (all team code reformatted; the Quickstart's `pedro/` is left as it came). |
 | 2.8 | 2026-10-23 | Subsystems (step 10). `Robot` was the hardest file to read: it held every mechanism, every state machine and a method for every action. Now OpModes call three subsystems, `robot.intake`, `robot.shooter`, `robot.vision` (new `subsystems/`: `Subsystem` base class, `IntakeSubsystem`, `ShooterSubsystem`, `VisionSubsystem`), and `robot.driveToSpot` (new `drive/DriveToSpot.java`, the S2 buttons). A subsystem owns its mechanisms and the state machines that use them and has no states, so the v2.0 objection to subsystems (one state-machine brain per mechanism) does not return; the Mediator rule now lives inside each subsystem. State machines extend a new `StateMachine` base class. **R3 amended:** two more plain team base classes (`Subsystem`, `StateMachine`) and a `List` inside `Subsystem.java` are allowed; interfaces and team generics stay forbidden. `robot.markHiveTipped()` removed (OpModes call `MatchInfo.markHiveTipped()`). `TemplateSubsystem` added. Match-log columns are grouped by subsystem (read by name, so tools are unchanged). |
 | 2.7 | 2026-10-22 | Steps 5–9 built. Step 5: Robot Check, Test: Parts, Log Viewer (`LogSummary`), templates (+ `TemplateConfig`). Step 8: Intake, Feeder (a servo, first guess), Launcher (speed table as Dashboard arrays), HiveCamera, FrontCamera (mentor zone: SDK 12 `AprilTagSingleDetection`), `LaunchStateMachine` (spin-up timeout is an urgent ALERT), aim button (`ManualDrive.headingLock`), gamepad 2 map, `GamepadInput.wasXReleased()`, a `Mechanism.isTelemetryOn()` hook for the per-mechanism switches, the game header line. Step 7: `BioBuzzAuto`, `AutoConfig` (`enum Routine`, `enum Start`), a `DRIVE_TO_LAUNCH` step before `LAUNCH_AGAIN`, INIT path checks. Step 6: Field Checks 01–13 (`FieldCheckHelper`, `FieldCheckConfig`); hand-push checks read the localizer only, because an idle Pedro follower brakes; Field Check 12 compares the tag range. Step 9: guides, `TROUBLESHOOTING.md`, `UPSTREAM.md`, `tools/plot_match.py`. |

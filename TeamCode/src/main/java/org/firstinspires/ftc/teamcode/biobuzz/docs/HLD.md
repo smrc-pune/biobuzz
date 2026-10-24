@@ -1,6 +1,6 @@
 # BioBuzz Software – High-Level Design (HLD)
 
-Oct 23, 2026 · **Matches the code (steps 1–10 built, not yet run on the robot)** · goes with Requirements v2.9 and `LLD.md`
+Oct 24, 2026 · **Matches the code (steps 1–11 built, not yet run on the robot)** · goes with Requirements v2.10 and `LLD.md`
 
 This document explains how the BioBuzz robot software fits together. It is written for our team: 7th graders who are new to Java. Read it once from top to bottom. Use `LLD.md` when you need the details of one file.
 

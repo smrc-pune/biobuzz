@@ -423,6 +423,13 @@ true only on the one loop when the button goes from up to down. Read each button
 | 10 | Subsystems (Requirements v2.8): `Robot` split into `intake`, `shooter`, `vision` and `assists`; `Subsystem` and `StateMachine` base classes, `TemplateSubsystem` | Done (OpModes now call `robot.shooter.launch(4)`, ...) |
 | 11 | Easier to read (Requirements v2.9): `Assists` renamed `DriveToSpot` (`robot.driveToSpot.launchSpot()`; "set pose here" is now `robot.drive.setPoseAtResetCorner()`); every `if` / `else` and every method has `{ }` on its own lines | Done |
 
+**Releases** (tags on `master`; how they are made: Requirements, "Branches and releases")
+
+| Tag | Date | What |
+| --- | --- | --- |
+| `v0.1` | 2026-10-24 | First student version: steps 1–11, Pedro 3.0.2. Not run on the robot yet |
+| `v0.1.1` | 2026-10-24 | The repository's own front page (`.github/README.md`). Docs only |
+
 > **Important:** Pedro's `pedro/Constants.java` is still the empty Quickstart file.
 > Until it is filled in at drive tuning, every BioBuzz OpMode that drives stops at INIT
 > with the message "DRIVE NOT SET UP". That is expected.
