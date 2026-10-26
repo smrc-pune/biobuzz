@@ -112,7 +112,7 @@ teamcode/
       IntakeConfig.java       intake powers
       FeederConfig.java       the feeder servo's two positions
       LauncherConfig.java     flywheel speed control, the launch speed, launch timing, aim offset
-      CameraConfig.java       the HIVE camera (HuskyLens): its learned tag ids
+      CameraConfig.java       the HIVE camera (HuskyLens): the CELL AprilTag numbers, its learned tag ids
       LogConfig.java          match log on/off, rows per second, how many files to keep
       TelemetryConfig.java    what shows on screen
       TemplateConfig.java     numbers for the templates (copy it with them)
@@ -442,6 +442,7 @@ true only on the one loop when the button goes from up to down. Read each button
 | 12 | One launch speed (Requirements v2.11): `LauncherConfig.LAUNCH_RPM` replaces the speed-by-distance table, tuned from our launch spot; `launcher.spinUp()` | Done (the table is a future improvement: `docs/LLD.md`, section 14) |
 | 13 | Simpler (Requirements v2.12): ONE camera, the HuskyLens looking up at the CELL tags (the webcam is gone: BIOBUZZ has tags only under the CELLS); Auto has one plan (leave, launch 4, park); fewer telemetry lines at first (intake, feeder, camera and history off) | Done |
 | 14 | Easier to start (Requirements v2.13): a "Start here" reading order at the top of this guide; "Start here: the first numbers" in `docs/TUNING.md`; the design documents marked **For mentors**; `HealthConfig` and `LogConfig` moved to the mentor zone | Done |
+| 15 | CELL AprilTags (Requirements v2.14): the manual's numbers in `CameraConfig` (red 30–33 / 34–37, blue 38–41 / 42–45), which tag to train as each HuskyLens ID, and Test: Camera names the CELL it sees | Done |
 
 **Releases** (tags on `master`; how they are made: Requirements, "Branches and releases")
 

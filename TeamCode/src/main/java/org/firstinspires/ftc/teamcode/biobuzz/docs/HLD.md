@@ -3,7 +3,7 @@
 > **For mentors.** Students: you do not need this file to get started. Begin with the
 > student guide, `biobuzz/README.md` ("Start here").
 
-Oct 26, 2026 · **Matches the code (steps 1–13 built, not yet run on the robot)** · goes with Requirements v2.13 and `LLD.md`
+Oct 26, 2026 · **Matches the code (steps 1–13 built, not yet run on the robot)** · goes with Requirements v2.14 and `LLD.md`
 
 This document explains how the BioBuzz robot software fits together. It is written for our team: 7th graders who are new to Java. Read it once from top to bottom. Use `LLD.md` when you need the details of one file.
 

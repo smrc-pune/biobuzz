@@ -3,7 +3,7 @@
 > **For mentors.** Students: you do not need this file to get started. Begin with the
 > student guide, `biobuzz/README.md` ("Start here").
 
-Oct 26, 2026 · **Matches the code after steps 1–13** (not yet run on the robot) · goes with Requirements v2.13 and `HLD.md`
+Oct 26, 2026 · **Matches the code after steps 1–13** (not yet run on the robot) · goes with Requirements v2.14 and `HLD.md`
 
 This document describes each class: its job, its public methods, its config values and how it fits with the others. Code sketches show the **shape** of each class; the code itself is the final word, and this document is updated in the same commit as any change.
 
@@ -390,7 +390,7 @@ There is no Storage mechanism: the hopper has no sensors, so the robot does not 
 | Verbs | none |
 | Questions | `seesTag(learnedId)`, `getTagOffsetPx(learnedId)` (pixels from the image centre, + = right), `getTagWidthPx(learnedId)`, `getTagCount()`, `getFirstTagId()`, `getAgeMs()` |
 | `update()` | Every `CameraConfig.HIVE_SAMPLE_MS` (default 100), read `blocks()` and keep them with their time |
-| Config | `HIVE_SAMPLE_MS`, `HIVE_IMAGE_WIDTH_PX` (320), the HuskyLens's learned ID for each CELL's tags (`RED_CELL_A_TAG_ID`, …) |
+| Config | `HIVE_SAMPLE_MS`, `HIVE_IMAGE_WIDTH_PX` (320), the HuskyLens's learned ID for each CELL's tags (`RED_CELL_A_TAG_ID`, …); the manual's AprilTag numbers as `final` values (`RED_CELL_A_FIRST_APRILTAG` = 34, `RED_CELL_B_…` = 30, `BLUE_CELL_A_…` = 42, `BLUE_CELL_B_…` = 38; the four tags of each CELL are listed in the comment) |
 | Log | `hive_cam_tag_id`, `hive_cam_offset_px`, `hive_cam_age_ms` |
 | Used by | Test: Camera and Field Check 12 today. Planned: confirming `MatchInfo`'s upward CELL (Q2) and a finer aim offset. It gives no distance, so no pose fix |
 

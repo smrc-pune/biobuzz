@@ -21,14 +21,31 @@ down). Plug it into a Control Hub I2C port and add it to the robot configuration
 "HuskyLens" with the name in `HardwareNames.HUSKYLENS_HIVE` (`hiveCamera`), on the bus in the
 comment.
 
-**Training on the CELL tags** (on the HuskyLens itself, once per HuskyLens):
+**The CELL tags** (Competition Manual TU06, section 9.9). Each CELL has one sticker with four
+AprilTags (36h11 family, 3.25 in), facing down at the tiles:
+
+| Our name | Where on the field | AprilTags | Train this one |
+| --- | --- | --- | --- |
+| RED CELL A | red CELL, audience side | 34, 35, 36, 37 | 34 → learned ID 1 |
+| RED CELL B | red CELL, opposite the audience | 30, 31, 32, 33 | 30 → learned ID 2 |
+| BLUE CELL A | blue CELL, opposite the audience | 42, 43, 44, 45 | 42 → learned ID 3 |
+| BLUE CELL B | blue CELL, audience side | 38, 39, 40, 41 | 38 → learned ID 4 |
+
+BLUE CELL A is the one **opposite** the audience: every BLUE place is the RED place turned half
+a turn around the field centre (`FieldConfig`), and that turns the red audience-side CELL into
+the blue far-side CELL. The same numbers are in `CameraConfig`.
+
+**Training** (on the HuskyLens itself, once per HuskyLens). The HuskyLens does not read the
+AprilTag number; it gives each tag it learns its own ID, 1, 2, 3... in the order you teach them.
+Print the four tags from FIRST's AprilTag images (the Playing Field Resources page), or use a field.
 1. Turn the function dial to **Tag Recognition**. (The code also selects it at INIT.)
 2. Long-press the function button → enable "Learn Multiple".
-3. Point it at our RED CELL A tag, press the learn button: it becomes ID 1. Then RED CELL B → 2,
-   BLUE CELL A → 3, BLUE CELL B → 4.
-4. Write the IDs into `CameraConfig` (`RED_CELL_A_TAG_ID` ...) if you learned them in another order.
+3. Point it at AprilTag **34** and press the learn button: it becomes ID 1. Then **30** → 2,
+   **42** → 3, **38** → 4 (the "Train this one" column).
+4. Learned them in another order? Change `RED_CELL_A_TAG_ID` ... in `CameraConfig` to match.
 
-**Check:** Test: Camera, hold a tag above the camera. "First tag" shows its learned id; the
+**Check:** Test: Camera, hold a tag above the camera. "First tag" shows its learned id and
+"Which CELL" names its CELL (for example "RED CELL A (AprilTags 34-37, audience side)"); the
 offset is near 0 when the tag is in the middle of the picture (+ = right). Values are read
 every `CameraConfig.HIVE_SAMPLE_MS` (100 ms).
 

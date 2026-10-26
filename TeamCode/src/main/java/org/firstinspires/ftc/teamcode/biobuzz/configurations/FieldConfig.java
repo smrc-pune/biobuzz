@@ -74,7 +74,9 @@ public class FieldConfig {
 
     // ---- Our two CELLS on the HIVE (the middle of each, where the launcher aims). The HIVE
     //      tips over, so one CELL faces up at a time; MatchInfo knows which (operator's TIP button).
-    //      Measured from field-biobuzz.png: CELL A is the one nearer the audience (lower y). ----
+    //      Measured from field-biobuzz.png: CELL A is the one nearer the audience (lower y).
+    //      For BLUE (turned half a turn) CELL A is the blue CELL OPPOSITE the audience.
+    //      The AprilTag numbers under each CELL are in CameraConfig. ----
     public static double CELL_A_X_IN = 59;
     public static double CELL_A_Y_IN = 61;
     public static double CELL_B_X_IN = 59;

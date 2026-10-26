@@ -16,7 +16,7 @@ into its file and commit it (see "Mechanism tuning" below).
 | 3 | `HOLD_POSITION`, `FEED_POSITION` | `FeederConfig` | **Test: Feeder** | Hold keeps the next ball back; feed pushes it fully into the flywheel |
 | 4 | `LAUNCH_SPOT_X_IN`, `LAUNCH_SPOT_Y_IN` | `FieldConfig` | Pick a spot with a clear view of the HIVE and measure it (`AUTO_GUIDE.md`, "Measuring a pose") | You can put the robot back on it every time (mark it with tape) |
 | 5 | `LAUNCH_RPM` | `LauncherConfig` | **Test: Launch**, robot on the launch spot facing the CELL. Short: +100; long: −100. First a mentor makes the flywheel reach its speed (`SPEED_F`, `SPEED_P` in **Test: Launcher**) | All 4 balls land in the CELL |
-| 6 | `RED_CELL_A_TAG_ID` … `BLUE_CELL_B_TAG_ID` | `CameraConfig` | Train the HuskyLens (`CAMERA_GUIDE.md`), then **Test: Camera** | Each CELL tag shows its own id |
+| 6 | `RED_CELL_A_TAG_ID` … `BLUE_CELL_B_TAG_ID` | `CameraConfig` | Train the HuskyLens on AprilTags 34, 30, 42, 38 in that order (`CAMERA_GUIDE.md`), then **Test: Camera** | "Which CELL" names the right CELL for each tag |
 | 7 | `START_NEAR_GARDEN_*`, `START_MIDDLE_*` | `FieldConfig` | Measure where the robot is placed for Auto | The robot is placed exactly there before every Auto |
 | 8 | `START`, `START_DELAY_S` | `AutoConfig` | **Every match**, agreed with our alliance partner | The INIT screen shows the plan you agreed |
 

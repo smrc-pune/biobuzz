@@ -5,7 +5,7 @@
 
 Oct 26, 2026 · @Girish
 
-**Version 2.13**
+**Version 2.14**
 
 ## Contents
 
@@ -345,7 +345,7 @@ These come from the BIOBUZZ Competition Manual TU05. Rule numbers (G…, R…) a
 | GR10 | Poses are written for RED, the default alliance. BLUE poses MUST be the RED pose turned 180° about the field centre (72, 72), because the field is rotationally symmetric (agreed, Q7). `FieldPaths.place(...)` (named `forAlliance` in earlier versions) does it by chaining both reflections: `PoseFactory` `mirrorX(72.0).mirrorY(72.0)` | 9.3 |
 | GR11 | TeleOp MUST rumble both gamepads at 1:00 left (NECTAR may be entered, FLOWERS open) and gamepad 1 at 0:20 left (time to PARK). The header shows how many NECTAR the human player may enter (one per TIP before 1:00 left) | G410, G426 |
 | GR12 | The robot MUST stay within 8 motors and 8 servos, one Control Hub and at most one Expansion Hub. `HardwareNames` keeps the count in its header | R503, R701 |
-| GR13 | ONE camera. BIOBUZZ has AprilTags only under the CELLS, facing down (none on the walls), so the robot needs only a camera that looks up at them: the **HIVE camera**, a HuskyLens (I2C): which CELL is up, and the aim offset. It is read no more often than `CameraConfig.HIVE_SAMPLE_MS`, and its learned IDs map to CELLS in `CameraConfig`. The HuskyLens gives 2D boxes (id, position, size), not distances, so it does not set the Pedro pose; a camera pose fix is a future improvement | 9.9, R707, R708 |
+| GR13 | ONE camera. BIOBUZZ has AprilTags only under the CELLS, facing down (none on the walls), so the robot needs only a camera that looks up at them: the **HIVE camera**, a HuskyLens (I2C): which CELL is up, and the aim offset. It is read no more often than `CameraConfig.HIVE_SAMPLE_MS`, and its learned IDs map to CELLS in `CameraConfig`, which also lists the manual's AprilTag numbers for each CELL (TU06, 9.9: red opposite the audience 30–33, red audience side 34–37, blue audience side 38–41, blue opposite the audience 42–45). The HuskyLens gives 2D boxes (id, position, size), not distances, so it does not set the Pedro pose; a camera pose fix is a future improvement | 9.9, R707, R708 |
 
 ## Driving (R1, R2)
 
@@ -829,6 +829,7 @@ The team MUST give the AI the facts below before it writes BioBuzz-specific code
 
 | Version | Date | Changes |
 | --- | --- | --- |
+| 2.14 | 2026-10-26 | The CELL AprilTag numbers from Competition Manual TU06, section 9.9 (GR13): red CELL opposite the audience 30–33, red audience side 34–37, blue audience side 38–41, blue opposite the audience 42–45. Our CELL A / B names map onto them through the half-turn BLUE rule (BLUE CELL A is opposite the audience). `CameraConfig` holds them (`final`) and says which tag to train as each learned ID; Test: Camera names the CELL of the tag in view; `CAMERA_GUIDE.md` training uses the numbers. |
 | 2.13 | 2026-10-26 | Easier to start, docs and comments only. A "Start here" reading order at the top of the student guide (README sections 1–4, `GETTING_STARTED`, `FIRST_CHANGES`, `CONTROLS`); "Start here: the first numbers" in `TUNING.md` (8 rows, in order); HLD, LLD, Requirements, Design Review and Updating Pedro marked **For mentors**; `HealthConfig` and `LogConfig` moved to the mentor zone. `FieldCheckConfig` stays in the student zone (the drive team sets `FIELD_NAME` at each event). `MATCH_DAY.md` and the Field Check table updated for the v2.12 Field Check 12. |
 | 2.12 | 2026-10-26 | Simpler, for the rookie team. **One camera (GR13):** BIOBUZZ has AprilTags only under the CELLS, so the HuskyLens looking up is the only camera; the Logitech webcam (`FrontCamera`, its AprilTag and colour processors, its `CameraConfig` values, `WEBCAM_FRONT`) is removed. Field Check 12 now checks that the HuskyLens sees the upward CELL's tag from the launch spot; Test: Camera shows the HuskyLens only. **One Auto plan:** leave, launch 4, park; `LAUNCH_COLLECT_PARK`, `enum Routine`, the GARDEN path and places and `COLLECT_TIMEOUT_MS` are removed (a future improvement). **Fewer telemetry lines at first:** `INTAKE`, `FEEDER`, `CAMERAS` and `HISTORY` off; drive, launcher and launch on. |
 | 2.11 | 2026-10-26 | One launch speed (GR7): `LauncherConfig.LAUNCH_RPM`, tuned from our launch spot, replaces the speed-by-distance table, which was too much for the rookie team to tune first. `Launcher.spinUp()` replaces `spinUpFor(distance)`; `LaunchStateMachine` no longer uses Drive; Test: Launcher and Test: Launch tune the one speed. The table is a future improvement (LLD section 14). |
