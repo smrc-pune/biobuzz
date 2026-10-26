@@ -1,6 +1,9 @@
 # BioBuzz Software – High-Level Design (HLD)
 
-Oct 26, 2026 · **Matches the code (steps 1–13 built, not yet run on the robot)** · goes with Requirements v2.12 and `LLD.md`
+> **For mentors.** Students: you do not need this file to get started. Begin with the
+> student guide, `biobuzz/README.md` ("Start here").
+
+Oct 26, 2026 · **Matches the code (steps 1–13 built, not yet run on the robot)** · goes with Requirements v2.13 and `LLD.md`
 
 This document explains how the BioBuzz robot software fits together. It is written for our team: 7th graders who are new to Java. Read it once from top to bottom. Use `LLD.md` when you need the details of one file.
 
@@ -136,7 +139,7 @@ Limits (R503, R701): at most 8 motors and 8 servos, a Control Hub and at most on
 | is a place or a path on the field | `FieldConfig` (places) and `FieldPaths` (paths) |
 | is a number someone will tune | a `...Config` file |
 
-**Who changes which files.** Students change the **student zone**: `configurations/`, `subsystems/` (except `Subsystem.java`), `mechanisms/` (except `Mechanism.java`), `statemachines/` (except `StateMachine.java`), `teleop/`, `auto/`, `drive/FieldPaths.java`, `drive/DriveToSpot.java`, the marked spot in `Robot.java`, and the tests. The **mentor zone** (`Subsystem.java`, `Mechanism.java`, `StateMachine.java`, `Drive.java`, `helpers/`, `fieldchecks/`, `pedro/`) works quietly in the background. Every file says which zone it is in on its first line.
+**Who changes which files.** Students change the **student zone**: `configurations/` (except `HealthConfig` and `LogConfig`), `subsystems/` (except `Subsystem.java`), `mechanisms/` (except `Mechanism.java`), `statemachines/` (except `StateMachine.java`), `teleop/`, `auto/`, `drive/FieldPaths.java`, `drive/DriveToSpot.java`, the marked spot in `Robot.java`, and the tests. The **mentor zone** (`Subsystem.java`, `Mechanism.java`, `StateMachine.java`, `Drive.java`, `helpers/`, `fieldchecks/`, `HealthConfig`, `LogConfig`, `pedro/`) works quietly in the background. Every file says which zone it is in on its first line.
 
 ---
 

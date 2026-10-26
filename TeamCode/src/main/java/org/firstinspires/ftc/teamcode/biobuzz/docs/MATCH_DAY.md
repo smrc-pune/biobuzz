@@ -19,7 +19,7 @@ about 5 minutes are enough. Check positions against **tile seams** (every 24 in)
 | 09 Square | Place on a seam crossing; the robot drives a square | Re-run Pedro's tuners (`TUNING.md`) |
 | 10 Wall | Flat on one wall (A), then flat on another (A) | The walls may not be square: don't trust wall resets here |
 | 11 Mechanisms | No balls, hands clear | Fix the FAULTED mechanism it names |
-| 12 Camera | Robot on the seam crossing in `FieldCheckConfig`, tag in view | Re-check the camera mount numbers and exposure (`CAMERA_GUIDE.md`) |
+| 12 Camera | Robot on our launch spot, facing the upward CELL | Check the HuskyLens's screen, its training and the learned ids in `CameraConfig`, and the lighting (`CAMERA_GUIDE.md`) |
 | 13 Summary | Read it | Every FAIL fixed before qualification matches |
 
 "Battery differs" on 07–09: re-run with a battery closer to the baseline voltage before

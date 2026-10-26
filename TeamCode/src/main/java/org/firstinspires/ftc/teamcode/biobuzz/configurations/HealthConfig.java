@@ -3,7 +3,7 @@ package org.firstinspires.ftc.teamcode.biobuzz.configurations;
 import com.acmerobotics.dashboard.config.Config;
 
 /**
- * STUDENTS: you will change this file.
+ * MENTORS: you do not need to change this file.
  *
  * HealthConfig.java  -  numbers for watching the robot's health (helpers/HealthMonitor.java).  ROLE: config
  *

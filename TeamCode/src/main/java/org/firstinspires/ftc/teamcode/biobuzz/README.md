@@ -9,6 +9,22 @@ yet: every file starts with a comment that says what it does in plain English.
 > what exists today. The full design is in `docs/HLD.md` (big picture) and
 > `docs/LLD.md` (every file).
 
+## Start here: your first week
+
+Read these four, in this order. You do not need anything else to get started.
+
+| # | Read | Then you can... |
+| --- | --- | --- |
+| 1 | This guide, sections 1–4 | name the parts of the code and follow one loop through them |
+| 2 | `docs/GETTING_STARTED.md` | build the code, put it on the robot and run an OpMode |
+| 3 | `docs/FIRST_CHANGES.md` | make five small changes yourself |
+| 4 | `docs/CONTROLS.md` | say what every button does |
+
+**When the robot is built:** the first numbers to tune are in `docs/TUNING.md`, "Start here:
+the first numbers". Everything else already has a sensible starting value.
+**The other guides** are for when you need them (section 12). The ones marked **For mentors**
+(the design documents) explain why the code is built this way; you do not need them to start.
+
 ---
 
 ## 1. The big idea in 60 seconds
@@ -73,7 +89,7 @@ two commands can only fight over a motor inside that one file.
 
 | Student zone (you will change these) | Mentor zone (read, don't change) |
 | --- | --- |
-| `configurations/`, `subsystems/` (except `Subsystem.java`), `mechanisms/` (except `Mechanism.java`), `statemachines/` (except `StateMachine.java`), `teleop/`, `auto/`, `drive/FieldPaths.java`, `drive/DriveToSpot.java`, the "ADD A SUBSYSTEM HERE" spot in `Robot.java`, `testing/` | `subsystems/Subsystem.java`, `mechanisms/Mechanism.java`, `statemachines/StateMachine.java`, `drive/Drive.java`, `helpers/`, `pedro/` |
+| `configurations/` (except `HealthConfig.java`, `LogConfig.java`), `subsystems/` (except `Subsystem.java`), `mechanisms/` (except `Mechanism.java`), `statemachines/` (except `StateMachine.java`), `teleop/`, `auto/`, `drive/FieldPaths.java`, `drive/DriveToSpot.java`, the "ADD A SUBSYSTEM HERE" spot in `Robot.java`, `testing/` | `subsystems/Subsystem.java`, `mechanisms/Mechanism.java`, `statemachines/StateMachine.java`, `drive/Drive.java`, `helpers/`, `configurations/HealthConfig.java` and `LogConfig.java` (set from match logs), `pedro/` |
 
 ---
 
@@ -425,6 +441,7 @@ true only on the one loop when the button goes from up to down. Read each button
 | 11 | Easier to read (Requirements v2.9): `Assists` renamed `DriveToSpot` (`robot.driveToSpot.launchSpot()`; "set pose here" is now `robot.drive.setPoseAtResetCorner()`); every `if` / `else` and every method has `{ }` on its own lines | Done |
 | 12 | One launch speed (Requirements v2.11): `LauncherConfig.LAUNCH_RPM` replaces the speed-by-distance table, tuned from our launch spot; `launcher.spinUp()` | Done (the table is a future improvement: `docs/LLD.md`, section 14) |
 | 13 | Simpler (Requirements v2.12): ONE camera, the HuskyLens looking up at the CELL tags (the webcam is gone: BIOBUZZ has tags only under the CELLS); Auto has one plan (leave, launch 4, park); fewer telemetry lines at first (intake, feeder, camera and history off) | Done |
+| 14 | Easier to start (Requirements v2.13): a "Start here" reading order at the top of this guide; "Start here: the first numbers" in `docs/TUNING.md`; the design documents marked **For mentors**; `HealthConfig` and `LogConfig` moved to the mentor zone | Done |
 
 **Releases** (tags on `master`; how they are made: Requirements, "Branches and releases")
 
@@ -519,24 +536,31 @@ cleanly.
 
 ## 12. The guides in `docs/`
 
+**For students** (start with the four in "Start here"; the rest when you need them)
+
 | Guide | Read it when you want to... |
 | --- | --- |
 | `GETTING_STARTED.md` | install Android Studio, build, deploy, run an OpMode, open the Dashboard |
-| `NEW_ROBOT_CHECKLIST.md` | go from a newly built robot to a match-ready one, step by step (wiring, tests, tuning, cameras, field places, Auto, baseline) |
 | `FIRST_CHANGES.md` | do five small exercises: a speed, a button, a telemetry line, a state, an auto step |
 | `CONTROLS.md` | know what every button does (print it for the drive team) |
+| `TUNING.md` | tune the first numbers (start of the file), then the mechanisms; the drive with a mentor |
+| `NEW_ROBOT_CHECKLIST.md` | go from a newly built robot to a match-ready one, step by step (wiring, tests, tuning, camera, field places, Auto, baseline) |
 | `HOW_TO_ADD_A_MECHANISM.md` | add a mechanism or a state machine from the templates |
 | `AUTO_GUIDE.md` | measure poses, change Autonomous, add a step or a start position |
-| `TUNING.md` | tune the drive (with our Pedro tuning kit) and the mechanisms, in the right order |
 | `MATCH_DAY.md` | check the robot on a new field, before and between matches; recovery buttons |
 | `MATCH_LOGS.md` | copy and read match logs; use Log Viewer and `tools/plot_match.py` |
 | `DEBUGGING.md` | find out what is wrong: the 6 questions, every ALERT, a symptom table |
 | `TROUBLESHOOTING.md` | see the four troubleshooting stages on one page |
 | `CAMERA_GUIDE.md` | mount and train the HuskyLens |
 | `GLOSSARY.md` | look up a word (code words, design patterns, game words) |
-| `UPDATING_PEDRO.md` | merge a new Pedro Pathing Quickstart release |
+
+**For mentors** (the design, and keeping the project up to date)
+
+| Guide | Read it when you want to... |
+| --- | --- |
 | `HLD.md`, `LLD.md` | the design: big picture, then every class |
-| `BioBuzz-Requirements.md`, `DESIGN-REVIEW.md` | the rules the code follows, and why |
+| `BioBuzz-Requirements.md`, `DESIGN-REVIEW.md` | the rules the code follows, and why each decision was made |
+| `UPDATING_PEDRO.md` | merge a new Pedro Pathing Quickstart release |
 
 Changes to Quickstart files (outside `biobuzz/`) are listed in `UPSTREAM.md` at the
 repository root. The repository's front page on GitHub is `.github/README.md`: it points

@@ -1,8 +1,11 @@
 # BioBuzz Robot Software – Requirements
 
+> **For mentors.** Students: you do not need this file to get started. Begin with the
+> student guide, `biobuzz/README.md` ("Start here").
+
 Oct 26, 2026 · @Girish
 
-**Version 2.12**
+**Version 2.13**
 
 ## Contents
 
@@ -229,7 +232,7 @@ tools/plot_match.py       laptop only, mentor-side (repo root, not built into th
 
 | Student zone (change these) | Mentor zone (read, don't change) |
 | --- | --- |
-| `configurations/` (every tunable number and name) | `mechanisms/Mechanism.java`, `subsystems/Subsystem.java`, `statemachines/StateMachine.java` (the base classes) |
+| `configurations/` (every tunable number and name), except `HealthConfig` and `LogConfig` | `mechanisms/Mechanism.java`, `subsystems/Subsystem.java`, `statemachines/StateMachine.java` (the base classes); `configurations/HealthConfig.java` and `LogConfig.java` (set from our match logs) |
 | `subsystems/`, `mechanisms/` (one file per subsystem / mechanism) | `drive/Drive.java` (talks to Pedro) |
 | `statemachines/` | `helpers/` |
 | `teleop/`, `auto/` | `fieldchecks/`, `testing/RobotCheck.java`, `testing/LogViewer.java` |
@@ -518,7 +521,7 @@ A new field is a new robot: tile grip, tile wear and walls differ from our pract
 | 07 WARN or FAIL | Use the measured deceleration for this event, then re-run 08 |
 | 08 or 09 FAIL | Adjust auto end poses for this field, or re-run Pedro's tuners for the failing direction |
 | 07 to 09 "battery differs" | Re-run with a battery closer to the baseline voltage before changing any tuning |
-| 12 FAIL | Re-check the camera mount numbers before trusting AprilTag correction |
+| 12 FAIL | Check the HuskyLens's screen, its training and the learned ids in `CameraConfig`, and the lighting |
 
 ### B. Before every match: Robot Check
 
@@ -826,6 +829,7 @@ The team MUST give the AI the facts below before it writes BioBuzz-specific code
 
 | Version | Date | Changes |
 | --- | --- | --- |
+| 2.13 | 2026-10-26 | Easier to start, docs and comments only. A "Start here" reading order at the top of the student guide (README sections 1–4, `GETTING_STARTED`, `FIRST_CHANGES`, `CONTROLS`); "Start here: the first numbers" in `TUNING.md` (8 rows, in order); HLD, LLD, Requirements, Design Review and Updating Pedro marked **For mentors**; `HealthConfig` and `LogConfig` moved to the mentor zone. `FieldCheckConfig` stays in the student zone (the drive team sets `FIELD_NAME` at each event). `MATCH_DAY.md` and the Field Check table updated for the v2.12 Field Check 12. |
 | 2.12 | 2026-10-26 | Simpler, for the rookie team. **One camera (GR13):** BIOBUZZ has AprilTags only under the CELLS, so the HuskyLens looking up is the only camera; the Logitech webcam (`FrontCamera`, its AprilTag and colour processors, its `CameraConfig` values, `WEBCAM_FRONT`) is removed. Field Check 12 now checks that the HuskyLens sees the upward CELL's tag from the launch spot; Test: Camera shows the HuskyLens only. **One Auto plan:** leave, launch 4, park; `LAUNCH_COLLECT_PARK`, `enum Routine`, the GARDEN path and places and `COLLECT_TIMEOUT_MS` are removed (a future improvement). **Fewer telemetry lines at first:** `INTAKE`, `FEEDER`, `CAMERAS` and `HISTORY` off; drive, launcher and launch on. |
 | 2.11 | 2026-10-26 | One launch speed (GR7): `LauncherConfig.LAUNCH_RPM`, tuned from our launch spot, replaces the speed-by-distance table, which was too much for the rookie team to tune first. `Launcher.spinUp()` replaces `spinUpFor(distance)`; `LaunchStateMachine` no longer uses Drive; Test: Launcher and Test: Launch tune the one speed. The table is a future improvement (LLD section 14). |
 | 2.10 | 2026-10-24 | Quickstart merged to `9dc8978` (Pedro 3.0.2, Foresight tuner safety fixes; `UPSTREAM.md`). Drive tuning follows the team's Pedro tuning kit. New sections in Base project and repository: **Branches and releases** (`master` = students' version, `biobuzz-dev` = mentor work, tagged releases `v0.1`, `v0.1.1`) and **What goes into the APK**. Front page `.github/README.md`. New guide `NEW_ROBOT_CHECKLIST.md`. Future improvements: hide test OpModes with one switch, a build check on pull requests, a version line at INIT. New open items: team number and name, student access, robot tests after the Pedro merge. |

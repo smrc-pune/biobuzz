@@ -1,5 +1,8 @@
 # Updating Pedro Pathing (merging a new Quickstart)
 
+> **For mentors.** Students: you do not need this file to get started. Begin with the
+> student guide, `biobuzz/README.md` ("Start here").
+
 Our repository is a copy of the Pedro Pathing Quickstart with our `biobuzz/` package added.
 New Pedro versions arrive by merging the Quickstart's `master` branch.
 

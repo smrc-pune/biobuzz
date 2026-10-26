@@ -54,3 +54,7 @@ telemetry, the field view (robot, path, upward CELL on the BioBuzz field), graph
 On the Driver Station: ⋮ → Configure Robot. Every device name must match
 `configurations/HardwareNames.java` exactly (the hub and port are in the comment next to each
 name). BioBuzz TeleOp and Auto need every device in that file.
+
+---
+
+**Next ("Start here", step 3):** `FIRST_CHANGES.md`: five small changes to make yourself.

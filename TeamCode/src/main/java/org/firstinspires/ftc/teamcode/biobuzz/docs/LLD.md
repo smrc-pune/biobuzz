@@ -1,6 +1,9 @@
 # BioBuzz Software – Low-Level Design (LLD)
 
-Oct 26, 2026 · **Matches the code after steps 1–13** (not yet run on the robot) · goes with Requirements v2.12 and `HLD.md`
+> **For mentors.** Students: you do not need this file to get started. Begin with the
+> student guide, `biobuzz/README.md` ("Start here").
+
+Oct 26, 2026 · **Matches the code after steps 1–13** (not yet run on the robot) · goes with Requirements v2.13 and `HLD.md`
 
 This document describes each class: its job, its public methods, its config values and how it fits with the others. Code sketches show the **shape** of each class; the code itself is the final word, and this document is updated in the same commit as any change.
 

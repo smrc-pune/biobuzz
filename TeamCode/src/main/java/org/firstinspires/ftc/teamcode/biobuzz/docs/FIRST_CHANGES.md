@@ -76,3 +76,7 @@ runs. It changes at once, but is lost when the app restarts. That is why you typ
    ```
 6. Check: run BioBuzz Auto with the robot on blocks (wheels off the floor). The Step line shows
    SETTLE for 1 s. Update the step table in `LLD.md`, section 9.2.
+
+---
+
+**Next ("Start here", step 4):** `CONTROLS.md`: what every button does.

@@ -1,10 +1,13 @@
 # BioBuzz Software – Design Review
 
+> **For mentors.** Students: you do not need this file to get started. Begin with the
+> student guide, `biobuzz/README.md` ("Start here").
+
 Oct 19, 2026 (updated Oct 26, 2026) · started as the mentor review before any code changes; later sections record decisions made while building
 
 This review compares three things: the requirements (v1.4), the new design the team agreed on in discussion, and the BIOBUZZ Competition Manual (TU05). It lists every conflict, misalignment and gap found, with the fix applied in Requirements v2.0, `HLD.md` and `LLD.md`, and the questions that only the team can answer.
 
-**How to read it.** Section 1 is the design in one page, as it stands now (Requirements v2.3). Section 2 lists problems inside the old requirements. Section 3 lists what the game adds. Section 4 lists the design patterns used. Section 5 lists the questions and the team's answers. Sections 6 and 7 list the changes from the second and third review rounds; where a fix in sections 2–3 names `game/`, BLUE poses or NEAR/FAR, sections 6 and 7 replace it. (Sections 1–7 were written before the code changed; section 8 lists what was found while building it; section 9 records the change to subsystems in v2.8, which replaces the Robot "menu" described in sections 1 and 4; section 11 replaces the speed-by-distance table with one launch speed; section 12 keeps one camera and one Auto plan.)
+**How to read it.** Section 1 is the design in one page, as it stands now (Requirements v2.3). Section 2 lists problems inside the old requirements. Section 3 lists what the game adds. Section 4 lists the design patterns used. Section 5 lists the questions and the team's answers. Sections 6 and 7 list the changes from the second and third review rounds; where a fix in sections 2–3 names `game/`, BLUE poses or NEAR/FAR, sections 6 and 7 replace it. (Sections 1–7 were written before the code changed; section 8 lists what was found while building it; section 9 records the change to subsystems in v2.8, which replaces the Robot "menu" described in sections 1 and 4; section 11 replaces the speed-by-distance table with one launch speed; section 12 keeps one camera and one Auto plan; section 13 adds the "Start here" path.)
 
 ---
 
@@ -252,4 +255,13 @@ Decisions made after step 10, with the reason for each, so they are not re-argue
 | V3 | Field Check 12 checks that the HuskyLens sees the upward CELL's tag from the launch spot | The old check measured the webcam's tag range. Seeing the tag under the event lights is what matters now | Remove Field Check 12 (renumbering 13 checks and their docs) |
 | A1 | Auto has one plan: leave, launch 4, park. `LAUNCH_COLLECT_PARK` is a future improvement | Three fewer steps, paths and timeouts to tune before the first event; a reliable LEAVE + 4 + PARK scores well | Keep both routines |
 | T1 | Telemetry starts with drive, launcher and launch only (`INTAKE`, `FEEDER`, `CAMERAS`, `HISTORY` off). ALERTs, WARNINGs and FAULTED lines always show | The Driver Station screen scrolled; drivers need a few lines they can read at a glance. The history is still in the match log | Leave everything on |
+
+## 13. Easier to start (Oct 26, 2026, Requirements v2.13)
+
+| # | Decision | Why | Rejected |
+| --- | --- | --- | --- |
+| E1 | A "Start here" reading order at the top of the student guide: README sections 1–4, `GETTING_STARTED`, `FIRST_CHANGES`, `CONTROLS` | 18 guides and about 3,800 lines; a rookie needs four of them to start, in a known order | Merge or delete guides (they are all used later) |
+| E2 | "Start here: the first numbers" in `TUNING.md`: 8 rows, in order | About 180 tunable values; a new robot needs about a dozen. The rest have sensible starting values | A separate "first numbers" config file (it would split each mechanism's numbers across two files) |
+| E3 | HLD, LLD, Requirements, Design Review and Updating Pedro marked **For mentors** | Students opening them first get lost in design detail | Move them to another folder (breaks every link) |
+| E4 | `HealthConfig` and `LogConfig` move to the mentor zone; `FieldCheckConfig` stays in the student zone | Health limits and log settings are set from match logs by mentors. The drive team sets `FieldCheckConfig.FIELD_NAME` at every event | All four "non-mechanism" configs to the mentor zone |
 

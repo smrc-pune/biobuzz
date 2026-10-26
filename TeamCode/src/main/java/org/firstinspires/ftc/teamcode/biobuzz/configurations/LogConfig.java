@@ -3,7 +3,7 @@ package org.firstinspires.ftc.teamcode.biobuzz.configurations;
 import com.acmerobotics.dashboard.config.Config;
 
 /**
- * STUDENTS: you will change this file.
+ * MENTORS: you do not need to change this file.
  *
  * LogConfig.java  -  switches for the match log (helpers/MatchLogger.java).     ROLE: config
  *

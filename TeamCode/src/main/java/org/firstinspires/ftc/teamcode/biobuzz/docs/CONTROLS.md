@@ -64,3 +64,8 @@ TODO(BioBuzz): confirm the gamepad 2 map once the robot is built.
 | Gamepad 1 at 0:20 left | Time to PARK (B drives to the LOADING ZONE) |
 | Short, gamepad 1 | An assist was refused (screen says why) |
 | Long, gamepad 1 after D-pad left | Pose set, assists ready |
+
+---
+
+**That was the last "Start here" guide.** When the robot is built, go on with
+`TUNING.md`, "Start here: the first numbers".
