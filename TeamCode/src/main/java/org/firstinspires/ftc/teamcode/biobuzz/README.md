@@ -454,6 +454,7 @@ true only on the one loop when the button goes from up to down. Read each button
 | `v0.1.3` | 2026-10-26 | One launch speed: `LauncherConfig.LAUNCH_RPM`, tuned from our launch spot, replaces the speed-by-distance table (Requirements v2.11, design review section 11). Not run on the robot yet |
 | `v0.1.4` | 2026-10-26 | Simpler: one camera (the HuskyLens looking up at the CELL tags; the webcam is removed), one Auto plan (leave, launch 4, park), fewer telemetry lines at first (Requirements v2.12, design review section 12). Not run on the robot yet |
 | `v0.1.5` | 2026-10-26 | Easier to start: a "Start here" reading order, "the first numbers" in `TUNING.md`, the design documents marked For mentors, `HealthConfig` and `LogConfig` in the mentor zone (Requirements v2.13, design review section 13). Docs and comments only |
+| `v0.1.6` | 2026-10-26 | The CELL AprilTag numbers from the manual (TU06, 9.9) in `CameraConfig`, which tag to train as each HuskyLens ID, and Test: Camera names the CELL it sees (Requirements v2.14). Not run on the robot yet |
 
 > **Important:** Pedro's `pedro/Constants.java` is still the empty Quickstart file.
 > Until it is filled in at drive tuning, every BioBuzz OpMode that drives stops at INIT
