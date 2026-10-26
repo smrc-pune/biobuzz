@@ -1,6 +1,6 @@
 # BioBuzz Software – Low-Level Design (LLD)
 
-Oct 24, 2026 · **Matches the code after steps 1–11** (not yet run on the robot) · goes with Requirements v2.10 and `HLD.md`
+Oct 26, 2026 · **Matches the code after steps 1–12** (not yet run on the robot) · goes with Requirements v2.11 and `HLD.md`
 
 This document describes each class: its job, its public methods, its config values and how it fits with the others. Code sketches show the **shape** of each class; the code itself is the final word, and this document is updated in the same commit as any change.
 
@@ -32,7 +32,7 @@ This document describes each class: its job, its public methods, its config valu
 - **Units:** inches, degrees, milliseconds, RPM. The unit is in every constant's name (`_IN`, `_DEG`, `_MS`, `_RPM`).
 - **Field frame** (agreed, Q8): the field image as drawn, origin at the bottom-left corner (red GARDEN corner), x to the right, y up, 0 to 144 in. The audience is along the bottom wall. Red ALLIANCE AREA is on the left wall, blue on the right. Heading 0° points along +x, counter-clockwise is positive (Pedro).
 - **Alliances:** RED is the default alliance. Every pose is written once, for RED, in `FieldConfig`. BLUE = RED turned 180° about (72, 72) (`x → 144 − x`, `y → 144 − y`, `heading → heading + 180°`), done in one method, `FieldPaths.forAlliance(redPose, isRed)`, by chaining both reflections: `mirrorX(72.0).mirrorY(72.0)` (agreed, Q7).
-- **No launch zones:** the robot may launch from anywhere. `FieldConfig.LAUNCH_SPOT` is just one known good spot for the S2 assist and for Auto.
+- **No launch zones:** the robot may launch from anywhere, but the launcher has ONE speed (`LauncherConfig.LAUNCH_RPM`), tuned from `FieldConfig.LAUNCH_SPOT`, the spot the S2 assist and Auto drive to. So launches land best from there.
 - **Lists, not index numbers:** arrays are written by name and walked with a "for each" loop; no `[i]` in student-zone code.
 - **Telemetry words:** state names in CAPITALS; every value has its unit.
 
@@ -180,10 +180,10 @@ A plain base class, like `Mechanism`, with the five methods every state machine 
 | Subsystem (`robot.`…) | Owns | Menu | Mediator rule | `getStatusText()` |
 | --- | --- | --- | --- | --- |
 | `intake` (`IntakeSubsystem`) | Intake | `toggle()`, `collect()`, `reverse()`, `stop()`, `isOn()` | – (no state machine) | `intake ON` / `intake off` |
-| `shooter` (`ShooterSubsystem`) | Feeder, Launcher, LaunchStateMachine (+ Drive, only to ask where we are) | `launch(count)`, `cancelLaunch()`, `spinUp()`, `holdPreloads()`, `stop()`; questions `isLaunching()`, `isUpToSpeed()`, `getRpm()`, `getTargetRpm()`, `getAimHeadingDeg()`, `getDistanceToUpCellIn()` | `spinUp()` does nothing while launching (the state machine controls the speed) | `launcher READY` / `launcher spinning` / `launcher -` |
+| `shooter` (`ShooterSubsystem`) | Feeder, Launcher, LaunchStateMachine (+ Drive, only to ask where we are, for the aim) | `launch(count)`, `cancelLaunch()`, `spinUp()`, `holdPreloads()`, `stop()`; questions `isLaunching()`, `isUpToSpeed()`, `getRpm()`, `getTargetRpm()`, `getAimHeadingDeg()` | `spinUp()` does nothing while launching (the state machine controls the speed) | `launcher READY` / `launcher spinning` / `launcher -` |
 | `vision` (`VisionSubsystem`) | HiveCamera, FrontCamera | none yet: questions are added when an OpMode needs one | – | – |
 
-Menu details: `launch(count)` = `launchStateMachine.start(count)` (feeding an empty slot does no harm); `cancelLaunch()` = `launchStateMachine.cancel()` (Auto's launch timeout, Test: Launch): balls held, flywheel at idle; `stop()` (from `Subsystem`) also stops the flywheel. `holdPreloads()`: Auto INIT only, grip the 4 POLLEN (G304). `getAimHeadingDeg()`: the heading that faces the upward CELL, plus `LauncherConfig.AIM_OFFSET_DEG`. `getDistanceToUpCellIn()`: or `LauncherConfig.DEFAULT_DISTANCE_IN` when the pose is not known.
+Menu details: `launch(count)` = `launchStateMachine.start(count)` (feeding an empty slot does no harm); `cancelLaunch()` = `launchStateMachine.cancel()` (Auto's launch timeout, Test: Launch): balls held, flywheel at idle; `stop()` (from `Subsystem`) also stops the flywheel. `holdPreloads()`: Auto INIT only, grip the 4 POLLEN (G304). `getAimHeadingDeg()`: the heading that faces the upward CELL, plus `LauncherConfig.AIM_OFFSET_DEG`.
 
 **A state machine that needs two subsystems' mechanisms** means those jobs belong together: merge the subsystems (mentor decision), never let a state machine reach into another subsystem.
 
@@ -373,10 +373,10 @@ There is no Storage mechanism: the hopper has no sensors, so the robot does not 
 | | |
 | --- | --- |
 | Devices | `MOTOR_LAUNCHER` (flywheel with encoder; TODO(BioBuzz): a second motor?) |
-| Verbs | `spinUpFor(distanceIn)`, `idle()` (`IDLE_RPM`), `stop()` |
-| Questions | `isUpToSpeed()` (within `SPEED_TOLERANCE_RPM`), `getRpm()`, `getTargetRpm()`; `Launcher.rpmForDistance(in)` (static, for tests) |
+| Verbs | `spinUp()` (`LAUNCH_RPM`), `idle()` (`IDLE_RPM`), `stop()` |
+| Questions | `isUpToSpeed()` (within `SPEED_TOLERANCE_RPM`), `getRpm()`, `getTargetRpm()` |
 | `update()` | Reads the speed once per loop (`getVelocity()`, ticks/s → RPM with `TICKS_PER_REV`). Velocity control is in the motor (`RUN_USING_ENCODER`, `setVelocity`, PIDF from `LauncherConfig.SPEED_P/I/D/F`); `update()` re-sends the PIDF only when a Dashboard edit changed it. Zero power = FLOAT (coast) |
-| Speed table | `LauncherConfig.DISTANCE_IN = {36, 48, 60, 72, 84}`, `RPM = {2800, ..., 4000}` (guesses): one table for both POLLEN and NECTAR, because the robot does not know which ball is next; straight-line interpolation between neighbours, clamped at the ends (a counted `for` loop, mentor-written) |
+| Launch speed | `LauncherConfig.LAUNCH_RPM` (3100, a guess): ONE speed, tuned from `FieldConfig.LAUNCH_SPOT`, for both POLLEN and NECTAR (the robot does not know which ball is next). The launch spot is about the same distance from both CELLS (31 in to A, 33 in to B, from the guessed poses), so one speed serves before and after a TIP. A speed that follows the distance is a future improvement (section 14) |
 | Log | `launcher_rpm`, `launcher_target_rpm` (also on the Dashboard graph) |
 
 ### 5.4 HiveCamera (HuskyLens, looks up)
@@ -446,15 +446,15 @@ Every state machine has the same four sections (R3): **1. States** (the `enum`, 
 | State | DO | CHECK → GO | Timeout |
 | --- | --- | --- | --- |
 | `IDLE` | `feeder.hold()`, `launcher.idle()` (once, on entry) | – | – |
-| `SPINNING_UP` | `launcher.spinUpFor(distance to the upward CELL)` | up to speed and no TIP pause → `FEEDING` | `LauncherConfig.SPIN_UP_TIMEOUT_MS` → `IDLE` "spin-up timeout" (warn, and an urgent ALERT `LAUNCHER TIMEOUT`: the gamepads rumble) |
+| `SPINNING_UP` | `launcher.spinUp()` (every loop, so a Dashboard edit of `LAUNCH_RPM` counts at once) | up to speed and no TIP pause → `FEEDING` | `LauncherConfig.SPIN_UP_TIMEOUT_MS` → `IDLE` "spin-up timeout" (warn, and an urgent ALERT `LAUNCHER TIMEOUT`: the gamepads rumble) |
 | `FEEDING` | `feeder.feedOne()`, keep the speed | timer ≥ `FEED_MS` → `RECOVERING` | (the timer itself) |
 | `RECOVERING` | `feeder.hold()`, keep the speed | timer ≥ `RECOVER_MS`: launched + 1 (EVENT `LAUNCH:<n> of <count>`); launched < count → `SPINNING_UP`; else → `IDLE` "all launched" | (the timer itself) |
 
-`start(count)` is refused with a warning when the feeder or launcher is FAULTED, or while already launching. Without a known pose (S1) the distance is `LauncherConfig.DEFAULT_DISTANCE_IN`.
+`start(count)` is refused with a warning when the feeder or launcher is FAULTED, or while already launching.
 
 The robot cannot see how many balls it holds, so `start(count)` feeds `count` times (4 for "launch everything"); feeding an empty slot does no harm.
 
-The robot may launch from anywhere (no launch zones). The distance comes from `drive.getPose()` and `FieldPaths.upCellPose(MatchInfo.isRed())`. After the operator presses "TIPPED", `MatchInfo.secondsSinceTip()` holds the next feed for `LauncherConfig.TIP_PAUSE_MS` (manual 10.5.1).
+The flywheel always spins at `LAUNCH_RPM`, so the state machine does not need to know where the robot is (it does not use Drive). After the operator presses "TIPPED", `MatchInfo.secondsSinceTip()` holds the next feed for `LauncherConfig.TIP_PAUSE_MS` (manual 10.5.1).
 
 ---
 
@@ -481,7 +481,7 @@ Which of our two CELLS faces up, and how many TIPS we have, are match facts like
 | `place(xIn, yIn, headingDeg, isRed)` | RED: the pose as written. BLUE: turned 180° about (72, 72), `PoseFactory.degrees().mirrorX(72).mirrorY(72)`. (The Requirements call this `forAlliance`.) `launchSpot`, `loadingPark`, `loadingApproach`, `resetCorner` use it |
 | `startPose(start, isRed)` | `FieldConfig.START_NEAR_GARDEN_*` or `START_MIDDLE_*`, from `AutoConfig.Start` |
 | `upCellPose(isRed)` | `FieldConfig.CELL_A_*` or `CELL_B_*`, from `MatchInfo.isCellAUp()` |
-| `distanceToUpCellIn(robot, isRed)`, `aimHeadingDeg(robot, isRed)` | For the launcher speed and the aim button |
+| `aimHeadingDeg(robot, isRed)` | For the aim button |
 | `toLaunchSpot(from, isRed)` | Straight line to `FieldConfig.LAUNCH_SPOT_*` |
 | `toLoadingZone(from, isRed)` | Curve through `LOADING_APPROACH` to `LOADING_PARK` |
 | `leaveWall(start, isRed)` | Line from the start to the launch spot, ending facing the upward CELL (LEAVE) |
@@ -569,7 +569,7 @@ private void handleOperator() {
         robot.intake.stop();
     }
     if (launchAll) {
-        robot.shooter.launch(4);   // works from anywhere
+        robot.shooter.launch(4);   // lands best from our launch spot (driver's A)
     }
     if (tipped) {
         MatchInfo.markHiveTipped();
@@ -683,7 +683,7 @@ All are mentor zone and share `helpers/FieldCheckHelper` (grades, results, `FIEL
 | `AutoConfig` | `enum Routine`, `enum Start`; `ROUTINE` (`LAUNCH_PARK`), `START` (`WALL_NEAR_GARDEN`), `START_DELAY_S` (0) – decided before the match; `DRIVE_TIMEOUT_MS` 4000, `LAUNCH_TIMEOUT_MS` 6000, `COLLECT_TIMEOUT_MS` 5000, `PARK_TIMEOUT_MS` 4000, `PARK_BY_S` 26 |
 | `IntakeConfig` | `COLLECT_POWER` (1.0), `REVERSE_POWER` (−0.6) |
 | `FeederConfig` | `HOLD_POSITION` (0.2), `FEED_POSITION` (0.6) |
-| `LauncherConfig` | `TICKS_PER_REV` (28), `SPEED_P/I/D/F`, `IDLE_RPM` (0), `SPEED_TOLERANCE_RPM` (100), `DISTANCE_IN[]` / `RPM[]`, `DEFAULT_DISTANCE_IN` (48), `SPIN_UP_TIMEOUT_MS` (2500), `FEED_MS` (250), `RECOVER_MS` (300), `TIP_PAUSE_MS` (1500), `AIM_OFFSET_DEG` (0) |
+| `LauncherConfig` | `TICKS_PER_REV` (28), `SPEED_P/I/D/F`, `IDLE_RPM` (0), `SPEED_TOLERANCE_RPM` (100), `LAUNCH_RPM` (3100), `SPIN_UP_TIMEOUT_MS` (2500), `FEED_MS` (250), `RECOVER_MS` (300), `TIP_PAUSE_MS` (1500), `AIM_OFFSET_DEG` (0) |
 | `CameraConfig` | `HIVE_SAMPLE_MS`, `HIVE_IMAGE_WIDTH_PX`, HuskyLens learned tag IDs; webcam `PREVIEW`, `WIDTH_PX`, `HEIGHT_PX`, `HORIZONTAL_FOV_DEG`, `APRILTAG_DECIMATION`, `EXPOSURE_MS`, `GAIN`, `MIN_BLOB_AREA_PX`, camera position and angle, colour ranges |
 | `ControlsConfig` | `TRIGGER_THRESHOLD`, `SET_POSE_HOLD_MS`, rumble lengths, match-time warnings, `PARTS_TEST_*`, `ROBOT_CHECK_MOTOR_*`, the button list as comments |
 | `HealthConfig` | battery, loop-time and heading-jump limits; Robot Check limits `CHECK_*` |
@@ -750,7 +750,7 @@ All are mentor zone and share `helpers/FieldCheckHelper` (grades, results, `FIEL
 | **Webcam CPU load** | `VisionPortal` runs on its own thread, but AprilTag and colour processing at full resolution can slow the whole Control Hub, and so the loop | Low resolution (for example 640 × 480), AprilTag decimation, preview off in matches, `pause()` when not needed; measure the loop time with the webcam streaming |
 | **Which CELL is up** | Operator button; camera; counting launched elements | Operator button first (Q2) |
 | **Detecting a disconnected device** | The SDK seldom throws; a motor on an unplugged hub keeps "working" | Watch `LynxModule` health and motor current; mark FAULTED; acceptance test: pull a cable |
-| **Arrays in `@Config`** (launcher speed tables, colour ranges) | FTC Dashboard may not edit arrays live | **Done:** Dashboard 0.6.0 has an `ArrayProvider` for config arrays, so `double[]` fields are used. Check on the robot that edits apply |
+| **Arrays in `@Config`** (colour ranges; a launcher speed table later) | FTC Dashboard may not edit arrays live | **Done:** Dashboard 0.6.0 has an `ArrayProvider` for config arrays, so `double[]` fields are used. Check on the robot that edits apply |
 | **Pedro 3 path headings** | Paths need a heading plan (tangent, constant, linear) | **Done:** every path ends with `.linear(from, to)` or `.constant(heading)`; `Paths.through(...)` for the GARDEN path, `Paths.path(...)` to chain the square |
 | **SDK 12 AprilTag detections** | `AprilTagProcessor.getDetections()` returns `AprilTagDetection`, which no longer has `id`; single tags are `AprilTagSingleDetection` (clusters are `AprilTagClusterDetection`) | `FrontCamera.update()` checks `instanceof AprilTagSingleDetection` and casts. This is why the cameras are mentor-zone files. A tag missing from the SDK's tag library has no pose: its id is kept with range 0 (TODO(BioBuzz): add BIOBUZZ tags with `setTagLibrary`) |
 | **An idle follower brakes** | Pedro's `Follower.update()` in IDLE mode calls `drivetrain.stop()` every loop, so the motors brake | Field Checks that the crew pushes by hand (03, 04, 05, 10) and the brake test (07) call `Drive.updatePoseOnly()` (the localizer only) instead of `update()` |
@@ -778,6 +778,7 @@ All are mentor zone and share `helpers/FieldCheckHelper` (grades, results, `FIEL
 | Config snapshot in the log header | Know every tuned value of a run | One hand-written line per value (no reflection) | When tuning values change often between matches |
 | **Storage sensing** (a Storage mechanism) | Knowing how many balls are held and their colours: stop the intake at 4 (G407), push opponent NECTAR out automatically (G408), launch exactly what is held, pick a speed table per ball type | Sensors in the hopper (a colour sensor at the mouth, or one per slot); a `Storage` mechanism and a `CollectStateMachine` (intake until 4, reject opponent NECTAR) | When the robot's hopper gets sensors |
 | Camera pose fix (front webcam tag pose) | x/y recovery without the reset corner | Camera position calibration; the CELL tags face down, so they are seen at a steep angle; wrong fixes are worse than none | After Field Check 12 passes reliably |
-| Launch while moving | Faster cycles | Needs velocity-aware aiming | After consistent stationary launching |
+| **Launch speed by distance** (a speed table) | Launch from anywhere, not only the launch spot | `LauncherConfig.DISTANCE_IN[]` / `RPM[]` measured from 4–5 distances; `Launcher.spinUpFor(distanceIn)` with straight-line in-between values; `FieldPaths.distanceToUpCellIn()`; a default distance when the pose is unknown (S1); `LaunchStateMachine` asks Drive where we are again. Built and then taken out in v2.11 (commit `054aa10` has it) | When the students tune `LAUNCH_RPM` easily and want more launch spots |
+| Launch while moving | Faster cycles | Needs velocity-aware aiming and the speed table | After consistent stationary launching |
 | FLOWER placer | Bottom NECTAR Bonus, FLOWER ownership | A new mechanism (checklist in section 11) | If the team builds one |
 | Limelight 3A | Real 3D AprilTag pose | Cost, mounting | If HuskyLens is not good enough |

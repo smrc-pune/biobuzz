@@ -1,6 +1,6 @@
 # BioBuzz Software – High-Level Design (HLD)
 
-Oct 24, 2026 · **Matches the code (steps 1–11 built, not yet run on the robot)** · goes with Requirements v2.10 and `LLD.md`
+Oct 26, 2026 · **Matches the code (steps 1–12 built, not yet run on the robot)** · goes with Requirements v2.11 and `LLD.md`
 
 This document explains how the BioBuzz robot software fits together. It is written for our team: 7th graders who are new to Java. Read it once from top to bottom. Use `LLD.md` when you need the details of one file.
 
@@ -199,7 +199,7 @@ If something goes wrong inside a mechanism (for example a cable comes out), that
 
 | State machine | Uses | Job |
 | --- | --- | --- |
-| `LaunchStateMachine` | Feeder, Launcher, Drive (where are we?) | Spin up for the distance to the upward CELL, feed one ball, wait, repeat; wait a moment after a TIP |
+| `LaunchStateMachine` | Feeder, Launcher | Spin up to the launch speed, feed one ball, wait, repeat; wait a moment after a TIP |
 
 The intake needs no state machine: the operator turns it on and off.
 

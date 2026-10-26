@@ -85,12 +85,6 @@ public class FieldPaths {
         return place(FieldConfig.CELL_B_X_IN, FieldConfig.CELL_B_Y_IN, 0, isRed);
     }
 
-    /** Inches from the robot's centre to the upward CELL (the launcher's speed depends on it). */
-    public static double distanceToUpCellIn(Pose robot, boolean isRed) {
-        Pose cell = upCellPose(isRed);
-        return Math.hypot(cell.x() - robot.x(), cell.y() - robot.y());
-    }
-
     /** The heading (degrees) that points the launcher at the upward CELL from this spot. */
     public static double aimHeadingDeg(Pose robot, boolean isRed) {
         Pose cell = upCellPose(isRed);

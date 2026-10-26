@@ -1,8 +1,8 @@
 # BioBuzz Robot Software – Requirements
 
-Oct 24, 2026 · @Girish
+Oct 26, 2026 · @Girish
 
-**Version 2.10**
+**Version 2.11**
 
 ## Contents
 
@@ -336,7 +336,7 @@ These come from the BIOBUZZ Competition Manual TU05. Rule numbers (G…, R…) a
 | GR4 | The robot MUST NOT control more than 4 balls. This is done by the hardware: the hopper physically holds at most 4. Counting held balls in software needs sensors the robot does not have; it is a future improvement (`docs/LLD.md`) | G407 |
 | GR5 | Opponent NECTAR is the drive team's responsibility: the operator does not collect it, and reverses the intake (gamepad 2 B) if it is picked up. There is no software check | G408 |
 | GR6 | `helpers/MatchInfo` MUST know which of our two CELLS faces up (`MatchInfo.isCellAUp()`): the setup position at Auto `init()`, flipped by each TIP (`MatchInfo.markHiveTipped()`), kept from Auto to TeleOp like the rest of `MatchInfo`. A TIP is entered by the operator (gamepad 2 left bumper); the HIVE camera MAY confirm it later. After a TIP, launching pauses for `LauncherConfig.TIP_PAUSE_MS` | 9.6, 10.5.1 |
-| GR7 | BIOBUZZ has no launch zones: the robot may launch from anywhere. The aim heading MUST follow the upward CELL, and the launcher speed MUST depend on the distance to the upward CELL, from a table in `LauncherConfig`. The robot does not know which ball is next (POLLEN 2.8 in or NECTAR 3.6 in), so one table serves both; separate tables per ball type are a future improvement | 9.6, 9.8 |
+| GR7 | BIOBUZZ has no launch zones: the robot may launch from anywhere. The aim heading MUST follow the upward CELL. The launcher MUST use ONE speed, `LauncherConfig.LAUNCH_RPM`, tuned from our launch spot (`FieldConfig.LAUNCH_SPOT`), where Auto and the S2 assist launch: one number is easy for rookies to tune. The robot does not know which ball is next (POLLEN 2.8 in or NECTAR 3.6 in), so one speed serves both. A speed that follows the distance to the upward CELL (a table), and tables per ball type, are future improvements | 9.6, 9.8 |
 | GR8 | Every auto path MUST be checked at INIT: it stays on our side of the field (columns A–C red, D–F blue) and out of the HIVE footprint plus `FieldConfig` margin. A failing path shows a red warning on the INIT screen | G402, G409, G417 |
 | GR9 | Start positions MUST be a fixed list in `FieldConfig` (touching the wall, our side, not in the LOADING ZONE); the one used is set in `AutoConfig.START` before the match | G304 |
 | GR10 | Poses are written for RED, the default alliance. BLUE poses MUST be the RED pose turned 180° about the field centre (72, 72), because the field is rotationally symmetric (agreed, Q7). `FieldPaths.place(...)` (named `forAlliance` in earlier versions) does it by chaining both reflections: `PoseFactory` `mirrorX(72.0).mirrorY(72.0)` | 9.3 |
@@ -665,7 +665,7 @@ The battery's **voltage** is measured by the robot (above). Which physical batte
 | Sluggish late in the match | Battery sag | Voltage trending down, deep dips under load | Fresh battery; retire a battery that sags every time |
 | Auto fine at home, off at the event | Different tile grip, so different braking | Field Check 07 to 09 vs baseline | Use the measured deceleration; adjust end poses |
 | Laggy or jerky drive | Slow loop | `worst_loop_ms` spikes; `ALERT:SLOW LOOP` | Remove slow code; fewer hardware reads; bulk reads (LLD, Future improvements) |
-| Launches fall short or long | Wrong upward CELL, wrong distance, low battery | `up_cell`, pose, `launcher_rpm` vs target, `battery_v` at each launch | Press TIP when the HIVE tips; retune the speed table; fresh battery |
+| Launches fall short or long | Not on our launch spot, wrong upward CELL (aim), low battery | `up_cell`, pose, `launcher_rpm` vs target, `battery_v` at each launch | Launch from the launch spot; press TIP when the HIVE tips; retune `LAUNCH_RPM`; fresh battery |
 | Log ends early | Crash, power loss, disconnect | No `# END`; last voltage reading | Robot Controller log for the crash; check power connectors |
 
 ### G. TODO: Match Simulator
@@ -826,6 +826,7 @@ The team MUST give the AI the facts below before it writes BioBuzz-specific code
 
 | Version | Date | Changes |
 | --- | --- | --- |
+| 2.11 | 2026-10-26 | One launch speed (GR7): `LauncherConfig.LAUNCH_RPM`, tuned from our launch spot, replaces the speed-by-distance table, which was too much for the rookie team to tune first. `Launcher.spinUp()` replaces `spinUpFor(distance)`; `LaunchStateMachine` no longer uses Drive; Test: Launcher and Test: Launch tune the one speed. The table is a future improvement (LLD section 14). |
 | 2.10 | 2026-10-24 | Quickstart merged to `9dc8978` (Pedro 3.0.2, Foresight tuner safety fixes; `UPSTREAM.md`). Drive tuning follows the team's Pedro tuning kit. New sections in Base project and repository: **Branches and releases** (`master` = students' version, `biobuzz-dev` = mentor work, tagged releases `v0.1`, `v0.1.1`) and **What goes into the APK**. Front page `.github/README.md`. New guide `NEW_ROBOT_CHECKLIST.md`. Future improvements: hide test OpModes with one switch, a build check on pull requests, a version line at INIT. New open items: team number and name, student access, robot tests after the Pedro merge. |
 | 2.9 | 2026-10-23 | `drive/Assists.java` renamed `drive/DriveToSpot.java`, so the name says what it does: `robot.driveToSpot.launchSpot()`, `robot.driveToSpot.loadingZone()`. "Set pose here" does not drive, so it moved to `robot.drive.setPoseAtResetCorner()`. The EVENT names (`ASSIST:<name>`) are unchanged. Hiding the test OpModes with one switch added to Future improvements. New guide `docs/NEW_ROBOT_CHECKLIST.md`. Drive tuning follows the team's Pedro tuning kit (separate repository). **R3:** every `if` / `else` and every method has `{ }` with the body on its own lines, even for one line (all team code reformatted; the Quickstart's `pedro/` is left as it came). |
 | 2.8 | 2026-10-23 | Subsystems (step 10). `Robot` was the hardest file to read: it held every mechanism, every state machine and a method for every action. Now OpModes call three subsystems, `robot.intake`, `robot.shooter`, `robot.vision` (new `subsystems/`: `Subsystem` base class, `IntakeSubsystem`, `ShooterSubsystem`, `VisionSubsystem`), and `robot.driveToSpot` (new `drive/DriveToSpot.java`, the S2 buttons). A subsystem owns its mechanisms and the state machines that use them and has no states, so the v2.0 objection to subsystems (one state-machine brain per mechanism) does not return; the Mediator rule now lives inside each subsystem. State machines extend a new `StateMachine` base class. **R3 amended:** two more plain team base classes (`Subsystem`, `StateMachine`) and a `List` inside `Subsystem.java` are allowed; interfaces and team generics stay forbidden. `robot.markHiveTipped()` removed (OpModes call `MatchInfo.markHiveTipped()`). `TemplateSubsystem` added. Match-log columns are grouped by subsystem (read by name, so tools are unchanged). |

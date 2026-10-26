@@ -61,8 +61,8 @@ public class FieldConfig {
     //      CENTRE must stay this far from the middle line, so no part of it crosses. ----
     public static double OWN_SIDE_MARGIN_IN = 9;
 
-    // ---- Our favourite launch spot (driver's A button). We can launch from anywhere;
-    //      this is just one known good spot with a clear view of the HIVE. ----
+    // ---- Our launch spot (driver's A button, and Auto). LauncherConfig.LAUNCH_RPM is tuned
+    //      from HERE, so launches land best from this spot. Move it? Retune LAUNCH_RPM. ----
     public static double LAUNCH_SPOT_X_IN = 30;
     public static double LAUNCH_SPOT_Y_IN = 72;
     public static double LAUNCH_SPOT_HEADING_DEG = 0;

@@ -3,8 +3,6 @@ package org.firstinspires.ftc.teamcode.biobuzz.statemachines;
 import org.firstinspires.ftc.robotcore.external.Telemetry;
 import org.firstinspires.ftc.teamcode.biobuzz.configurations.LauncherConfig;
 import org.firstinspires.ftc.teamcode.biobuzz.configurations.TelemetryConfig;
-import org.firstinspires.ftc.teamcode.biobuzz.drive.Drive;
-import org.firstinspires.ftc.teamcode.biobuzz.drive.FieldPaths;
 import org.firstinspires.ftc.teamcode.biobuzz.helpers.Alerts;
 import org.firstinspires.ftc.teamcode.biobuzz.helpers.MatchInfo;
 import org.firstinspires.ftc.teamcode.biobuzz.helpers.MatchLogger;
@@ -26,13 +24,12 @@ import org.firstinspires.ftc.teamcode.biobuzz.mechanisms.Launcher;
  *    +--------------------+                                                |
  *    +--------------------------- all launched ----------------------------+
  *
- * We can launch from ANYWHERE: the flywheel speed comes from the distance to the upward
- * CELL (Drive knows where we are, MatchInfo knows which CELL is up). Without a known pose
- * (S1) it uses LauncherConfig.DEFAULT_DISTANCE_IN. After a HIVE TIP it waits TIP_PAUSE_MS
- * before the next feed (game manual 10.5.1).
+ * The flywheel always spins at ONE speed, LauncherConfig.LAUNCH_RPM, tuned from our launch
+ * spot. So launches land best from that spot (where Auto and the driver's A button go).
+ * After a HIVE TIP it waits TIP_PAUSE_MS before the next feed (game manual 10.5.1).
  * The robot cannot see how many balls it holds, so start(4) feeds 4 times; feeding an empty
  * slot does no harm.
- * Uses: Feeder, Launcher (commands only) and Drive (only to ask where we are).
+ * Uses: Feeder and Launcher (commands only).
  * Lives in: ShooterSubsystem, which builds it and calls update() every loop.
  *
  * TRACING A BUG: read the "Launch last change" line. "spin-up timeout" = the flywheel never
@@ -43,24 +40,22 @@ public class LaunchStateMachine extends StateMachine {
     // ==================== 1. STATES ====================
     public enum State {
         IDLE,          // feeder holds the balls back; flywheel at idle speed
-        SPINNING_UP,   // flywheel speeding up for this distance; waits for "up to speed"
+        SPINNING_UP,   // flywheel speeding up to LAUNCH_RPM; waits for "up to speed"
         FEEDING,       // feeder pushes one ball into the flywheel
         RECOVERING     // feeder pulls back; flywheel gets its speed back
     }
 
     private final Feeder feeder;
     private final Launcher launcher;
-    private final Drive drive;
     private final StateTimer timer = new StateTimer();
     private final StateLog log = new StateLog("Launch");
     private State state = State.IDLE;
     private int toLaunch = 0;
     private int launched = 0;
 
-    public LaunchStateMachine(Feeder feeder, Launcher launcher, Drive drive) {
+    public LaunchStateMachine(Feeder feeder, Launcher launcher) {
         this.feeder = feeder;
         this.launcher = launcher;
-        this.drive = drive;
     }
 
     // ==================== 2. COMMANDS ====================
@@ -96,8 +91,8 @@ public class LaunchStateMachine extends StateMachine {
                 break;
 
             case SPINNING_UP:
-                // DO: the speed follows the distance, so it is right even if the robot moves.
-                launcher.spinUpFor(getDistanceIn());
+                // DO: asked every loop, so a new LAUNCH_RPM typed in the Dashboard counts at once.
+                launcher.spinUp();
                 // CHECK + GO
                 boolean tipPauseOver = MatchInfo.secondsSinceTip() * 1000 >= LauncherConfig.TIP_PAUSE_MS;
                 if (launcher.isUpToSpeed() && tipPauseOver) {
@@ -115,7 +110,7 @@ public class LaunchStateMachine extends StateMachine {
             case FEEDING:
                 // DO
                 feeder.feedOne();
-                launcher.spinUpFor(getDistanceIn());
+                launcher.spinUp();
                 // CHECK + GO (this wait IS the timeout: it always ends)
                 if (timer.isTimeUp(LauncherConfig.FEED_MS)) {
                     goTo(State.RECOVERING, "fed one");
@@ -125,7 +120,7 @@ public class LaunchStateMachine extends StateMachine {
             case RECOVERING:
                 // DO
                 feeder.hold();
-                launcher.spinUpFor(getDistanceIn());
+                launcher.spinUp();
                 // CHECK + GO (this wait IS the timeout: it always ends)
                 if (timer.isTimeUp(LauncherConfig.RECOVER_MS)) {
                     launched++;
@@ -138,14 +133,6 @@ public class LaunchStateMachine extends StateMachine {
                 }
                 break;
         }
-    }
-
-    /** Inches to the upward CELL, or the default when we don't know where we are. */
-    private double getDistanceIn() {
-        if (!drive.isPoseKnown()) {
-            return LauncherConfig.DEFAULT_DISTANCE_IN;
-        }
-        return FieldPaths.distanceToUpCellIn(drive.getPose(), MatchInfo.isRed());
     }
 
     // ==================== 4. BOOKKEEPING ====================

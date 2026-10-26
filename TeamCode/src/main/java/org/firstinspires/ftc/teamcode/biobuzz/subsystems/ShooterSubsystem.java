@@ -2,7 +2,6 @@ package org.firstinspires.ftc.teamcode.biobuzz.subsystems;
 
 import com.qualcomm.robotcore.hardware.HardwareMap;
 
-import org.firstinspires.ftc.teamcode.biobuzz.configurations.LauncherConfig;
 import org.firstinspires.ftc.teamcode.biobuzz.drive.Drive;
 import org.firstinspires.ftc.teamcode.biobuzz.drive.FieldPaths;
 import org.firstinspires.ftc.teamcode.biobuzz.helpers.MatchInfo;
@@ -22,7 +21,7 @@ import org.firstinspires.ftc.teamcode.biobuzz.statemachines.LaunchStateMachine;
  * Owns: Feeder + Launcher, and LaunchStateMachine (which uses both). Because the state
  * machine and the manual commands both live HERE, this is the one file that keeps them
  * from fighting: spinUp() does nothing while a launch is running.
- * Uses Drive only to ask where we are (for the distance and the aim).
+ * Uses Drive only to ask where we are (for the aim).
  * ADD A MENU METHOD HERE when an OpMode needs something new from the shooter.
  */
 public class ShooterSubsystem extends Subsystem {
@@ -37,7 +36,7 @@ public class ShooterSubsystem extends Subsystem {
         this.drive = drive;
         feeder = new Feeder(hardwareMap);
         launcher = new Launcher(hardwareMap);
-        launchStateMachine = new LaunchStateMachine(feeder, launcher, drive);   // given what it uses
+        launchStateMachine = new LaunchStateMachine(feeder, launcher);   // given what it uses
         addMechanism(feeder);
         addMechanism(launcher);
         addStateMachine(launchStateMachine);
@@ -45,7 +44,7 @@ public class ShooterSubsystem extends Subsystem {
 
     // ==================== THE MENU ====================
 
-    /** Launch this many balls, from wherever we are. Feeding an empty slot does no harm. */
+    /** Launch this many balls (best from our launch spot). Feeding an empty slot does no harm. */
     public void launch(int count) {
         launchStateMachine.start(count);
     }
@@ -55,12 +54,12 @@ public class ShooterSubsystem extends Subsystem {
         launchStateMachine.cancel();
     }
 
-    /** Spin the flywheel up early, for the distance to the upward CELL from here (operator's Y). */
+    /** Spin the flywheel up early, to the launch speed (operator's Y). */
     public void spinUp() {
         if (launchStateMachine.isBusy()) {
             return;   // the state machine already controls the speed
         }
-        launcher.spinUpFor(getDistanceToUpCellIn());
+        launcher.spinUp();
     }
 
     /** Auto INIT only: hold the 4 preloaded balls (the only move allowed before PLAY, G304). */
@@ -91,14 +90,6 @@ public class ShooterSubsystem extends Subsystem {
     /** The heading that points the launcher at the upward CELL from where we are (aim button). */
     public double getAimHeadingDeg() {
         return FieldPaths.aimHeadingDeg(drive.getPose(), MatchInfo.isRed());
-    }
-
-    /** Inches to the upward CELL, or LauncherConfig.DEFAULT_DISTANCE_IN when the pose is unknown (S1). */
-    public double getDistanceToUpCellIn() {
-        if (!drive.isPoseKnown()) {
-            return LauncherConfig.DEFAULT_DISTANCE_IN;
-        }
-        return FieldPaths.distanceToUpCellIn(drive.getPose(), MatchInfo.isRed());
     }
 
     @Override

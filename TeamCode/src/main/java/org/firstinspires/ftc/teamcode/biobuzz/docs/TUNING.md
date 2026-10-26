@@ -59,14 +59,14 @@ kit's Stage 2 (Pinpoint); 07 → use the measured deceleration for this event; 0
 
 Open http://192.168.43.1:8080/dash → Configuration. Run the mechanism's test OpMode and change
 numbers while it runs. **Then type the good values into the config file, and commit them to
-git with the date and the field type** (for example "launcher speeds, home field, 2026-11-02").
+git with the date and the field type** (for example "launch speed, home field, 2026-11-02").
 
 | What | Test OpMode | Numbers | Good |
 | --- | --- | --- | --- |
 | Intake power | Test: Intake | `IntakeConfig.COLLECT_POWER`, `REVERSE_POWER` | Pulls a ball in reliably, without jamming |
 | Feeder positions | Test: Feeder | `FeederConfig.HOLD_POSITION`, `FEED_POSITION` | Hold keeps a ball back; feed pushes it fully into the flywheel |
 | Flywheel speed control | Test: Launcher (Graph view: `launcher_rpm`, `launcher_target_rpm`) | `LauncherConfig.SPEED_F` first (about right with P = 0), then `SPEED_P`; check `TICKS_PER_REV` | Reaches the target within 1 s, little overshoot, recovers quickly after a ball |
-| Speed table | Test: Launch, from each distance in `DISTANCE_IN` | `LauncherConfig.RPM` | Balls land in the CELL from every distance |
+| Launch speed | Test: Launch, robot on our launch spot (`FieldConfig.LAUNCH_SPOT`) facing the CELL. Short: raise it 100 at a time; long: lower it | `LauncherConfig.LAUNCH_RPM` | All 4 balls land in the CELL from the launch spot |
 | Launch timing | Test: Launch | `FEED_MS`, `RECOVER_MS`, `SPIN_UP_TIMEOUT_MS` | 4 balls in the least time, none short |
 | Aim | BioBuzz TeleOp, hold RB | `DriveConfig.AIM_P`, `AIM_D`; `LauncherConfig.AIM_OFFSET_DEG` | Turns to face the CELL quickly, without wobbling |
 | Cameras | Test: Camera | `CameraConfig` | See `CAMERA_GUIDE.md` |

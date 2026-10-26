@@ -255,7 +255,7 @@ public class BioBuzzTeleOp extends OpMode {
             robot.intake.stop();
         }
         if (launchAll) {
-            robot.shooter.launch(4);   // we can launch from anywhere
+            robot.shooter.launch(4);   // lands best from our launch spot (driver's A)
         }
         if (spinUp) {
             robot.shooter.spinUp();

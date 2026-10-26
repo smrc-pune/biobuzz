@@ -124,11 +124,11 @@ file and commit them** (`TUNING.md`, "Mechanism tuning").
 - [ ] **Test: Feeder**: `FeederConfig.HOLD_POSITION`, `FEED_POSITION` (use the safe
       positions from step 4).
 - [ ] **Test: Launcher**: `LauncherConfig.SPEED_F`, then `SPEED_P`; check `TICKS_PER_REV`.
-- [ ] **Test: Launch** (needs step 6), from each distance in `DISTANCE_IN`: the `RPM` table,
-      then `FEED_MS`, `RECOVER_MS`.
+- [ ] **Test: Launch** (needs step 6), robot on our launch spot facing the CELL:
+      `LauncherConfig.LAUNCH_RPM`, then `FEED_MS`, `RECOVER_MS`.
 - [ ] A new mechanism that is not in the code yet? Follow `HOW_TO_ADD_A_MECHANISM.md`.
 
-**Done when:** 4 balls go into the CELL from every distance in the table.
+**Done when:** 4 balls go into the CELL from the launch spot.
 
 ## Step 9 – Cameras
 
@@ -206,7 +206,7 @@ is done, delete the TODO line it answers.
 | --- | --- | --- |
 | `configurations/HardwareNames.java` | names, ports, directions, the localizer | 1, 4, 6 (kit Stage 1) |
 | `configurations/FeederConfig.java`, `mechanisms/Feeder.java` | feeder positions; servo or motor | 4, 8 |
-| `configurations/LauncherConfig.java` | the speed table | 8 |
+| `configurations/LauncherConfig.java` | the launch speed (`LAUNCH_RPM`) | 8 |
 | `configurations/CameraConfig.java`, `mechanisms/FrontCamera.java` | tag IDs, mounting, colours, the BIOBUZZ tag library | 9 |
 | `configurations/ControlsConfig.java`, `teleop/BioBuzzTeleOp.java` | the gamepad 2 map | 10 |
 | `configurations/FieldConfig.java` | every field place | 11 |

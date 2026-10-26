@@ -95,7 +95,7 @@ teamcode/
       HealthConfig.java       limits for ALERTs (low battery, slow loop, heading jump) and Robot Check
       IntakeConfig.java       intake powers
       FeederConfig.java       the feeder servo's two positions
-      LauncherConfig.java     flywheel speed control, the speed table, launch timing, aim offset
+      LauncherConfig.java     flywheel speed control, the launch speed, launch timing, aim offset
       CameraConfig.java       both cameras: HuskyLens tag ids, webcam size, exposure, colours
       LogConfig.java          match log on/off, rows per second, how many files to keep
       TelemetryConfig.java    what shows on screen
@@ -114,7 +114,7 @@ teamcode/
       Mechanism.java          what every mechanism has in common (FAULTED safety)
       Intake.java             the roller that picks up balls
       Feeder.java             the servo that pushes one ball into the flywheel
-      Launcher.java           the flywheel, with the speed-by-distance table
+      Launcher.java           the flywheel: spins up to the one launch speed
       HiveCamera.java         HuskyLens looking up at the CELL tags (answers questions only)
       FrontCamera.java        Logitech webcam: field tags, POLLEN, NECTAR (answers questions only)
     statemachines/
@@ -201,7 +201,7 @@ BioBuzzTeleOp.handleOperator()
  |-- robot.update()
  |     1. intake.update()       the roller
  |     2. shooter.update()      first its state machine, then its mechanisms:
- |          launchStateMachine.update()   SPINNING_UP: launcher.spinUpFor(distance to the upward CELL)
+ |          launchStateMachine.update()   SPINNING_UP: launcher.spinUp()  (to LAUNCH_RPM)
  |                                        ... up to speed -> FEEDING: feeder.feedOne()
  |                                        ... FEED_MS -> RECOVERING: feeder.hold() ... 4 times, then IDLE
  |          feeder, launcher runUpdate()  the launcher reads its speed
@@ -272,7 +272,7 @@ for 1 second. The gamepad buzzes and the header says "S2 ready".
 | --- | --- |
 | A | Intake on / off |
 | B (hold) | Spit out (reverse the intake); also how opponent NECTAR goes back out |
-| Right trigger | Launch 4 balls, from wherever the robot is |
+| Right trigger | Launch 4 balls (they land best from our launch spot: driver's A) |
 | Y | Spin the launcher up early |
 | Left bumper | "Our HIVE just TIPPED": the other CELL faces up now |
 | D-pad down | Stop all mechanisms |
@@ -347,7 +347,8 @@ every waiting state has a timeout.
 and `LaunchStateMachine` (the one state machine); `vision` owns HiveCamera and FrontCamera. Each has its own test OpMode in `testing/`.
 Each mechanism's telemetry has an on/off switch in `TelemetryConfig` (its `isTelemetryOn()`).
 **Which CELL is up:** `MatchInfo` remembers it; the operator's left bumper flips it at each
-TIP. The launcher's speed and the aim button both follow the upward CELL.
+TIP. The aim button follows the upward CELL. The launcher has ONE speed
+(`LauncherConfig.LAUNCH_RPM`), tuned from our launch spot.
 
 **To add one**, copy the files in `template/` and follow `docs/HOW_TO_ADD_A_MECHANISM.md`.
 A new mechanism or state machine usually goes into an EXISTING subsystem (one
@@ -422,6 +423,7 @@ true only on the one loop when the button goes from up to down. Read each button
 | 9 | Guides (section 12), TROUBLESHOOTING.md, HLD/LLD updated, UPSTREAM.md, tools/plot_match.py | Done |
 | 10 | Subsystems (Requirements v2.8): `Robot` split into `intake`, `shooter`, `vision` and `assists`; `Subsystem` and `StateMachine` base classes, `TemplateSubsystem` | Done (OpModes now call `robot.shooter.launch(4)`, ...) |
 | 11 | Easier to read (Requirements v2.9): `Assists` renamed `DriveToSpot` (`robot.driveToSpot.launchSpot()`; "set pose here" is now `robot.drive.setPoseAtResetCorner()`); every `if` / `else` and every method has `{ }` on its own lines | Done |
+| 12 | One launch speed (Requirements v2.11): `LauncherConfig.LAUNCH_RPM` replaces the speed-by-distance table, tuned from our launch spot; `launcher.spinUp()` | Done (the table is a future improvement: `docs/LLD.md`, section 14) |
 
 **Releases** (tags on `master`; how they are made: Requirements, "Branches and releases")
 

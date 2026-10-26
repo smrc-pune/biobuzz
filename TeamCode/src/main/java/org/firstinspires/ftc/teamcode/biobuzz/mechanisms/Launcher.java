@@ -17,7 +17,7 @@ import org.firstinspires.ftc.teamcode.biobuzz.helpers.MatchLogger;
  * Launcher.java  -  the flywheel that throws balls into the upward CELL.       ROLE: mechanism
  * PATTERN: Adapter + Template Method.
  *
- *   spinUpFor(distanceIn)   spin at the speed for that distance (the speed table in LauncherConfig)
+ *   spinUp()                spin at LAUNCH_RPM, the one launch speed in LauncherConfig
  *   idle()                  spin at IDLE_RPM between launches
  *   isUpToSpeed()           true when the flywheel is within SPEED_TOLERANCE_RPM of its target
  *
@@ -26,7 +26,8 @@ import org.firstinspires.ftc.teamcode.biobuzz.helpers.MatchLogger;
  * new PIDF numbers if someone changed them in the Dashboard.
  *
  * TRACING A BUG: never "up to speed" -> compare RPM and target on telemetry. Far below: the
- * PIDF or TICKS_PER_REV is wrong, or the battery is low. Shots short or long: the speed table.
+ * PIDF or TICKS_PER_REV is wrong, or the battery is low. Shots short or long: LAUNCH_RPM
+ * (and is the robot on our launch spot?).
  */
 public class Launcher extends Mechanism {
 
@@ -51,9 +52,9 @@ public class Launcher extends Mechanism {
 
     // ---- What the launcher can do ----
 
-    /** Spin at the right speed to reach the upward CELL from this distance (inches). */
-    public void spinUpFor(double distanceIn) {
-        setTargetRpm(rpmForDistance(distanceIn));
+    /** Spin at the launch speed (LauncherConfig.LAUNCH_RPM). */
+    public void spinUp() {
+        setTargetRpm(LauncherConfig.LAUNCH_RPM);
     }
 
     /** Spin at the idle speed between launches. */
@@ -72,29 +73,6 @@ public class Launcher extends Mechanism {
 
     public double getTargetRpm() {
         return targetRpm;
-    }
-
-    /**
-     * The speed table: straight-line in-between values, the end values beyond the ends.
-     * Example: DISTANCE_IN = {36, 48}, RPM = {2800, 3100}: 42 in -> 2950 RPM.
-     */
-    public static double rpmForDistance(double distanceIn) {
-        double[] distances = LauncherConfig.DISTANCE_IN;
-        double[] speeds = LauncherConfig.RPM;
-        int last = Math.min(distances.length, speeds.length) - 1;
-        if (last < 0) {
-            return 0;
-        }
-        if (distanceIn <= distances[0]) {
-            return speeds[0];
-        }
-        for (int i = 1; i <= last; i++) {
-            if (distanceIn <= distances[i]) {
-                double fraction = (distanceIn - distances[i - 1]) / (distances[i] - distances[i - 1]);
-                return speeds[i - 1] + fraction * (speeds[i] - speeds[i - 1]);
-            }
-        }
-        return speeds[last];
     }
 
     private void setTargetRpm(double newTargetRpm) {

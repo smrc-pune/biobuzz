@@ -17,7 +17,7 @@ import org.firstinspires.ftc.teamcode.biobuzz.helpers.StateTimer;
  *
  * NO BALLS in the robot; hands clear of the intake and flywheel. Press PLAY:
  *   INTAKE     runs for 1 s                              PASS: not FAULTED
- *   LAUNCHER   spins up (default distance)               PASS: up to speed within SPIN_UP_TIMEOUT_MS
+ *   LAUNCHER   spins up (to LAUNCH_RPM)                  PASS: up to speed within SPIN_UP_TIMEOUT_MS
  *   ALL        every mechanism (feeder, cameras too)     PASS: none FAULTED
  * TODO(BioBuzz): add a check for each new mechanism, once the robot is built.
  */

@@ -8,12 +8,12 @@ import com.acmerobotics.dashboard.config.Config;
  * LauncherConfig.java  -  numbers for the flywheel and for launching.          ROLE: config
  * Used by mechanisms/Launcher.java and statemachines/LaunchStateMachine.java.
  *
- * THE SPEED TABLE: how fast the flywheel spins (RPM) for each distance (inches) from the
- * robot's centre to the upward CELL. Between two distances the speed is in between.
- * Beyond the ends, the end value is used. DISTANCE_IN must go up from left to right, and
- * both lists must have the same number of values. One table serves both POLLEN and NECTAR,
- * because the robot does not know which ball is next.
- * TODO(BioBuzz): measure every speed with "Test: Launcher" from each distance.
+ * THE LAUNCH SPEED: ONE speed (LAUNCH_RPM) for every launch. Tune it with the robot on our
+ * LAUNCH SPOT (FieldConfig.LAUNCH_SPOT), because that is where Auto and the driver's A button
+ * launch from. From other spots the balls land short or long. One speed serves both POLLEN
+ * and NECTAR, because the robot does not know which ball is next.
+ * A speed that changes with the distance to the CELL is a future improvement (docs/LLD.md, section 14).
+ * TODO(BioBuzz): tune LAUNCH_RPM with "Test: Launch" from the launch spot.
  *
  * Live edits in FTC Dashboard are LOST when the app restarts; type good values back in here.
  */
@@ -28,10 +28,8 @@ public class LauncherConfig {
     public static double IDLE_RPM = 0;            // speed between launches (0 = stopped)
     public static double SPEED_TOLERANCE_RPM = 100;   // "up to speed" when this close to the target
 
-    // ---- The speed table (see above) ----
-    public static double[] DISTANCE_IN = { 36, 48, 60, 72, 84 };
-    public static double[] RPM = { 2800, 3100, 3400, 3700, 4000 };
-    public static double DEFAULT_DISTANCE_IN = 48;    // used when the robot does not know where it is (S1)
+    // ---- The launch speed (see above) ----
+    public static double LAUNCH_RPM = 3100;           // the ONE launch speed, tuned from our launch spot
 
     // ---- Launching (LaunchStateMachine) ----
     public static double SPIN_UP_TIMEOUT_MS = 2500;   // give up if the flywheel is not up to speed by then

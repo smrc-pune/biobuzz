@@ -37,7 +37,7 @@
 | A or B (assists) only buzz | Position unknown (S1), or the path would hit the HIVE | `WARN:Drive: ... refused` | Set pose here in our reset corner |
 | Auto fine at home, off at the event | Different tile grip | Field Check 07–09 vs baseline | Use the measured deceleration; adjust end poses |
 | Auto ends early or skips a step | A step timed out | `TIMEOUT:<step>` events | Longer timeout in `AutoConfig`, or fix what was slow |
-| Launches short or long | Wrong upward CELL, wrong distance, low battery | `up_cell_a`, pose, `launcher_rpm` vs target, `battery_v` at each `LAUNCH` | Press TIP at every tip; retune the speed table; fresh battery |
+| Launches short or long | Not on our launch spot, wrong upward CELL (aim), low battery | `up_cell_a`, pose, `launcher_rpm` vs target, `battery_v` at each `LAUNCH` | Launch from the launch spot (driver's A); press TIP at every tip; retune `LAUNCH_RPM`; fresh battery |
 | Laggy, jerky driving | Slow loop | `worst_loop_ms` spikes | See SLOW LOOP above |
 | Log ends early (no `# END`) | Crash, power loss | The last voltage reading | Robot Controller log for the crash; power connectors |
 | A button does nothing | Read twice in one loop | – | Read each button once into a `boolean` |
