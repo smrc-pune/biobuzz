@@ -24,7 +24,6 @@ import org.firstinspires.ftc.teamcode.biobuzz.helpers.MatchInfo;
  *   new Pose(x, y, heading)          a place and the way the robot faces (heading in RADIANS)
  *   Paths.line(from, to)             a straight line
  *   Paths.curve(from, middle, to)    a smooth curve pulled toward the middle point
- *   Paths.through(a, b, c)           a path that passes through every point
  *   .linear(from, to)                turn smoothly from the start heading to the end heading
  * Every Pedro path MUST say how the robot turns (.linear here), or Pedro stops with an error.
  *
@@ -111,20 +110,6 @@ public class FieldPaths {
         Pose spot = launchSpot(isRed);
         Pose to = new Pose(spot.x(), spot.y(), Math.toRadians(aimHeadingDeg(spot, isRed)));
         return Paths.line(start, to).linear(start, to);
-    }
-
-    /** Autonomous collect: to the start of our GARDEN line, then along it (the intake is on). */
-    public static Path throughGarden(Pose from, boolean isRed) {
-        Pose gardenStart = place(FieldConfig.GARDEN_START_X_IN, FieldConfig.GARDEN_START_Y_IN,
-                FieldConfig.GARDEN_HEADING_DEG, isRed);
-        Pose gardenEnd = place(FieldConfig.GARDEN_END_X_IN, FieldConfig.GARDEN_END_Y_IN,
-                FieldConfig.GARDEN_HEADING_DEG, isRed);
-        return Paths.through(from, gardenStart, gardenEnd).linear(from, gardenEnd);
-    }
-
-    /** Back from the GARDEN to the launch spot, facing the upward CELL (second launch). */
-    public static Path gardenToLaunchSpot(Pose from, boolean isRed) {
-        return leaveWall(from, isRed);
     }
 
     // ==================== FIELD CHECK PATHS (fieldchecks/): they start wherever the robot is ====================

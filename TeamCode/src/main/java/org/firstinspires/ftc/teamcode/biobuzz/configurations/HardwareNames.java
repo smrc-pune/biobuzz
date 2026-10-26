@@ -79,7 +79,6 @@ public class HardwareNames {
 
     // Cameras
     public static final String HUSKYLENS_HIVE = "hiveCamera";          // Control Hub, I2C bus 2 (looks UP at the HIVE)
-    public static final String WEBCAM_FRONT = "Webcam 1";              // USB port (Logitech webcam, looks ahead)
 
     // ==================== TEMPLATE (template/ only, never on the robot) ====================
     public static final String MOTOR_TEMPLATE = "templateMotor";     // rename when you copy the template
@@ -97,7 +96,6 @@ public class HardwareNames {
             MOTOR_LAUNCHER,
             SERVO_FEEDER,
             HUSKYLENS_HIVE,
-            WEBCAM_FRONT,
     };
 
     // The four drive motors, for Robot Check (it spins each one, one at a time).

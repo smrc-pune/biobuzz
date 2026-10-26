@@ -33,7 +33,7 @@ import org.firstinspires.ftc.teamcode.biobuzz.subsystems.VisionSubsystem;
  *            ---> driveToSpot   DriveToSpot (S2: the robot drives itself to a spot)
  *            ---> intake        IntakeSubsystem    (Intake)
  *            ---> shooter       ShooterSubsystem   (Feeder, Launcher, LaunchStateMachine)
- *            ---> vision        VisionSubsystem    (HiveCamera, FrontCamera)
+ *            ---> vision        VisionSubsystem    (HiveCamera)
  *
  * WHAT ROBOT DOES: builds everything; runs update() once per loop in a fixed order; watches
  * the robot's health; writes the match log; shows the telemetry header.

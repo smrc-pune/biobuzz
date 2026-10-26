@@ -32,7 +32,8 @@ import org.firstinspires.ftc.teamcode.biobuzz.mechanisms.Launcher;
  * Uses: Feeder and Launcher (commands only).
  * Lives in: ShooterSubsystem, which builds it and calls update() every loop.
  *
- * TRACING A BUG: read the "Launch last change" line. "spin-up timeout" = the flywheel never
+ * TRACING A BUG: turn on TelemetryConfig.HISTORY and read the "Launch last change" line
+ * (it is also in the match log). "spin-up timeout" = the flywheel never
  * reached its speed: see Launcher's RPM vs target, and the battery.
  */
 public class LaunchStateMachine extends StateMachine {

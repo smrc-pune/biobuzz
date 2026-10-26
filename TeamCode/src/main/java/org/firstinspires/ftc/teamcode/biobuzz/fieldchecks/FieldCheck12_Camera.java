@@ -9,24 +9,24 @@ import org.firstinspires.ftc.teamcode.biobuzz.configurations.FieldCheckConfig;
 import org.firstinspires.ftc.teamcode.biobuzz.helpers.BatteryMonitor;
 import org.firstinspires.ftc.teamcode.biobuzz.helpers.DashboardTelemetry;
 import org.firstinspires.ftc.teamcode.biobuzz.helpers.FieldCheckHelper;
+import org.firstinspires.ftc.teamcode.biobuzz.helpers.GamepadInput;
+import org.firstinspires.ftc.teamcode.biobuzz.helpers.MatchInfo;
 import org.firstinspires.ftc.teamcode.biobuzz.helpers.StateTimer;
-import org.firstinspires.ftc.teamcode.biobuzz.mechanisms.FrontCamera;
+import org.firstinspires.ftc.teamcode.biobuzz.mechanisms.HiveCamera;
 
 /**
  * MENTORS: you do not need to change this file.
  *
- * FieldCheck12_Camera.java  -  does the webcam measure a tag's distance right, under THESE lights?
+ * FieldCheck12_Camera.java  -  does the HIVE camera see the upward CELL's tag, under THESE lights?
  *                                                                              ROLE: OpMode (field check)
  *
- * Place the robot's centre on the seam crossing in FieldCheckConfig (CAMERA_CHECK_X_IN, _Y_IN),
- * facing CAMERA_CHECK_HEADING_DEG, with tag CAMERA_CHECK_TAG_ID in view. Press PLAY.
- * The check works out how far the tag SHOULD be (from where the robot is placed, where the
- * camera sits on it in CameraConfig, and where the tag is), and compares it with what the
- * webcam measures, averaged over 1 s.
- * PASS: within CAMERA_TOLERANCE_IN (2 in). FAIL: re-check the camera mount numbers in
- * CameraConfig, and the exposure (event lighting is a common cause), docs/CAMERA_GUIDE.md.
- * Only needed if the camera is used for driving. It needs the BIOBUZZ tags in the SDK's tag
- * library (FrontCamera's TODO), otherwise the tag has no range.
+ * Place the robot on our launch spot (FieldConfig.LAUNCH_SPOT), facing the upward CELL, with
+ * the alliance and the upward CELL as they will be in the match (the INIT screen shows both;
+ * gamepad 1 D-pad left/right switches the alliance).
+ * Press PLAY. The check watches the HuskyLens for 1 s after it first sees the tag.
+ * PASS: the tag was seen on at least CAMERA_SEEN_FRACTION of the reads. WARN: seen, but less
+ * often. FAIL: not seen in 10 s. Then check the HuskyLens screen, its training and the
+ * learned ids in CameraConfig, and the event lighting (docs/CAMERA_GUIDE.md).
  */
 @TeleOp(name = "Field Check 12: Camera", group = "Field Checks")
 public class FieldCheck12_Camera extends OpMode {
@@ -35,27 +35,33 @@ public class FieldCheck12_Camera extends OpMode {
     private static final double GIVE_UP_S = 10;
 
     private Telemetry t;
+    private GamepadInput pad;
     private BatteryMonitor battery;
-    private FrontCamera camera;
+    private HiveCamera camera;
     private final StateTimer timer = new StateTimer();
     private final StateTimer seenTimer = new StateTimer();
     private boolean seenOnce = false;
-    private double rangeTotal = 0;
-    private int rangeCount = 0;
+    private int reads = 0;
+    private int seenReads = 0;
     private boolean done = false;
 
     @Override
     public void init() {
         t = DashboardTelemetry.create(telemetry);
+        pad = new GamepadInput(gamepad1);
         battery = new BatteryMonitor(hardwareMap);
-        camera = new FrontCamera(hardwareMap);
+        camera = new HiveCamera(hardwareMap);
     }
 
     @Override
     public void init_loop() {
+        if (pad.isDpadLeftPressed() || pad.isDpadRightPressed()) {
+            MatchInfo.switchAlliance();
+        }
         camera.runUpdate();
-        t.addLine("Robot on the seam crossing in FieldCheckConfig, tag " + FieldCheckConfig.CAMERA_CHECK_TAG_ID + " in view.");
-        t.addData("Tag seen now", camera.seesTag(FieldCheckConfig.CAMERA_CHECK_TAG_ID));
+        t.addLine("Robot on our launch spot, facing the upward CELL.");
+        t.addData("Looking for", "%s CELL %s, learned id %d", MatchInfo.alliance, MatchInfo.getUpCellName(), upCellTagId());
+        t.addData("Tag seen now", camera.seesTag(upCellTagId()));
         t.update();
     }
 
@@ -68,49 +74,53 @@ public class FieldCheck12_Camera extends OpMode {
     @Override
     public void loop() {
         camera.runUpdate();
-        int tagId = FieldCheckConfig.CAMERA_CHECK_TAG_ID;
-        if (!done && camera.seesTag(tagId) && camera.getTagRangeIn(tagId) > 0) {
-            if (!seenOnce) {
-                seenTimer.reset();
-            }
+        boolean seen = camera.seesTag(upCellTagId());
+        if (!done && seen && !seenOnce) {
             seenOnce = true;
-            rangeTotal += camera.getTagRangeIn(tagId);
-            rangeCount++;
+            seenTimer.reset();
         }
-        if (!done && seenOnce && seenTimer.seconds() >= MEASURE_S) {
-            finish();
+        if (!done && seenOnce) {
+            reads++;
+            if (seen) {
+                seenReads++;
+            }
+            if (seenTimer.seconds() >= MEASURE_S) {
+                finish();
+            }
         }
-        if (!done && timer.seconds() >= GIVE_UP_S) {
+        if (!done && !seenOnce && timer.seconds() >= GIVE_UP_S) {
             done = true;
-            FieldCheckHelper.record(12, FieldCheckHelper.FAIL, "tag " + tagId + " not seen (or has no range) in "
-                    + GIVE_UP_S + " s");
+            FieldCheckHelper.record(12, FieldCheckHelper.FAIL, "tag " + upCellTagId() + " not seen in " + GIVE_UP_S + " s");
         }
-        t.addData("Expected", "%.1f in", expectedRangeIn());
-        t.addData("Measured now", "%.1f in", camera.getTagRangeIn(tagId));
-        t.addData("Camera", "%s, %.0f fps", camera.getCameraState(), camera.getFps());
+        t.addData("Tag seen now", seen);
+        t.addData("Offset / width", "%+.0f px / %.0f px", camera.getTagOffsetPx(upCellTagId()), camera.getTagWidthPx(upCellTagId()));
         FieldCheckHelper.show(t, 12);
         t.update();
     }
 
-    /** The straight-line distance from the camera to the tag, from where everything is placed. */
-    private double expectedRangeIn() {
-        double headingRad = Math.toRadians(FieldCheckConfig.CAMERA_CHECK_HEADING_DEG);
-        double cameraX = FieldCheckConfig.CAMERA_CHECK_X_IN + CameraConfig.CAMERA_FORWARD_IN * Math.cos(headingRad)
-                - CameraConfig.CAMERA_LEFT_IN * Math.sin(headingRad);
-        double cameraY = FieldCheckConfig.CAMERA_CHECK_Y_IN + CameraConfig.CAMERA_FORWARD_IN * Math.sin(headingRad)
-                + CameraConfig.CAMERA_LEFT_IN * Math.cos(headingRad);
-        double dx = FieldCheckConfig.CAMERA_CHECK_TAG_X_IN - cameraX;
-        double dy = FieldCheckConfig.CAMERA_CHECK_TAG_Y_IN - cameraY;
-        double dz = FieldCheckConfig.CAMERA_CHECK_TAG_Z_IN - CameraConfig.CAMERA_UP_IN;
-        return Math.sqrt(dx * dx + dy * dy + dz * dz);
+    /** The learned id of our upward CELL's tag (CameraConfig). */
+    private int upCellTagId() {
+        if (MatchInfo.isRed()) {
+            if (MatchInfo.isCellAUp()) {
+                return CameraConfig.RED_CELL_A_TAG_ID;
+            }
+            return CameraConfig.RED_CELL_B_TAG_ID;
+        }
+        if (MatchInfo.isCellAUp()) {
+            return CameraConfig.BLUE_CELL_A_TAG_ID;
+        }
+        return CameraConfig.BLUE_CELL_B_TAG_ID;
     }
 
     private void finish() {
         done = true;
-        double measured = rangeTotal / rangeCount;
-        double errorIn = measured - expectedRangeIn();
-        FieldCheckHelper.record(12, FieldCheckHelper.grade(errorIn, FieldCheckConfig.CAMERA_TOLERANCE_IN),
-                String.format("measured %.1f in, expected %.1f in (%+.1f)", measured, expectedRangeIn(), errorIn));
+        double fraction = (double) seenReads / reads;
+        String grade = FieldCheckHelper.PASS;
+        if (fraction < FieldCheckConfig.CAMERA_SEEN_FRACTION) {
+            grade = FieldCheckHelper.WARN;
+        }
+        FieldCheckHelper.record(12, grade, String.format("tag %d seen on %.0f%% of reads, offset %+.0f px",
+                upCellTagId(), fraction * 100, camera.getTagOffsetPx(upCellTagId())));
     }
 
     @Override

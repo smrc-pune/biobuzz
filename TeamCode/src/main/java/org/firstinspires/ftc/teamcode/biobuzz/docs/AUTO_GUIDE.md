@@ -7,10 +7,13 @@ Each step starts something on its first loop, checks if it is done, and checks i
 timeout from `AutoConfig`. A timeout writes `TIMEOUT:<step>` to the log and moves on.
 At `AutoConfig.PARK_BY_S` the robot goes to PARK, whatever it is doing.
 
-| Routine (`AutoConfig.ROUTINE`) | Steps |
-| --- | --- |
-| `LAUNCH_PARK` | WAIT_DELAY → LEAVE → LAUNCH_PRELOADS → PARK → DONE |
-| `LAUNCH_COLLECT_PARK` | WAIT_DELAY → LEAVE → LAUNCH_PRELOADS → COLLECT_GARDEN → DRIVE_TO_LAUNCH → LAUNCH_AGAIN → PARK → DONE |
+Auto always does the same thing:
+
+WAIT_DELAY → LEAVE → LAUNCH_PRELOADS → PARK → DONE
+
+Leave the wall, launch the 4 preloads from our launch spot, park in our LOADING ZONE. Collecting
+our GARDEN and launching again is a future improvement (`LLD.md`, section 14): add it once this
+one works every time.
 
 ## Field frame and RED poses
 
@@ -46,8 +49,8 @@ TODO(BioBuzz): every place in `FieldConfig` is a first guess from the field pict
 
 ## Before the match
 
-Set in `AutoConfig` (in the pits, file or Dashboard): `ROUTINE`, `START`
-(`WALL_NEAR_GARDEN` or `WALL_MIDDLE`), `START_DELAY_S`. In INIT the screen shows them, and a
+Set in `AutoConfig` (in the pits, file or Dashboard): `START`
+(`WALL_NEAR_GARDEN` or `WALL_MIDDLE`) and `START_DELAY_S`. In INIT the screen shows them, and a
 **PATH WARNING** if a path leaves our side (G402) or hits the HIVE (G409, G417). The paths are
 drawn on the Dashboard field.
 

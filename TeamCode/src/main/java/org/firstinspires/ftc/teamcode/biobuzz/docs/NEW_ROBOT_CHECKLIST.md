@@ -40,7 +40,7 @@ Open `configurations/HardwareNames.java`. It is the wiring sheet.
 - [ ] Driver Station: ⋮ → **Configure Robot** → a new configuration named `BioBuzz`.
 - [ ] Every device on the hub and port from step 1, with **exactly** the same name
       (capital letters count). The Pinpoint (goBILDA Pinpoint) on an I2C bus **other than 0** (Pedro needs this); the HuskyLens
-      as "HuskyLens"; the webcam under the Control Hub's USB devices.
+      as "HuskyLens" (our only camera).
 - [ ] Save, and make it the **active** configuration.
 
 **Done when:** the Driver Station shows `BioBuzz` as the active configuration.
@@ -135,10 +135,8 @@ file and commit them** (`TUNING.md`, "Mechanism tuning").
 Follow `CAMERA_GUIDE.md`, then check with **Test: Camera** (it works in INIT).
 
 - [ ] HuskyLens mounted pointing up, trained on the four CELL tags, IDs in `CameraConfig`.
-- [ ] Webcam mounted; its position and angle measured into `CameraConfig`.
-- [ ] POLLEN and NECTAR colour ranges tuned (and again under the event lights).
 
-**Done when:** Test: Camera shows the tags and the game pieces you hold in front of it.
+**Done when:** Test: Camera shows the right learned id for each CELL tag you hold above it.
 
 ## Step 10 – The buttons
 
@@ -178,7 +176,7 @@ Follow `AUTO_GUIDE.md`, "Measuring a pose". Measure against **tile seams** (ever
 
 `TUNING.md`, "Then record the home baseline", and `MATCH_DAY.md` for what each check does.
 
-- [ ] In `FieldCheckConfig`: `FIELD_NAME` = `home`; the seam crossing and tag for Field Check 12.
+- [ ] In `FieldCheckConfig`: `FIELD_NAME` = `home`.
 - [ ] A check in `FieldCheck11_Mechanisms` for every mechanism the robot has.
 - [ ] Run **Field Check 01 … 12**, then **13 Summary**. Copy its numbers into the `BASELINE_`
       values in `FieldCheckConfig`, with `BASELINE_DATE`. Commit.
@@ -207,7 +205,7 @@ is done, delete the TODO line it answers.
 | `configurations/HardwareNames.java` | names, ports, directions, the localizer | 1, 4, 6 (kit Stage 1) |
 | `configurations/FeederConfig.java`, `mechanisms/Feeder.java` | feeder positions; servo or motor | 4, 8 |
 | `configurations/LauncherConfig.java` | the launch speed (`LAUNCH_RPM`) | 8 |
-| `configurations/CameraConfig.java`, `mechanisms/FrontCamera.java` | tag IDs, mounting, colours, the BIOBUZZ tag library | 9 |
+| `configurations/CameraConfig.java` | the HuskyLens's learned tag IDs | 9 |
 | `configurations/ControlsConfig.java`, `teleop/BioBuzzTeleOp.java` | the gamepad 2 map | 10 |
 | `configurations/FieldConfig.java` | every field place | 11 |
 | `configurations/FieldCheckConfig.java`, `fieldchecks/FieldCheck11_Mechanisms.java` | the baseline; the camera check place; a check per mechanism | 13 |

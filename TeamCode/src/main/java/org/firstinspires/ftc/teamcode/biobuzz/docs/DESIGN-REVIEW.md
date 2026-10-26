@@ -4,7 +4,7 @@ Oct 19, 2026 (updated Oct 26, 2026) · started as the mentor review before any c
 
 This review compares three things: the requirements (v1.4), the new design the team agreed on in discussion, and the BIOBUZZ Competition Manual (TU05). It lists every conflict, misalignment and gap found, with the fix applied in Requirements v2.0, `HLD.md` and `LLD.md`, and the questions that only the team can answer.
 
-**How to read it.** Section 1 is the design in one page, as it stands now (Requirements v2.3). Section 2 lists problems inside the old requirements. Section 3 lists what the game adds. Section 4 lists the design patterns used. Section 5 lists the questions and the team's answers. Sections 6 and 7 list the changes from the second and third review rounds; where a fix in sections 2–3 names `game/`, BLUE poses or NEAR/FAR, sections 6 and 7 replace it. (Sections 1–7 were written before the code changed; section 8 lists what was found while building it; section 9 records the change to subsystems in v2.8, which replaces the Robot "menu" described in sections 1 and 4; section 11 replaces the speed-by-distance table with one launch speed.)
+**How to read it.** Section 1 is the design in one page, as it stands now (Requirements v2.3). Section 2 lists problems inside the old requirements. Section 3 lists what the game adds. Section 4 lists the design patterns used. Section 5 lists the questions and the team's answers. Sections 6 and 7 list the changes from the second and third review rounds; where a fix in sections 2–3 names `game/`, BLUE poses or NEAR/FAR, sections 6 and 7 replace it. (Sections 1–7 were written before the code changed; section 8 lists what was found while building it; section 9 records the change to subsystems in v2.8, which replaces the Robot "menu" described in sections 1 and 4; section 11 replaces the speed-by-distance table with one launch speed; section 12 keeps one camera and one Auto plan.)
 
 ---
 
@@ -242,4 +242,14 @@ Decisions made after step 10, with the reason for each, so they are not re-argue
 | L1 | The launcher has ONE speed, `LauncherConfig.LAUNCH_RPM`, tuned from our launch spot | The speed-by-distance table (5 distances, 5 speeds, in-between values) was too much for the rookie team to tune first. Auto and the driver's A button already launch from the launch spot, so one number covers how we play. The spot is about the same distance from both CELLS, so it also works after a TIP | Keep the table now |
 | L2 | The table code is taken out, not left switched off | Code nobody uses confuses new readers. LLD section 14 lists exactly what to bring back, and commit `054aa10` still has it | A `USE_SPEED_TABLE` switch |
 | L3 | `LaunchStateMachine` no longer gets Drive | It only needed Drive for the distance. Fewer parts to follow when tracing a launch | – |
+
+## 12. One camera, one Auto plan, fewer lines (Oct 26, 2026, Requirements v2.12)
+
+| # | Decision | Why | Rejected |
+| --- | --- | --- | --- |
+| V1 | One camera: the HuskyLens looking up at the CELL tags. The Logitech webcam (`FrontCamera`) is removed | BIOBUZZ has AprilTags only under the CELLS, none on the walls, so a forward camera has no field tags to see. Nothing used the webcam's POLLEN / NECTAR colours (no Storage sensing). One camera is one less device to wire, mount and tune at every event, and less load on the Control Hub | Keep the webcam for a pose fix; a webcam tilted up instead of the HuskyLens (it would give a tag distance, so a real pose fix, but the HuskyLens is already mounted pointing up and is simpler) |
+| V2 | No camera pose fix | The HuskyLens gives 2D boxes, not distances; "set pose here" fixes a lost position | Rough fixes from the box size (wrong fixes are worse than none) |
+| V3 | Field Check 12 checks that the HuskyLens sees the upward CELL's tag from the launch spot | The old check measured the webcam's tag range. Seeing the tag under the event lights is what matters now | Remove Field Check 12 (renumbering 13 checks and their docs) |
+| A1 | Auto has one plan: leave, launch 4, park. `LAUNCH_COLLECT_PARK` is a future improvement | Three fewer steps, paths and timeouts to tune before the first event; a reliable LEAVE + 4 + PARK scores well | Keep both routines |
+| T1 | Telemetry starts with drive, launcher and launch only (`INTAKE`, `FEEDER`, `CAMERAS`, `HISTORY` off). ALERTs, WARNINGs and FAULTED lines always show | The Driver Station screen scrolled; drivers need a few lines they can read at a glance. The history is still in the match log | Leave everything on |
 

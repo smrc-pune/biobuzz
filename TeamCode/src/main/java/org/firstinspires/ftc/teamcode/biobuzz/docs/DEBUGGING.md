@@ -4,8 +4,8 @@
 
 1. **What does the screen say?** The header lines (alliance, time, loop ms, battery, FIELD/ROBOT,
    heading, S1/S2; intake, launcher, up CELL, tips), any **ALERT**, any **WARNING** line.
-2. **What state is it in, and why?** Each state machine shows its state, seconds in it, and its
-   "last change (reason)". `TelemetryConfig.HISTORY` shows the 4 before it.
+2. **What state is it in, and why?** Each state machine shows its state and seconds in it.
+   Turn on `TelemetryConfig.HISTORY` (off at first) to see its "last change (reason)" and the 4 before it.
 3. **Was the command given?** Follow the loop: the button is read once in `handleDriver()` /
    `handleOperator()` → the subsystem method (`robot.shooter.launch(4)`) → the state machine or mechanism.
 4. **Was it refused?** A WARNING says why (position unknown, already launching, FAULTED).
@@ -18,7 +18,7 @@
 
 | ALERT | Means | Fix |
 | --- | --- | --- |
-| `SLOW LOOP: average .. ms, worst .. ms` | The loop is slow; driving feels laggy | Fewer telemetry lines (`TelemetryConfig`), smaller webcam picture, then bulk reads (`LLD.md` section 14) |
+| `SLOW LOOP: average .. ms, worst .. ms` | The loop is slow; driving feels laggy | Fewer telemetry lines (`TelemetryConfig`), then bulk reads (`LLD.md` section 14) |
 | `LOW BATTERY .. V` | The battery sagged under 9 V | Fresh battery; retire one that sags every time |
 | `PINPOINT ...: robot-centric. Y when READY` | Pinpoint fault or restart | Cable and mount; then Y; set pose here for assists |
 | `HEADING JUMP .. deg: robot-centric` | The heading changed impossibly fast | Pinpoint cable / power dip; Y facing away |

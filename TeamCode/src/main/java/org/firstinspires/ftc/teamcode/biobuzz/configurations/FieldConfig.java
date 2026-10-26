@@ -49,14 +49,6 @@ public class FieldConfig {
     public static double START_MIDDLE_Y_IN = 84;
     public static double START_MIDDLE_HEADING_DEG = 0;
 
-    // ---- Our GARDEN (4 POLLEN in a line along the audience wall, bottom-left corner).
-    //      Auto drives from GARDEN_START to GARDEN_END with the intake on. ----
-    public static double GARDEN_START_X_IN = 36;
-    public static double GARDEN_START_Y_IN = 12;
-    public static double GARDEN_END_X_IN = 12;
-    public static double GARDEN_END_Y_IN = 12;
-    public static double GARDEN_HEADING_DEG = 180;        // intake toward the GARDEN corner
-
     // ---- Our side of the field for Autonomous (rule G402: columns A-C are RED). The robot's
     //      CENTRE must stay this far from the middle line, so no part of it crosses. ----
     public static double OWN_SIDE_MARGIN_IN = 9;

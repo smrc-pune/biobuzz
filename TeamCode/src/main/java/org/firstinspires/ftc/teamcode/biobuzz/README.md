@@ -43,7 +43,7 @@ Every pass of the loop does three things, always in this order:
        v                v                          ..............................
   state machines --> mechanisms                    : Pedro Pathing (off the     :
   (jobs that take    (Intake, Feeder, Launcher,    : shelf: we never edit it)   :
-   time)              HiveCamera, FrontCamera)     :............................:
+   time)              HiveCamera)                  :............................:
                          |
                          v
   ........................................................
@@ -90,13 +90,13 @@ teamcode/
       HardwareNames.java      every device name, and the hub and port it plugs into
       DriveConfig.java        stick deadzone, "away from drivers" headings
       FieldConfig.java        every place we drive to (written for RED): starts, launch spot, CELLS, GARDEN
-      AutoConfig.java         the Autonomous plan (routine, start, delay), step time limits, PARK_BY_S
+      AutoConfig.java         the Autonomous plan (start, delay), step time limits, PARK_BY_S
       ControlsConfig.java     trigger threshold, hold times, rumble lengths, button list
       HealthConfig.java       limits for ALERTs (low battery, slow loop, heading jump) and Robot Check
       IntakeConfig.java       intake powers
       FeederConfig.java       the feeder servo's two positions
       LauncherConfig.java     flywheel speed control, the launch speed, launch timing, aim offset
-      CameraConfig.java       both cameras: HuskyLens tag ids, webcam size, exposure, colours
+      CameraConfig.java       the HIVE camera (HuskyLens): its learned tag ids
       LogConfig.java          match log on/off, rows per second, how many files to keep
       TelemetryConfig.java    what shows on screen
       TemplateConfig.java     numbers for the templates (copy it with them)
@@ -109,14 +109,13 @@ teamcode/
       Subsystem.java          what every subsystem has in common (updates, stops, shows, logs its parts)
       IntakeSubsystem.java    owns Intake: toggle(), collect(), reverse(), stop()
       ShooterSubsystem.java   owns Feeder + Launcher + LaunchStateMachine: launch(4), spinUp(), aim
-      VisionSubsystem.java    owns HiveCamera + FrontCamera (answers questions only)
+      VisionSubsystem.java    owns HiveCamera, our one camera (answers questions only)
     mechanisms/
       Mechanism.java          what every mechanism has in common (FAULTED safety)
       Intake.java             the roller that picks up balls
       Feeder.java             the servo that pushes one ball into the flywheel
       Launcher.java           the flywheel: spins up to the one launch speed
       HiveCamera.java         HuskyLens looking up at the CELL tags (answers questions only)
-      FrontCamera.java        Logitech webcam: field tags, POLLEN, NECTAR (answers questions only)
     statemachines/
       StateMachine.java       what every state machine has in common (base class, like Mechanism)
       LaunchStateMachine.java "launch 4": spin up, feed, recover, repeat
@@ -294,16 +293,17 @@ All places are written **for RED** in `configurations/FieldConfig.java`. For BLU
 `auto/BioBuzzAuto.java` is a list of steps, written like a state machine:
 
 ```
-WAIT_DELAY -> LEAVE -> LAUNCH_PRELOADS -> PARK -> DONE                         (LAUNCH_PARK)
-WAIT_DELAY -> LEAVE -> LAUNCH_PRELOADS -> COLLECT_GARDEN -> DRIVE_TO_LAUNCH
-           -> LAUNCH_AGAIN -> PARK -> DONE                                     (LAUNCH_COLLECT_PARK)
+WAIT_DELAY -> LEAVE -> LAUNCH_PRELOADS -> PARK -> DONE
 ```
+
+Leave the wall, launch the 4 preloads from our launch spot, park. (Collecting our GARDEN and
+launching again comes later: `docs/LLD.md`, section 14.)
 
 Each step starts something on its first loop (a path, a launch), waits until it is done,
 and gives up after its time limit in `AutoConfig` (a `TIMEOUT` line in the match log).
 At `AutoConfig.PARK_BY_S` (26 s) the robot goes to PARK whatever it is doing.
 
-**Before the match** set `AutoConfig.ROUTINE`, `START` and `START_DELAY_S` with your
+**Before the match** set `AutoConfig.START` and `START_DELAY_S` with your
 alliance partner. **In INIT** pick the alliance with gamepad 1 D-pad left/right, and read
 the screen: it shows the plan and a **PATH WARNING** if a path would leave our side or hit
 the HIVE. The paths are drawn on the Dashboard field. Place the robot exactly at its start.
@@ -344,7 +344,7 @@ telemetry). It waits with a `StateTimer` (`timer.isTimeUp(500)`), never by sleep
 every waiting state has a timeout.
 
 **Today's robot:** three subsystems. `intake` owns Intake; `shooter` owns Feeder, Launcher
-and `LaunchStateMachine` (the one state machine); `vision` owns HiveCamera and FrontCamera. Each has its own test OpMode in `testing/`.
+and `LaunchStateMachine` (the one state machine); `vision` owns HiveCamera (the HuskyLens, our one camera). Each has its own test OpMode in `testing/`.
 Each mechanism's telemetry has an on/off switch in `TelemetryConfig` (its `isTelemetryOn()`).
 **Which CELL is up:** `MatchInfo` remembers it; the operator's left bumper flips it at each
 TIP. The aim button follows the upward CELL. The launcher has ONE speed
@@ -424,6 +424,7 @@ true only on the one loop when the button goes from up to down. Read each button
 | 10 | Subsystems (Requirements v2.8): `Robot` split into `intake`, `shooter`, `vision` and `assists`; `Subsystem` and `StateMachine` base classes, `TemplateSubsystem` | Done (OpModes now call `robot.shooter.launch(4)`, ...) |
 | 11 | Easier to read (Requirements v2.9): `Assists` renamed `DriveToSpot` (`robot.driveToSpot.launchSpot()`; "set pose here" is now `robot.drive.setPoseAtResetCorner()`); every `if` / `else` and every method has `{ }` on its own lines | Done |
 | 12 | One launch speed (Requirements v2.11): `LauncherConfig.LAUNCH_RPM` replaces the speed-by-distance table, tuned from our launch spot; `launcher.spinUp()` | Done (the table is a future improvement: `docs/LLD.md`, section 14) |
+| 13 | Simpler (Requirements v2.12): ONE camera, the HuskyLens looking up at the CELL tags (the webcam is gone: BIOBUZZ has tags only under the CELLS); Auto has one plan (leave, launch 4, park); fewer telemetry lines at first (intake, feeder, camera and history off) | Done |
 
 **Releases** (tags on `master`; how they are made: Requirements, "Branches and releases")
 
@@ -442,7 +443,7 @@ true only on the one loop when the button goes from up to down. Read each button
 > from the wiring list to a match-ready robot, and says which step clears each `TODO(BioBuzz)`.
 >
 > **Also:** BioBuzz TeleOp (and every OpMode that builds `Robot`) now needs EVERY device
-> in `HardwareNames`, including the mechanisms and both cameras. A missing one stops INIT
+> in `HardwareNames`, including the mechanisms and the HuskyLens. A missing one stops INIT
 > with "Unable to find a hardware device...". Until the mechanisms are built and in the
 > robot configuration, drive with "Test: Drive".
 
@@ -465,8 +466,8 @@ cleanly.
 1. **Read the telemetry first.** The header line shows alliance, time left, loop time,
    battery voltage, drive mode, heading and "S1 only" or "S2 ready". Any ALERT is right
    under it. A full battery reads about 13 V at rest; it drops while the motors work hard.
-   The Drive lines show who is driving, the Pinpoint status, the pose, any WARNING and
-   the last change.
+   The Drive lines show who is driving, the Pinpoint status, the pose and any WARNING.
+   Turn on `TelemetryConfig.HISTORY` to also see each part's last change and WHY.
 2. **Follow the loop** (section 4): was the button read? Was the subsystem method called?
    Was it refused (look for a WARNING)? What did Drive tell Pedro?
 3. **`Unable to find a hardware device with name "..."`** at INIT: a name in
@@ -530,7 +531,7 @@ cleanly.
 | `MATCH_LOGS.md` | copy and read match logs; use Log Viewer and `tools/plot_match.py` |
 | `DEBUGGING.md` | find out what is wrong: the 6 questions, every ALERT, a symptom table |
 | `TROUBLESHOOTING.md` | see the four troubleshooting stages on one page |
-| `CAMERA_GUIDE.md` | mount, train and tune the HuskyLens and the webcam |
+| `CAMERA_GUIDE.md` | mount and train the HuskyLens |
 | `GLOSSARY.md` | look up a word (code words, design patterns, game words) |
 | `UPDATING_PEDRO.md` | merge a new Pedro Pathing Quickstart release |
 | `HLD.md`, `LLD.md` | the design: big picture, then every class |

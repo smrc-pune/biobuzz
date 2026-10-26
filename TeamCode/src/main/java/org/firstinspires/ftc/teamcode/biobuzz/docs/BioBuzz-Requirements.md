@@ -2,7 +2,7 @@
 
 Oct 26, 2026 · @Girish
 
-**Version 2.11**
+**Version 2.12**
 
 ## Contents
 
@@ -197,7 +197,7 @@ teamcode/biobuzz/
     DriveConfig.java      stick deadzone, driver headings, assist values
     ControlsConfig.java   trigger threshold, rumble lengths, which button does what (as comments)
     FieldConfig.java      every field pose (inches, degrees, RED side), HIVE keep-out, start positions
-    AutoConfig.java       step timeouts, park-by time, default routine and delay
+    AutoConfig.java       step timeouts, park-by time, start and delay
     TelemetryConfig.java  on/off switches
     LogConfig.java        match-log switches and rate
     HealthConfig.java     alert, heading-safeguard and battery thresholds
@@ -274,7 +274,7 @@ The design is explained in `docs/HLD.md` (why) and `docs/LLD.md` (each class). T
          v                                        |
   ..................................................................
   : FTC SDK (off the shelf): hardwareMap, motors, servos, sensors,  :
-  : VisionPortal, HuskyLens driver  ->  Control Hub + Expansion Hub :
+  : HuskyLens driver  ->  Control Hub + Expansion Hub              :
   :.................................................................:
 
   ...... dotted boxes = libraries we use as they come; we never edit them
@@ -342,7 +342,7 @@ These come from the BIOBUZZ Competition Manual TU05. Rule numbers (G…, R…) a
 | GR10 | Poses are written for RED, the default alliance. BLUE poses MUST be the RED pose turned 180° about the field centre (72, 72), because the field is rotationally symmetric (agreed, Q7). `FieldPaths.place(...)` (named `forAlliance` in earlier versions) does it by chaining both reflections: `PoseFactory` `mirrorX(72.0).mirrorY(72.0)` | 9.3 |
 | GR11 | TeleOp MUST rumble both gamepads at 1:00 left (NECTAR may be entered, FLOWERS open) and gamepad 1 at 0:20 left (time to PARK). The header shows how many NECTAR the human player may enter (one per TIP before 1:00 left) | G410, G426 |
 | GR12 | The robot MUST stay within 8 motors and 8 servos, one Control Hub and at most one Expansion Hub. `HardwareNames` keeps the count in its header | R503, R701 |
-| GR13 | Two cameras (Q9). The **HIVE camera** is a HuskyLens (I2C) looking up at the AprilTags under the CELLS: which CELL is up, and the aim offset. It is read no more often than `CameraConfig.HIVE_SAMPLE_MS`, and its learned IDs map to CELLS in `CameraConfig`. The **front camera** is a Logitech USB webcam with the SDK's `VisionPortal`, running an `AprilTagProcessor` (real AprilTag IDs and a tag pose) and a colour-blob processor for POLLEN and NECTAR at the same time. Vision runs on its own thread; the live preview is off in matches. Neither camera sets the Pedro pose in this version | 9.9, R707, R708 |
+| GR13 | ONE camera. BIOBUZZ has AprilTags only under the CELLS, facing down (none on the walls), so the robot needs only a camera that looks up at them: the **HIVE camera**, a HuskyLens (I2C): which CELL is up, and the aim offset. It is read no more often than `CameraConfig.HIVE_SAMPLE_MS`, and its learned IDs map to CELLS in `CameraConfig`. The HuskyLens gives 2D boxes (id, position, size), not distances, so it does not set the Pedro pose; a camera pose fix is a future improvement | 9.9, R707, R708 |
 
 ## Driving (R1, R2)
 
@@ -428,17 +428,17 @@ Autonomous (stage S3) is a step list that drives the same `Robot` as teleop. It 
 
 - `drive/FieldPaths.java` builds every path, for Auto and for the TeleOp assists. Pedro's path API (`Paths.line`, `Paths.curve`, `PoseFactory`) appears only in this file and in `drive/Drive.java`.
 - Positions live in `configurations/FieldConfig.java` in inches and degrees, written for the RED alliance. `FieldPaths.forAlliance(pose, isRed)` turns them for BLUE (GR10).
-- The routine's paths are built in `init_loop()` whenever the alliance changes, drawn on the Dashboard field, and checked against GR8.
+- Auto's paths are built in `init_loop()` whenever the alliance changes, drawn on the Dashboard field, and checked against GR8.
 - `robot.drive.setStartingPose(...)` is called in `start()`, from the chosen alliance and start position. The start pose MUST match where the robot is physically placed, which is the main cause of autonomous errors.
 
 **Pre-match selection**
 
 - **Only the alliance is picked at the field.** It changes every match (the schedule assigns it), so it is picked during INIT on the Driver Station, in both Auto and TeleOp: gamepad 1 D-pad left or right switches RED / BLUE, and the INIT screen shows it. It is kept in `MatchInfo`, so TeleOp starts with what Auto had.
-- **Everything else is decided before the match**, when working out the plan with the alliance partner, and set in `configurations/AutoConfig.java`: `ROUTINE` (an `enum Routine`), `START` (one of the start positions in `FieldConfig`) and `START_DELAY_S` (0 to 10 s, to stay out of a partner's way). They are changed in the pits, through FTC Dashboard or by editing the file and deploying; Dashboard edits are lost when the app restarts, so values meant to last are typed into the file. There is no INIT menu.
-- BIOBUZZ has no launch zones, so routines are named by what they do. The first routines (Q10): `LAUNCH_PARK` (leave the wall, launch the 4 preloads, park) and `LAUNCH_COLLECT_PARK` (leave, launch 4, collect our GARDEN, drive back to the launch spot facing the upward CELL, launch, park).
-- The INIT screen shows the alliance and, in Auto, the routine, start and delay from `AutoConfig`, so the drive team can check them before PLAY. They are written to the match log header.
+- **Everything else is decided before the match**, when working out the plan with the alliance partner, and set in `configurations/AutoConfig.java`: `START` (one of the start positions in `FieldConfig`) and `START_DELAY_S` (0 to 10 s, to stay out of a partner's way). They are changed in the pits, through FTC Dashboard or by editing the file and deploying; Dashboard edits are lost when the app restarts, so values meant to last are typed into the file. There is no INIT menu.
+- Auto has ONE plan: leave the wall, launch the 4 preloads from our launch spot, park (`LAUNCH_PARK`). A second plan that also collects our GARDEN and launches again (`LAUNCH_COLLECT_PARK`) is a future improvement, added with an `enum Routine` once the first plan works every time.
+- The INIT screen shows the alliance and, in Auto, the start and delay from `AutoConfig`, so the drive team can check them before PLAY. They are written to the match log header.
 
-**Vision** (two cameras, GR13). `mechanisms/HiveCamera.java` (HuskyLens) and `mechanisms/FrontCamera.java` (Logitech webcam, `VisionPortal`) answer questions only: which tags or elements are in view, where they are in the image, and for the webcam the tag's pose relative to the camera. Robot decides whether to use an answer. The camera does not correct the Pedro pose in this version (see `docs/LLD.md`, Future improvements). `docs/CAMERA_GUIDE.md` explains mounting both cameras, training the HuskyLens on the CELL tags, calibrating the webcam (resolution, exposure, lens) and tuning the POLLEN and NECTAR colour ranges.
+**Vision** (one camera, GR13). `mechanisms/HiveCamera.java` (HuskyLens) answers questions only: which learned tags are in view, and where they are in the picture. Robot decides whether to use an answer. The camera does not correct the Pedro pose (see `docs/LLD.md`, Future improvements). `docs/CAMERA_GUIDE.md` explains mounting the HuskyLens and training it on the CELL tags.
 
 ## Telemetry and dashboard (R6)
 
@@ -448,10 +448,10 @@ Every OpMode MUST send the same telemetry to the Driver Station and FTC Dashboar
 
 | Group | Lines | Switch in `TelemetryConfig` |
 | --- | --- | --- |
-| Match header (always first) | Alliance, routine, match time left, loop time (ms), battery (V), FIELD/ROBOT and heading, intake on or off, launcher ready, the upward CELL, TIPS, any active **ALERT** | Always on |
+| Match header (always first) | Alliance, match time left, loop time (ms), battery (V), FIELD/ROBOT and heading, intake on or off, launcher ready, the upward CELL, TIPS, any active **ALERT** | Always on |
 | Each state machine | State and seconds in it, running, the last warning (shown 4 s) | One switch per state machine |
 | Each mechanism | Its key values, or `FAULTED: <reason>` | One switch per mechanism |
-| State history | Last change, its reason and age, plus the 4 changes before it (`StateLog`) | `HISTORY` |
+| State history | Last change, its reason and age, plus the 4 changes before it (`StateLog`) | `HISTORY` (off by default) |
 | Mechanism details | Motor powers, velocities, currents, servo positions, sensor readings | `DETAILS` (off by default) |
 | Drive pose | x, y, heading (deg), whether the pose is known (S2 allowed), and where it came from | `DRIVE` |
 | Controls cheat sheet | One line per gamepad | `GAMEPAD_HELP` |
@@ -498,7 +498,7 @@ A new field is a new robot: tile grip, tile wear and walls differ from our pract
 | 09 | `FieldCheck09_Square` | Pedro 48 in square, back to start | End error under 1.5 in and 3° | **Yes** |
 | 10 | `FieldCheck10_Wall` | Robot squared against a wall | Heading within 3° of the nearest 90° (snap-to-90° is a future improvement) | Partly |
 | 11 | `FieldCheck11_Mechanisms` | One bench check per mechanism, through the subsystem menus (for example a flywheel reaches its target velocity within its spin-up time) | Per mechanism. TODO(BioBuzz): define one check per mechanism | No |
-| 12 | `FieldCheck12_Camera` | Only if Vision is used: robot on a seam crossing in view of a tag | Camera position within ±2 in of the Pinpoint. Event lighting is a common cause of failure | **Yes** |
+| 12 | `FieldCheck12_Camera` | Robot on our launch spot, facing the upward CELL | The HuskyLens sees that CELL's tag on at least 80% of its reads. Event lighting is a common cause of failure | **Yes** |
 | 13 | `FieldCheck13_Summary` | Nothing | Shows every result, plus battery sag (resting from 02, lowest during 07 to 09) | – |
 
 **Rules**
@@ -567,7 +567,7 @@ Snap-to-90°, an in-match gyro recalibrate, INIT drift checks, gamepad-disconnec
 - Mechanisms MUST get their devices in their constructor with the plain SDK call, `hardwareMap.get(DcMotorEx.class, HardwareNames.MOTOR_INTAKE)`, so a missing device crashes at INIT with the SDK's message (`Unable to find a hardware device with name "intake" and type DcMotorEx`) and problems are found before the match. There is no team wrapper around `hardwareMap.get`. After PLAY, nothing MUST throw: errors in a mechanism are caught by `Mechanism.runUpdate()` (FAULTED), and other faults are caught in `helpers/` and turned into ALERTs.
 - Every ALERT, every state change and warning (`StateLog`), and every pose or drive-mode change MUST be written to the match log as an EVENT.
 - Thresholds live in `configurations/HealthConfig.java`. The values above are starting values, to be set from our own logs.
-- `docs/MATCH_DAY.md` MUST give a one-page pre-match checklist (a charged battery, Pinpoint light, alliance and routine chosen, start pose placed, wires) and a between-match checklist, and MUST teach the drive team the recovery buttons.
+- `docs/MATCH_DAY.md` MUST give a one-page pre-match checklist (a charged battery, Pinpoint light, alliance, start and delay chosen, start pose placed, wires) and a between-match checklist, and MUST teach the drive team the recovery buttons.
 
 ### D. Battery voltage as a signal
 
@@ -596,7 +596,7 @@ The battery's **voltage** is measured by the robot (above). Which physical batte
 
 - Folder: `/sdcard/FIRST/data/biobuzz-logs/`. **Not** `/sdcard/FIRST/matchlogs/`: the SDK writes its own match logs there (`AppUtil.MATCH_LOG_FOLDER`), and ours must not mix with them.
 - Name: `<yyyy-MM-dd_HH-mm-ss>_<OpMode>_<ALLIANCE>.csv`, for example `2026-10-18_14-32-05_BioBuzzAuto_RED.csv`. The time comes first so files sort in the order they were run, and one match's Auto and TeleOp files sit next to each other. The OpMode name says whether it was a match, a test or a Field Check. Two files in the same second get `_2`, `_3`.
-- Header block (`#` lines): OpMode, alliance, field name, battery voltage at PLAY, `started_epoch_ms` (Control Hub clock at PLAY, to the millisecond). Auto adds its routine in step 7. A snapshot of every `*Config` value is a future improvement.
+- Header block (`#` lines): OpMode, alliance, field name, battery voltage at PLAY, `started_epoch_ms` (Control Hub clock at PLAY, to the millisecond). Auto adds its start and delay. A snapshot of every `*Config` value is a future improvement.
 - Then one line of column names: `type,t_s,event,<data columns>`. DATA rows leave `event` empty; EVENT rows stop after `event`.
 - Footer: `# END rows=… min_battery_v=… worst_loop_ms=…`, written only by a clean stop. **A file without `# END` means the OpMode crashed or the robot lost power.**
 
@@ -724,7 +724,7 @@ The documents MUST be Markdown files in `docs/` in the repository, so they chang
 5. The building blocks: Robot, the `Mechanism` base class, the state machines, Drive and `FieldPaths`, and the off-the-shelf libraries.
 6. The three driving stages (S1, S2, S3).
 7. Both gamepad maps.
-8. Autonomous plan: routines and step lists.
+8. Autonomous plan: the step list.
 9. Vision.
 10. Data flow: telemetry, match log and alerts.
 11. Growing the robot during the season (summary of the LLD checklists).
@@ -773,7 +773,7 @@ The conflicts, misalignments and game gaps found when the design changed, how ea
 | `docs/TUNING.md` | What order do I tune in, and what does good look like? |
 | `docs/MATCH_DAY.md` | What do I check before and between matches, and what is the field check? |
 | `docs/MATCH_LOGS.md` | How do I get logs off the robot, read them, and find the cause of a bad match? |
-| `docs/CAMERA_GUIDE.md` | How do I mount the HuskyLens and the webcam, train the HuskyLens on the CELL tags, set up the webcam's AprilTag and colour processors, and check both with `Test: Camera`? |
+| `docs/CAMERA_GUIDE.md` | How do I mount the HuskyLens, train it on the CELL tags, and check it with `Test: Camera` and Field Check 12? |
 | `docs/GLOSSARY.md` | What do the words mean? Mechanism, state machine, state, hook, FAULTED, pose, pose known, field-centric, assist, S1/S2/S3, loop, deadband, PIDF, and each design pattern's name. The game words (POLLEN, NECTAR, CELL, TIP, …). |
 | `docs/UPDATING_PEDRO.md` | How do I merge a new Quickstart release, resolve a Constants.java conflict, test the result and record it in UPSTREAM.md? |
 
@@ -792,10 +792,10 @@ The team MUST give the AI the facts below before it writes BioBuzz-specific code
 - [x] Field frame, rotational symmetry and driver headings agreed (Q7, Q8)
 - [ ] Field poses (RED side): start positions, our launch spot, LOADING ZONE approach and park, GARDEN line, our reset corner (a field corner on our side)
 - [ ] Odometry: Pinpoint pod type and offsets (DecodeBot uses Pinpoint with goBILDA 4-bar pods)
-- [ ] Cameras (Q9): HuskyLens mounting and learned CELL tag IDs; Logitech webcam model, mounting position and angle (for the tag pose), resolution, and the POLLEN / NECTAR colour ranges
+- [ ] Camera (Q9): HuskyLens mounting and learned CELL tag IDs
 - [x] Which CELL is up: operator button first, camera may confirm later (Q2)
 - [ ] Gamepad 2 map confirmed, once the mechanisms are built
-- [x] Autonomous routines for the first competition: `LAUNCH_PARK` and `LAUNCH_COLLECT_PARK` (Q10; no launch zones)
+- [x] Autonomous for the first competition: `LAUNCH_PARK` only (Q10, then v2.12; no launch zones)
 - [x] FLOWER scoring: not planned (Q3)
 - [ ] Team number and team name, for the front page (`.github/README.md`) and the Driver Station name
 - [ ] Students added to the private `smrc-pune/biobuzz` repository (collaborators or an organization team), so they can clone it
@@ -826,6 +826,7 @@ The team MUST give the AI the facts below before it writes BioBuzz-specific code
 
 | Version | Date | Changes |
 | --- | --- | --- |
+| 2.12 | 2026-10-26 | Simpler, for the rookie team. **One camera (GR13):** BIOBUZZ has AprilTags only under the CELLS, so the HuskyLens looking up is the only camera; the Logitech webcam (`FrontCamera`, its AprilTag and colour processors, its `CameraConfig` values, `WEBCAM_FRONT`) is removed. Field Check 12 now checks that the HuskyLens sees the upward CELL's tag from the launch spot; Test: Camera shows the HuskyLens only. **One Auto plan:** leave, launch 4, park; `LAUNCH_COLLECT_PARK`, `enum Routine`, the GARDEN path and places and `COLLECT_TIMEOUT_MS` are removed (a future improvement). **Fewer telemetry lines at first:** `INTAKE`, `FEEDER`, `CAMERAS` and `HISTORY` off; drive, launcher and launch on. |
 | 2.11 | 2026-10-26 | One launch speed (GR7): `LauncherConfig.LAUNCH_RPM`, tuned from our launch spot, replaces the speed-by-distance table, which was too much for the rookie team to tune first. `Launcher.spinUp()` replaces `spinUpFor(distance)`; `LaunchStateMachine` no longer uses Drive; Test: Launcher and Test: Launch tune the one speed. The table is a future improvement (LLD section 14). |
 | 2.10 | 2026-10-24 | Quickstart merged to `9dc8978` (Pedro 3.0.2, Foresight tuner safety fixes; `UPSTREAM.md`). Drive tuning follows the team's Pedro tuning kit. New sections in Base project and repository: **Branches and releases** (`master` = students' version, `biobuzz-dev` = mentor work, tagged releases `v0.1`, `v0.1.1`) and **What goes into the APK**. Front page `.github/README.md`. New guide `NEW_ROBOT_CHECKLIST.md`. Future improvements: hide test OpModes with one switch, a build check on pull requests, a version line at INIT. New open items: team number and name, student access, robot tests after the Pedro merge. |
 | 2.9 | 2026-10-23 | `drive/Assists.java` renamed `drive/DriveToSpot.java`, so the name says what it does: `robot.driveToSpot.launchSpot()`, `robot.driveToSpot.loadingZone()`. "Set pose here" does not drive, so it moved to `robot.drive.setPoseAtResetCorner()`. The EVENT names (`ASSIST:<name>`) are unchanged. Hiding the test OpModes with one switch added to Future improvements. New guide `docs/NEW_ROBOT_CHECKLIST.md`. Drive tuning follows the team's Pedro tuning kit (separate repository). **R3:** every `if` / `else` and every method has `{ }` with the body on its own lines, even for one line (all team code reformatted; the Quickstart's `pedro/` is left as it came). |

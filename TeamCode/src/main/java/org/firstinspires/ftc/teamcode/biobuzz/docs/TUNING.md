@@ -69,4 +69,4 @@ git with the date and the field type** (for example "launch speed, home field, 2
 | Launch speed | Test: Launch, robot on our launch spot (`FieldConfig.LAUNCH_SPOT`) facing the CELL. Short: raise it 100 at a time; long: lower it | `LauncherConfig.LAUNCH_RPM` | All 4 balls land in the CELL from the launch spot |
 | Launch timing | Test: Launch | `FEED_MS`, `RECOVER_MS`, `SPIN_UP_TIMEOUT_MS` | 4 balls in the least time, none short |
 | Aim | BioBuzz TeleOp, hold RB | `DriveConfig.AIM_P`, `AIM_D`; `LauncherConfig.AIM_OFFSET_DEG` | Turns to face the CELL quickly, without wobbling |
-| Cameras | Test: Camera | `CameraConfig` | See `CAMERA_GUIDE.md` |
+| HIVE camera (HuskyLens) | Test: Camera, then Field Check 12 | `CameraConfig` (learned tag ids) | See `CAMERA_GUIDE.md` |

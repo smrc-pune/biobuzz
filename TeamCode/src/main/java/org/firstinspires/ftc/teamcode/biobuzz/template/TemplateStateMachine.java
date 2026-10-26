@@ -31,7 +31,8 @@ import org.firstinspires.ftc.teamcode.biobuzz.statemachines.StateMachine;
  * mechanism's update() (the subsystem does), another state machine, or Robot.
  * TO ADD ONE: docs/HOW_TO_ADD_A_MECHANISM.md, second part.
  *
- * TRACING A BUG: look at the "last change" line on telemetry: the newest state and WHY.
+ * TRACING A BUG: turn on TelemetryConfig.HISTORY and look at the "last change" line on
+ * telemetry: the newest state and WHY.
  */
 public class TemplateStateMachine extends StateMachine {
 

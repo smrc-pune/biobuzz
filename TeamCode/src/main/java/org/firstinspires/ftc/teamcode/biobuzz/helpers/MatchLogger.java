@@ -56,7 +56,7 @@ public class MatchLogger {
         start(opModeName, batteryVolts, "");
     }
 
-    /** The same, with one more # line, for example "routine=LAUNCH_PARK start=WALL_MIDDLE delay_s=0". */
+    /** The same, with one more # line, for example "start=WALL_MIDDLE delay_s=0". */
     public static void start(String opModeName, double batteryVolts, String extraHeader) {
         close();
         if (!LogConfig.ENABLED) {

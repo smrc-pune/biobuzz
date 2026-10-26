@@ -9,7 +9,9 @@ import com.acmerobotics.dashboard.config.Config;
  *
  * Too much text is hard to read during a match and slows the loop. Turn off what you
  * are not working on. The match header line (alliance, time left, loop ms, battery, drive
- * mode, heading, stage) and the newest ALERT are always shown.
+ * mode, heading, stage), the newest ALERT, WARNINGs and FAULTED parts are always shown.
+ * ON at first: the drive, the launcher and the launch. Turn a part on while you work on it.
+ * The test OpModes (Test: Intake, ...) show their own numbers either way.
  *
  * You can change these live in FTC Dashboard (http://192.168.43.1:8080/dash,
  * "TelemetryConfig"), but live edits are LOST when the app restarts. When you find a
@@ -19,14 +21,14 @@ import com.acmerobotics.dashboard.config.Config;
 public class TelemetryConfig {
     // ---- One switch per part ----
     public static boolean DRIVE = true;                // drive mode, who is driving, pose, warnings
-    public static boolean INTAKE = true;               // intake power
-    public static boolean FEEDER = true;               // feeder position
+    public static boolean INTAKE = false;              // intake power
+    public static boolean FEEDER = false;              // feeder position
     public static boolean LAUNCHER = true;             // flywheel speed and target
-    public static boolean CAMERAS = true;              // what the HIVE camera and the front camera see
+    public static boolean CAMERAS = false;             // what the HIVE camera sees
     public static boolean LAUNCH = true;               // LaunchStateMachine: state, launched count, history
 
     // ---- Extra detail ----
-    public static boolean HISTORY = true;              // the last change (and WHY) of each part and state machine
+    public static boolean HISTORY = false;             // the last change (and WHY) of each part and state machine
     public static boolean DETAILS = false;             // low-level numbers: motor powers, Pedro's mode
     public static boolean GAMEPAD_HELP = true;         // the controls cheat sheet (the two lines below)
 

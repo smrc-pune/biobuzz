@@ -32,7 +32,7 @@ changing any tuning.
    - [ ] Charged battery in, strapped down; spare charged
    - [ ] Pinpoint light on; Pinpoint mounted firmly
    - [ ] Every connector seated (drive motors, Expansion Hub RS-485 cable, cameras, servo)
-   - [ ] `AutoConfig.ROUTINE`, `START`, `START_DELAY_S` agreed with our partner and set
+   - [ ] `AutoConfig.START`, `START_DELAY_S` agreed with our partner and set
    - [ ] Nothing loose; bumpers on with the right alliance colour
 3. At the field, in **INIT** of BioBuzz Auto: pick the alliance (D-pad left/right), read the
    plan on screen, no PATH WARNING. **Place the robot exactly on its start position.**

@@ -25,14 +25,14 @@ import org.firstinspires.ftc.teamcode.biobuzz.helpers.StateTimer;
  * BioBuzzAuto.java  -  the 30-second Autonomous (stage S3).                     ROLE: OpMode
  * PATTERN: a step list (enum Step + switch), laid out like a state machine.
  *
- *   WAIT_DELAY -> LEAVE -> LAUNCH_PRELOADS -> [COLLECT_GARDEN -> DRIVE_TO_LAUNCH -> LAUNCH_AGAIN] -> PARK -> DONE
- *                                              (only in the LAUNCH_COLLECT_PARK routine)
+ *   WAIT_DELAY -> LEAVE -> LAUNCH_PRELOADS -> PARK -> DONE
+ * (Collecting our GARDEN and launching again is a future improvement: docs/LLD.md, section 14.)
  * EACH STEP: on its first loop it STARTS something (a path, a launch); then it CHECKS
  * whether that is done; then it checks its own TIMEOUT (AutoConfig). A step that runs out
  * of time writes "TIMEOUT" to the match log and moves on, so one jam does not waste the
  * whole Autonomous. At AutoConfig.PARK_BY_S, whatever is running, the robot goes to PARK.
  *
- * BEFORE THE MATCH: routine, start and delay are set in AutoConfig. In INIT, gamepad 1
+ * BEFORE THE MATCH: start and delay are set in AutoConfig. In INIT, gamepad 1
  * D-pad left/right picks the alliance; the screen shows the plan and checks every path
  * (stays on our side, misses the HIVE). PLACE THE ROBOT EXACTLY at the start position:
  * a wrong start is the most common cause of a bad Autonomous.
@@ -48,9 +48,6 @@ public class BioBuzzAuto extends OpMode {
         WAIT_DELAY,        // wait AutoConfig.START_DELAY_S (to stay out of our partner's way)
         LEAVE,             // drive off the wall to our launch spot, facing the upward CELL (LEAVE points)
         LAUNCH_PRELOADS,   // launch the 4 balls we started with
-        COLLECT_GARDEN,    // intake on, drive along our GARDEN
-        DRIVE_TO_LAUNCH,   // back to the launch spot, facing the upward CELL
-        LAUNCH_AGAIN,      // launch what we collected
         PARK,              // stop the mechanisms, drive into our LOADING ZONE (PARK points)
         DONE               // hold still until the end of AUTO
     }
@@ -83,8 +80,7 @@ public class BioBuzzAuto extends OpMode {
         }
         checkPaths();
         t.addData("Alliance (D-pad left/right to change)", MatchInfo.alliance);
-        t.addData("Routine / start / delay", AutoConfig.ROUTINE + " / " + AutoConfig.START + " / "
-                + AutoConfig.START_DELAY_S + " s   (set in AutoConfig)");
+        t.addData("Start / delay", AutoConfig.START + " / " + AutoConfig.START_DELAY_S + " s   (set in AutoConfig)");
         t.addData("Up CELL at start", MatchInfo.getUpCellName());
         if (pathWarnings.isEmpty()) {
             t.addLine("Paths: all on our side and clear of the HIVE");
@@ -98,8 +94,8 @@ public class BioBuzzAuto extends OpMode {
 
     @Override
     public void start() {
-        robot.startMatch("BioBuzzAuto", MatchClock.AUTO_S, "routine=" + AutoConfig.ROUTINE
-                + " start=" + AutoConfig.START + " delay_s=" + AutoConfig.START_DELAY_S);
+        robot.startMatch("BioBuzzAuto", MatchClock.AUTO_S, "start=" + AutoConfig.START
+                + " delay_s=" + AutoConfig.START_DELAY_S);
         robot.drive.setAlliance(MatchInfo.isRed());
         robot.drive.setStartingPose(FieldPaths.startPose(AutoConfig.START, MatchInfo.isRed()));
         if (!pathWarnings.isEmpty()) {
@@ -163,45 +159,6 @@ public class BioBuzzAuto extends OpMode {
                 if (firstLoop) {
                     robot.shooter.launch(4);
                 }
-                Step afterLaunch = Step.PARK;
-                if (AutoConfig.ROUTINE == AutoConfig.Routine.LAUNCH_COLLECT_PARK) {
-                    afterLaunch = Step.COLLECT_GARDEN;
-                }
-                if (!robot.shooter.isLaunching()) {
-                    goToStep(afterLaunch, "launched");
-                } else if (isTimedOut(AutoConfig.LAUNCH_TIMEOUT_MS)) {
-                    launchTimedOut(afterLaunch);
-                }
-                break;
-
-            case COLLECT_GARDEN:
-                if (firstLoop) {
-                    robot.intake.collect();
-                    robot.drive.followPath(FieldPaths.throughGarden(here, isRed));
-                }
-                if (robot.drive.isPathDone()) {
-                    goToStep(Step.DRIVE_TO_LAUNCH, "garden done");
-                } else if (isTimedOut(AutoConfig.COLLECT_TIMEOUT_MS)) {
-                    driveTimedOut(Step.DRIVE_TO_LAUNCH);
-                }
-                break;
-
-            case DRIVE_TO_LAUNCH:
-                if (firstLoop) {
-                    robot.drive.followPath(FieldPaths.gardenToLaunchSpot(here, isRed));
-                }
-                if (robot.drive.isPathDone()) {
-                    goToStep(Step.LAUNCH_AGAIN, "at launch spot");
-                } else if (isTimedOut(AutoConfig.DRIVE_TIMEOUT_MS)) {
-                    driveTimedOut(Step.LAUNCH_AGAIN);
-                }
-                break;
-
-            case LAUNCH_AGAIN:
-                if (firstLoop) {
-                    robot.intake.stop();
-                    robot.shooter.launch(4);
-                }
                 if (!robot.shooter.isLaunching()) {
                     goToStep(Step.PARK, "launched");
                 } else if (isTimedOut(AutoConfig.LAUNCH_TIMEOUT_MS)) {
@@ -255,7 +212,7 @@ public class BioBuzzAuto extends OpMode {
     }
 
     /**
-     * INIT: build this routine's paths from the planned places (for this alliance), draw them
+     * INIT: build Auto's paths from the planned places (for this alliance), draw them
      * on the Dashboard field, and check each one (rules G402, G409, G417).
      */
     private void checkPaths() {
@@ -265,11 +222,6 @@ public class BioBuzzAuto extends OpMode {
         Pose launchSpot = leave.endPose();
         pathWarnings = "";
         checkOnePath("LEAVE", leave, isRed);
-        if (AutoConfig.ROUTINE == AutoConfig.Routine.LAUNCH_COLLECT_PARK) {
-            Path garden = FieldPaths.throughGarden(launchSpot, isRed);
-            checkOnePath("COLLECT_GARDEN", garden, isRed);
-            checkOnePath("DRIVE_TO_LAUNCH", FieldPaths.gardenToLaunchSpot(garden.endPose(), isRed), isRed);
-        }
         checkOnePath("PARK", FieldPaths.toLoadingZone(launchSpot, isRed), isRed);
         FieldDrawing.drawRobot(start.x(), start.y(), Math.toDegrees(start.heading()));
     }

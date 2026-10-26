@@ -61,14 +61,6 @@ public class FieldCheckConfig {
     // ---- 10 Wall ----
     public static double WALL_MAX_DEG = 3;
 
-    // ---- 12 Camera: robot on a seam crossing, a known AprilTag in view ----
-    // TODO(BioBuzz): pick a seam crossing and a tag; measure the tag's centre (field frame, RED side).
-    public static double CAMERA_CHECK_X_IN = 48;         // where the robot's centre is placed
-    public static double CAMERA_CHECK_Y_IN = 72;
-    public static double CAMERA_CHECK_HEADING_DEG = 0;
-    public static int CAMERA_CHECK_TAG_ID = 20;
-    public static double CAMERA_CHECK_TAG_X_IN = 72;
-    public static double CAMERA_CHECK_TAG_Y_IN = 72;
-    public static double CAMERA_CHECK_TAG_Z_IN = 6;      // the tag's centre height above the floor
-    public static double CAMERA_TOLERANCE_IN = 2;
+    // ---- 12 Camera: robot on our launch spot, facing the upward CELL ----
+    public static double CAMERA_SEEN_FRACTION = 0.8;     // PASS: the tag seen on at least this share of reads
 }

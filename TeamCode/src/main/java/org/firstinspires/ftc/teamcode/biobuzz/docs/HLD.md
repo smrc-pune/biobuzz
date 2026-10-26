@@ -1,6 +1,6 @@
 # BioBuzz Software – High-Level Design (HLD)
 
-Oct 26, 2026 · **Matches the code (steps 1–12 built, not yet run on the robot)** · goes with Requirements v2.11 and `LLD.md`
+Oct 26, 2026 · **Matches the code (steps 1–13 built, not yet run on the robot)** · goes with Requirements v2.12 and `LLD.md`
 
 This document explains how the BioBuzz robot software fits together. It is written for our team: 7th graders who are new to Java. Read it once from top to bottom. Use `LLD.md` when you need the details of one file.
 
@@ -57,7 +57,6 @@ Words in CAPITALS (POLLEN, CELL, …) are game words from the BIOBUZZ Competitio
 | **Feeder** | Pushes one ball at a time from the hopper into the launcher | One servo (Expansion Hub). TODO(BioBuzz): servo or motor |
 | **Launcher** | Flywheel that launches POLLEN or NECTAR into the upward CELL | One flywheel motor with encoder (Expansion Hub). TODO(BioBuzz): a second motor? |
 | **HIVE camera** | Looks up at the AprilTags under the CELLS: which CELL is up, and where to aim | DFRobot HuskyLens, I2C |
-| **Front camera** | Sees field AprilTags, POLLEN and NECTAR in front of the robot | Logitech USB webcam |
 
 The hopper (where up to 4 balls wait) has no sensors, so the robot does not know how many balls it holds or their colours. A Storage mechanism with sensors is a future improvement.
 
@@ -86,8 +85,8 @@ Limits (R503, R701): at most 8 motors and 8 servos, a Control Hub and at most on
    intake    IntakeSubsystem   owns Intake             Drive       (sticks, paths, pose)
    shooter   ShooterSubsystem  owns Feeder, Launcher,  DriveToSpot (S2: drive itself to a spot)
                                LaunchStateMachine      FieldPaths  (every path on the field)
-   vision    VisionSubsystem   owns HiveCamera,              |
-                               FrontCamera                   v
+   vision    VisionSubsystem   owns HiveCamera               |
+                                                             v
          | each loop: its state machines,       ..........................................
          | then its mechanisms                  : Pedro Pathing   (off the shelf)        :
          v                                      : follows paths, holds the robot still,  :
@@ -178,7 +177,7 @@ public void launch(int count) {
 | --- | --- | --- |
 | `robot.intake` | Intake | `toggle()`, `collect()`, `reverse()`, `stop()`, `isOn()` |
 | `robot.shooter` | Feeder, Launcher, LaunchStateMachine | `launch(4)`, `cancelLaunch()`, `spinUp()`, `holdPreloads()`, `isLaunching()`, `getAimHeadingDeg()` |
-| `robot.vision` | HiveCamera, FrontCamera | questions only, added when needed |
+| `robot.vision` | HiveCamera | questions only, added when needed |
 
 Inside a subsystem, a mechanism is used by its name: `intake.collect()`.
 
@@ -255,33 +254,29 @@ All three stages are built. S2's assists and S3's Auto use the same `FieldPaths`
 
 ## 7. Autonomous plan
 
-Auto is one OpMode. In INIT the drive team picks only the alliance (RED or BLUE): it changes every match. The routine, start position and start delay are agreed with the alliance partner before the match and set in `AutoConfig`. Each step starts something on its first loop, then checks "done?" and "out of time?". A **park-by guard** jumps to PARK at `AutoConfig.PARK_BY_S`, whatever step is running, because PARK and LEAVE feed the SWARM ranking point.
+Auto is one OpMode. In INIT the drive team picks only the alliance (RED or BLUE): it changes every match. The start position and start delay are agreed with the alliance partner before the match and set in `AutoConfig`. Each step starts something on its first loop, then checks "done?" and "out of time?". A **park-by guard** jumps to PARK at `AutoConfig.PARK_BY_S`, whatever step is running, because PARK and LEAVE feed the SWARM ranking point.
 
 There are no launch zones, so the robot launches its preloads right after it leaves the wall:
 
 ```
-LAUNCH_PARK
-  WAIT_DELAY -> LEAVE -> LAUNCH_PRELOADS -> PARK -> DONE
-LAUNCH_COLLECT_PARK
-  WAIT_DELAY -> LEAVE -> LAUNCH_PRELOADS -> COLLECT_GARDEN -> DRIVE_TO_LAUNCH -> LAUNCH_AGAIN -> PARK -> DONE
+WAIT_DELAY -> LEAVE -> LAUNCH_PRELOADS -> PARK -> DONE
 ```
 
-LEAVE ends at our launch spot already facing the upward CELL. After collecting, DRIVE_TO_LAUNCH goes back there, so the second launch faces the CELL too. A step that runs out of time writes `TIMEOUT` to the match log and moves on. How to change poses and steps: `docs/AUTO_GUIDE.md`.
+LEAVE ends at our launch spot already facing the upward CELL, where `LAUNCH_RPM` was tuned. There is one plan, so there is nothing to pick; collecting our GARDEN and launching again is a future improvement. A step that runs out of time writes `TIMEOUT` to the match log and moves on. How to change poses and steps: `docs/AUTO_GUIDE.md`.
 
 Every position is written once, **for RED**, in `FieldConfig`. For BLUE, `FieldPaths` turns it 180° around the middle of the field (`mirrorX(72).mirrorY(72)`), because the field looks the same from both sides after a half turn. Every path is checked at INIT: it must stay on our side (G402) and away from the HIVE (G409, G417).
 
 ---
 
-## 8. Vision (two cameras)
+## 8. Vision (one camera)
 
-The AprilTags are stuck under the CELLS, facing down.
+The AprilTags are only under the CELLS, facing down; there are none on the walls. So one camera, looking up, is all we need.
 
 | Camera | Device | Sees | Used for |
 | --- | --- | --- | --- |
-| HIVE camera (looks up) | HuskyLens | CELL tags | Checking which CELL is up (the operator's TIP button comes first); aiming at the upward CELL |
-| Front camera (looks ahead) | Logitech webcam | Field AprilTags, POLLEN and NECTAR, all at once | Shows the drive team what is in front of the intake; later, aiming the intake |
+| HIVE camera (looks up) | HuskyLens | CELL tags: learned id, left/right offset, box size | Checking which CELL is up (the operator's TIP button comes first); aiming at the upward CELL |
 
-Each camera is a mechanism (`HiveCamera`, `FrontCamera`). Cameras only answer questions; Robot decides what to do with the answers. Setting the robot's position from a camera comes later, if at all; until then, "set pose here" fixes a lost position.
+The camera is a mechanism (`HiveCamera`). It only answers questions; Robot decides what to do with the answers. The HuskyLens gives 2D boxes, not distances, so it cannot fix the robot's x/y; "set pose here" fixes a lost position.
 
 ---
 
@@ -342,7 +337,7 @@ Professional programmers have names for designs that work well. You don't need t
 | **Game Loop** and **Update Method** | `loop()` → `robot.update()` → every `update()` | Every loop, everything takes one small step; nothing waits |
 | **Composition** | `Robot` has subsystems; `ShooterSubsystem` has a Feeder, a Launcher and a LaunchStateMachine | Build big things out of small parts, each in its own file |
 | **Facade** | each subsystem, `Drive` | One simple front for many parts behind it |
-| **Adapter** | `Intake`, `Launcher`, `HiveCamera`, `FrontCamera`, `GamepadInput` | Turns device calls into game words |
+| **Adapter** | `Intake`, `Launcher`, `HiveCamera`, `GamepadInput` | Turns device calls into game words |
 | **Template Method** | `Mechanism.runUpdate()` calls your `update()`; `Subsystem.update()` runs your state machines, then your mechanisms; a subsystem runs any class that `extends StateMachine` | The base class fixes the order and the safety; you fill in the steps |
 | **State pattern** (enum + switch) | `LaunchStateMachine`, Auto's steps | The object behaves differently depending on its current state |
 | **Mediator** | A subsystem's menu methods cancel its state machine when they share a mechanism (`spinUp()` waits while launching) | Parts that could clash don't talk to each other; one coordinator does |
