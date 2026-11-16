@@ -83,3 +83,5 @@ lint/tmp/
 # ---- BioBuzz additions ----
 # Game manual PDF: download it from the FIRST website, do not commit it.
 BIOBUZZ_Competition_Manual_*.pdf
+# goBILDA StarterBot assembly guide (25 MB): download it from goBILDA, do not commit it.
+3200-2627-0004_assembly-instructions*.pdf

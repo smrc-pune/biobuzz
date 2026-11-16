@@ -3,11 +3,11 @@
 > **For mentors.** Students: you do not need this file to get started. Begin with the
 > student guide, `biobuzz/README.md` ("Start here").
 
-Oct 19, 2026 (updated Oct 26, 2026) · started as the mentor review before any code changes; later sections record decisions made while building
+Oct 19, 2026 (updated Nov 16, 2026) · started as the mentor review before any code changes; later sections record decisions made while building
 
 This review compares three things: the requirements (v1.4), the new design the team agreed on in discussion, and the BIOBUZZ Competition Manual (TU05). It lists every conflict, misalignment and gap found, with the fix applied in Requirements v2.0, `HLD.md` and `LLD.md`, and the questions that only the team can answer.
 
-**How to read it.** Section 1 is the design in one page, as it stands now (Requirements v2.3). Section 2 lists problems inside the old requirements. Section 3 lists what the game adds. Section 4 lists the design patterns used. Section 5 lists the questions and the team's answers. Sections 6 and 7 list the changes from the second and third review rounds; where a fix in sections 2–3 names `game/`, BLUE poses or NEAR/FAR, sections 6 and 7 replace it. (Sections 1–7 were written before the code changed; section 8 lists what was found while building it; section 9 records the change to subsystems in v2.8, which replaces the Robot "menu" described in sections 1 and 4; section 11 replaces the speed-by-distance table with one launch speed; section 12 keeps one camera and one Auto plan; section 13 adds the "Start here" path.)
+**How to read it.** Section 1 is the design in one page, as it stands now (Requirements v2.3). Section 2 lists problems inside the old requirements. Section 3 lists what the game adds. Section 4 lists the design patterns used. Section 5 lists the questions and the team's answers. Sections 6 and 7 list the changes from the second and third review rounds; where a fix in sections 2–3 names `game/`, BLUE poses or NEAR/FAR, sections 6 and 7 replace it. (Sections 1–7 were written before the code changed; section 8 lists what was found while building it; section 9 records the change to subsystems in v2.8, which replaces the Robot "menu" described in sections 1 and 4; section 11 replaces the speed-by-distance table with one launch speed; section 12 keeps one camera and one Auto plan; section 13 adds the "Start here" path; section 14 maps the real robot, the goBILDA StarterBot, and replaces the positional feeder servo and `launch(4)` described in earlier sections.)
 
 ---
 
@@ -265,3 +265,37 @@ Decisions made after step 10, with the reason for each, so they are not re-argue
 | E3 | HLD, LLD, Requirements, Design Review and Updating Pedro marked **For mentors** | Students opening them first get lost in design detail | Move them to another folder (breaks every link) |
 | E4 | `HealthConfig` and `LogConfig` move to the mentor zone; `FieldCheckConfig` stays in the student zone | Health limits and log settings are set from match logs by mentors. The drive team sets `FieldCheckConfig.FIELD_NAME` at every event | All four "non-mechanism" configs to the mentor zone |
 
+
+## 14. The real robot: goBILDA StarterBot with mecanum wheels (Nov 16, 2026, Requirements v2.15)
+
+**Why.** The robot is built from the goBILDA "FTC StarterBot with Mecanum Wheels (for BIOBUZZ)" kit, `3200-2627-0004`. Its assembly guide and goBILDA's example TeleOp for it ([resource guide](https://www.gobilda.com/ftc-starterbot-base-with-mecanum-wheels-resource-guide-2026-2027/), [example code](https://www.gobilda.com/content/downloads/3200-2627-0004_example-code.zip)) were compared with our design. The layers, subsystems and the launcher's speed control fit. The feeder, the intake and the device names did not.
+
+**What the robot has** (assembly steps in brackets):
+
+| Mechanism | Hardware | How goBILDA's example runs it | Our part |
+| --- | --- | --- | --- |
+| Drive | Strafer chassis, 4 × 19.2:1 motors through 1:1 miter gears, 104 mm mecanum wheels (1–14, 34) | Left side reversed, BRAKE | `Drive` (Pedro), unchanged |
+| Intake roller | 7 × 48 mm grip wheels on one shaft, 50.9:1 motor, 100T → 20T gears, about 585 RPM (15–31) | `intake`, power from the triggers, BRAKE | `Intake` |
+| Intake side wheels | 2 "speed" servos at the front corners, each turning a 72 mm wheel flat, pulling balls to the middle (32–33) | **Continuous-rotation** servos `left_intake_servo`, `right_intake_servo` (right reversed), same power as the intake motor | `Intake` (**new**: 2 continuous servos) |
+| Hopper / ramp | Gridplate ramp and guide posts; goBILDA: holds up to 4 POLLEN (41–50, 57) | – | none (GR4: the hopper holds 4) |
+| Feeder | A "torque" servo turning a 4-paddle **windmill** (52–56) | **Continuous-rotation** servo `windmillServo` (reversed), runs nonstop while the flywheel is above its minimum speed | `Feeder` (**changed**: continuous servo, not two positions) |
+| Launcher | 19.2:1 motor converted to 1:1 (bare, 28 ticks per turn), 96 mm wheel, curved hood (38–39, 51, 55) | 1250 ticks/s (about 2680 RPM), feeds above 1200 ticks/s (about 2570 RPM), PIDF 40 / 0 / 0 / 12.5 | `Launcher` (new starting numbers) |
+| Odometry | **Not in the kit** | – | Pinpoint + 2 pods (goBILDA 4-Bar Odometry Pack), being added |
+| Camera | Not in the kit | – | HuskyLens, mounted by the team |
+
+Devices: 6 motors (needs the Expansion Hub: the Control Hub has 4 motor ports) and 3 servos, inside GR12 (8 and 8). The three servos are goBILDA dual-mode servos: each MUST be set to continuous mode with the goBILDA servo programmer before it is mounted.
+
+**Decisions**
+
+| # | Decision | Why | Rejected |
+| --- | --- | --- | --- |
+| H1 | **The feeder runs continuously.** `Feeder` drives a continuous servo: `feed()`, `hold()` (power 0) and `unjam()` (short reverse). `LaunchStateMachine`: SPINNING_UP → FEEDING (windmill on while the flywheel is at least `MIN_FEED_RPM`) ⇄ RECOVERING (windmill off until back to speed) → IDLE once the windmill has fed for `FEED_TOTAL_MS` in total. `robot.shooter.launch(4)` becomes `robot.shooter.launch()`: empty the hopper | It is how goBILDA runs this exact windmill, tested on this robot. The robot cannot count balls leaving (no sensors), so "launch 4" was already "feed 4 times"; a total feed time says the same thing honestly | Timed quarter-turn bursts, one per ball: a quarter turn of a continuous servo depends on battery and load, so "one ball" would not be exact anyway, and it adds a number per ball to tune |
+| H2 | **The shooter never runs the intake.** goBILDA's example adds +0.5 intake power while feeding, "to dislodge stuck elements". We do not | The intake belongs to `intake`, the windmill to `shooter`; running both from one state machine would break "a state machine uses only its own subsystem's mechanisms" (section 9, S3). goBILDA says only that it "can sometimes help". The operator can still have the intake on while launching: the toggle does not depend on the shooter. Revisit only if balls stick on the real robot | Merge intake and shooter into one subsystem now; have TeleOp and Auto turn the intake on around `launch()` |
+| H3 | **Odometry: Pinpoint + 2 pods are being added** (4-Bar Odometry Pack). The Pinpoint design stays as it is | Field-centric driving, Pedro paths, Auto, the S2 assists, the Pinpoint safeguards and Field Checks 03–07 all depend on it | Localization from the drive encoders only (no heading from a gyro; every one of those features would change) |
+| H4 | **Device names: goBILDA's names.** `left_front_drive`, `right_front_drive`, `left_back_drive`, `right_back_drive`, `intake`, `launcher`, `windmillServo`, `left_intake_servo`, `right_intake_servo`; ours stay for `pinpoint` and `hiveCamera`. The constants in `HardwareNames` keep their names (`SERVO_FEEDER` = `"windmillServo"`); new `SERVO_INTAKE_LEFT`, `SERVO_INTAKE_RIGHT` and a reversed flag per servo | goBILDA's example TeleOp then runs on our robot configuration unchanged: a hardware check on day one, before any of our code. Only `HardwareNames` holds names (R10), so nothing else changes | Keep our names (camelCase); the cost of goBILDA's is a mix of styles (`left_front_drive` vs `windmillServo`) |
+| H5 | **Intake side wheels in `Intake`.** `collect()`, `reverse()` and `stop()` drive the motor and both side servos together; `IntakeConfig.SIDE_COLLECT_POWER` and `SIDE_REVERSE_POWER` | They are one job (pull a ball in), always run together in goBILDA's code, and so stay one mechanism with one test | A separate `SideWheels` mechanism |
+| H6 | **Launcher starting numbers from goBILDA:** `LAUNCH_RPM` 2680, `MIN_FEED_RPM` 2570, PIDF P 40, I 0, D 0, F 12.5. `TICKS_PER_REV` 28 was already right | Tested values on this motor and wheel; still tuned from our launch spot (GR7) | Keep the guesses (3100, P 10, F 12) |
+
+**To find on the built robot** (Open items in the Requirements): the hub and port of each device; whether it launches out of the front or the back (`LauncherConfig.AIM_OFFSET_DEG` 0 or 180); whether a NECTAR (3.6 in) goes through the intake, hopper and windmill at all (goBILDA names only POLLEN); whether launching works without the intake (H2); the robot's length and width (start poses assume 18 in); where the Pinpoint, pods and HuskyLens mount (the ramp takes the middle of the chassis); the drive motor and pod directions (Pedro tuning kit).
+
+**Implementation order** on `biobuzz-dev`, one commit each, docs and the student guide in the same commit: (1) this section and Requirements v2.15; (2) `HardwareNames` (H4); (3) `PartsTest` moves continuous servos; (4) `Intake` side wheels (H5); (5) `Feeder`, `LaunchStateMachine`, `ShooterSubsystem` and their configs (H1, H6); (6) `RobotCheck` and Field Check 11; (7) HLD, LLD, `CONTROLS`, `HOW_TO_ADD_A_MECHANISM`. Then, on the robot: goBILDA's example TeleOp first, the facts above, our tests, drive tuning.

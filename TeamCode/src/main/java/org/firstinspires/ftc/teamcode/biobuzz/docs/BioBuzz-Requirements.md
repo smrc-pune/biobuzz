@@ -3,9 +3,9 @@
 > **For mentors.** Students: you do not need this file to get started. Begin with the
 > student guide, `biobuzz/README.md` ("Start here").
 
-Oct 26, 2026 · @Girish
+Nov 16, 2026 · @Girish
 
-**Version 2.14**
+**Version 2.15**
 
 ## Contents
 
@@ -287,12 +287,12 @@ The design is explained in `docs/HLD.md` (why) and `docs/LLD.md` (each class). T
 
 | Layer | Does | MUST NOT |
 | --- | --- | --- |
-| OpMode (`teleop/`, `auto/`, `testing/`, `fieldchecks/`) | Reads gamepads (only OpModes do). Calls subsystem menu methods for mechanisms (`robot.shooter.launch(4)`), and `robot.drive` / `robot.driveToSpot` for driving. Calls `robot.update()` and telemetry once per loop. Auto keeps its own step list. Does all gamepad rumbles and LEDs | Touch a motor or servo. Hold mechanism logic |
+| OpMode (`teleop/`, `auto/`, `testing/`, `fieldchecks/`) | Reads gamepads (only OpModes do). Calls subsystem menu methods for mechanisms (`robot.shooter.launch()`), and `robot.drive` / `robot.driveToSpot` for driving. Calls `robot.update()` and telemetry once per loop. Auto keeps its own step list. Does all gamepad rumbles and LEDs | Touch a motor or servo. Hold mechanism logic |
 | `Robot` | Builds Drive, DriveToSpot and the subsystems. Runs `update()` in the fixed order above. Holds the always-on rules. Keeps the newest urgent ALERT for the OpMode to rumble | Read gamepads. Set a motor power itself. Reach inside a subsystem |
 | Subsystem (`subsystems/`) | One job of the robot. Owns its mechanisms and the state machines that use them; updates, stops, shows and logs them. Its public methods are the menu. Cancels its state machine before a manual command that shares a mechanism (Mediator) | Keep states of its own. Use another subsystem's mechanism |
-| State machine (`statemachines/`) | One task that takes time and may use several mechanisms of its subsystem, for example "launch 4 balls": spin up, feed, wait, repeat. It commands mechanisms | Call another state machine, a subsystem, Robot or a mechanism's `update()`. Read gamepads |
+| State machine (`statemachines/`) | One task that takes time and may use several mechanisms of its subsystem, for example "launch": spin up, then run the feeder while the flywheel is at speed. It commands mechanisms | Call another state machine, a subsystem, Robot or a mechanism's `update()`. Read gamepads |
 | `Drive` (`drive/`) | Driving operations over Pedro: sticks (field-centric), paths, pose. It is not a Mechanism: stop-all never stops it | Decide when to follow a path (the OpMode decides) |
-| Mechanism (`mechanisms/`) | Wraps one group of devices with verbs (`intake.collect()`, `feeder.feedOne()`) and questions (`launcher.isUpToSpeed()`) | Keep states or timers. Know about other mechanisms. Move an actuator in its constructor |
+| Mechanism (`mechanisms/`) | Wraps one group of devices with verbs (`intake.collect()`, `feeder.feed()`) and questions (`launcher.isUpToSpeed()`) | Keep states or timers. Know about other mechanisms. Move an actuator in its constructor |
 | Off-the-shelf libraries: Pedro Pathing, FTC SDK, FTC Dashboard | Pedro follows paths and holds poses; the SDK talks to the hubs, cameras and gamepads; the Dashboard shows telemetry and the field | Be edited by the team. Pedro is set up only through tuned values in `pedro/Constants.java`, and only `Drive` and `FieldPaths` call it |
 
 **Where code goes:** a button → TeleOp; one device group → its mechanism; something an OpMode asks for → a menu method in the subsystem that owns the mechanism; several steps over time or several mechanisms → a state machine started by a subsystem menu method; something that must always happen → `Robot.update()`; a place or path → `FieldConfig` and `FieldPaths`; a tunable number → a `*Config`.
@@ -336,15 +336,15 @@ These come from the BIOBUZZ Competition Manual TU05. Rule numbers (G…, R…) a
 | GR1 | `helpers/MatchClock.java` MUST keep match time: auto seconds since PLAY, TeleOp seconds left. The telemetry header shows the time left | 10.4 |
 | GR2 | Auto MUST always end with PARK: a park-by guard jumps to the PARK step at `AutoConfig.PARK_BY_S` (starting value 26 s), whatever step is running | 10.5, SWARM RP |
 | GR3 | Mechanism constructors MUST NOT move an actuator. TeleOp `init()` and `init_loop()` MUST NOT command an actuator: the first command is in `start()`. Auto `init()` MAY grip the preloads (`robot.shooter.holdPreloads()`), and nothing else | G304.H, G403 |
-| GR4 | The robot MUST NOT control more than 4 balls. This is done by the hardware: the hopper physically holds at most 4. Counting held balls in software needs sensors the robot does not have; it is a future improvement (`docs/LLD.md`) | G407 |
+| GR4 | The robot MUST NOT control more than 4 balls. This is done by the hardware: the hopper physically holds at most 4 (goBILDA's StarterBot ramp). Counting held balls in software needs sensors the robot does not have; it is a future improvement (`docs/LLD.md`) | G407 |
 | GR5 | Opponent NECTAR is the drive team's responsibility: the operator does not collect it, and reverses the intake (gamepad 2 B) if it is picked up. There is no software check | G408 |
 | GR6 | `helpers/MatchInfo` MUST know which of our two CELLS faces up (`MatchInfo.isCellAUp()`): the setup position at Auto `init()`, flipped by each TIP (`MatchInfo.markHiveTipped()`), kept from Auto to TeleOp like the rest of `MatchInfo`. A TIP is entered by the operator (gamepad 2 left bumper); the HIVE camera MAY confirm it later. After a TIP, launching pauses for `LauncherConfig.TIP_PAUSE_MS` | 9.6, 10.5.1 |
-| GR7 | BIOBUZZ has no launch zones: the robot may launch from anywhere. The aim heading MUST follow the upward CELL. The launcher MUST use ONE speed, `LauncherConfig.LAUNCH_RPM`, tuned from our launch spot (`FieldConfig.LAUNCH_SPOT`), where Auto and the S2 assist launch: one number is easy for rookies to tune. The robot does not know which ball is next (POLLEN 2.8 in or NECTAR 3.6 in), so one speed serves both. A speed that follows the distance to the upward CELL (a table), and tables per ball type, are future improvements | 9.6, 9.8 |
+| GR7 | BIOBUZZ has no launch zones: the robot may launch from anywhere. The aim heading MUST follow the upward CELL. The launcher MUST use ONE speed, `LauncherConfig.LAUNCH_RPM`, tuned from our launch spot (`FieldConfig.LAUNCH_SPOT`), where Auto and the S2 assist launch: one number is easy for rookies to tune. The robot does not know which ball is next (POLLEN 2.8 in or NECTAR 3.6 in), so one speed serves both. The feeder is a windmill turned by a continuous servo: `robot.shooter.launch()` spins up, runs the windmill while the flywheel is at least `LauncherConfig.MIN_FEED_RPM` (pausing it while the speed recovers), and stops after `LauncherConfig.FEED_TOTAL_MS` of feeding, enough to empty the hopper. The shooter never runs the intake (`docs/DESIGN-REVIEW.md`, section 14, H1–H2). A speed that follows the distance to the upward CELL (a table), and tables per ball type, are future improvements | 9.6, 9.8 |
 | GR8 | Every auto path MUST be checked at INIT: it stays on our side of the field (columns A–C red, D–F blue) and out of the HIVE footprint plus `FieldConfig` margin. A failing path shows a red warning on the INIT screen | G402, G409, G417 |
 | GR9 | Start positions MUST be a fixed list in `FieldConfig` (touching the wall, our side, not in the LOADING ZONE); the one used is set in `AutoConfig.START` before the match | G304 |
 | GR10 | Poses are written for RED, the default alliance. BLUE poses MUST be the RED pose turned 180° about the field centre (72, 72), because the field is rotationally symmetric (agreed, Q7). `FieldPaths.place(...)` (named `forAlliance` in earlier versions) does it by chaining both reflections: `PoseFactory` `mirrorX(72.0).mirrorY(72.0)` | 9.3 |
 | GR11 | TeleOp MUST rumble both gamepads at 1:00 left (NECTAR may be entered, FLOWERS open) and gamepad 1 at 0:20 left (time to PARK). The header shows how many NECTAR the human player may enter (one per TIP before 1:00 left) | G410, G426 |
-| GR12 | The robot MUST stay within 8 motors and 8 servos, one Control Hub and at most one Expansion Hub. `HardwareNames` keeps the count in its header | R503, R701 |
+| GR12 | The robot MUST stay within 8 motors and 8 servos, one Control Hub and at most one Expansion Hub. `HardwareNames` keeps the count in its header. The StarterBot uses 6 motors (so the Expansion Hub is needed) and 3 servos | R503, R701 |
 | GR13 | ONE camera. BIOBUZZ has AprilTags only under the CELLS, facing down (none on the walls), so the robot needs only a camera that looks up at them: the **HIVE camera**, a HuskyLens (I2C): which CELL is up, and the aim offset. It is read no more often than `CameraConfig.HIVE_SAMPLE_MS`, and its learned IDs map to CELLS in `CameraConfig`, which also lists the manual's AprilTag numbers for each CELL (TU06, 9.9: red opposite the audience 30–33, red audience side 34–37, blue audience side 38–41, blue opposite the audience 42–45). The HuskyLens gives 2D boxes (id, position, size), not distances, so it does not set the Pedro pose; a camera pose fix is a future improvement | 9.9, R707, R708 |
 
 ## Driving (R1, R2)
@@ -410,7 +410,7 @@ Gamepad 2 runs every mechanism, and only gamepad 2 does. The button map stays in
 | --- | --- |
 | A | Intake on / off (`robot.intake.toggle()`) |
 | B (hold) | Reverse the intake, to spit out (`robot.intake.reverse()`); also how opponent NECTAR is pushed out (G408) |
-| Right trigger | Launch 4 balls (`robot.shooter.launch(4)`; feeding an empty slot does no harm) |
+| Right trigger | Launch: empty the hopper (`robot.shooter.launch()`) |
 | Y | Spin the launcher up early (`robot.shooter.spinUp()`) |
 | Left bumper | "Our HIVE just TIPPED" (`MatchInfo.markHiveTipped()`) |
 | D-pad down | Stop all mechanisms (fixed) |
@@ -422,7 +422,7 @@ Autonomous (stage S3) is a step list that drives the same `Robot` as teleop. It 
 
 **Structure**
 
-- `auto/BioBuzzAuto.java` holds `enum Step` and a `switch` in `runStep()`. Each step does three things: on its first loop it starts something (`robot.drive.followPath(...)`, `robot.shooter.launch(4)`); then it checks whether that thing is done (`robot.drive.isPathDone()`, `!robot.shooter.isLaunching()`); then it checks its own timeout from `AutoConfig`.
+- `auto/BioBuzzAuto.java` holds `enum Step` and a `switch` in `runStep()`. Each step does three things: on its first loop it starts something (`robot.drive.followPath(...)`, `robot.shooter.launch()`); then it checks whether that thing is done (`robot.drive.isPathDone()`, `!robot.shooter.isLaunching()`); then it checks its own timeout from `AutoConfig`.
 - Each loop does the park-by guard (GR2), `runStep()`, `robot.update()`, `PoseMemory.save(...)`, then telemetry and the match log.
 - A step that times out writes `"TIMEOUT <step>"` to the match log and moves on, so a jam does not waste the whole autonomous. A drive step that times out calls `drive.holdHere()` first.
 - Auto `init()` resets `MatchInfo`'s per-match values (including the HIVE: which CELL is up, TIPS) and may grip the preloads (GR3). Nothing else moves before PLAY.
@@ -790,12 +790,15 @@ The team MUST give the AI the facts below before it writes BioBuzz-specific code
 
 - [x] BIOBUZZ game manual (TU05)
 - [x] BioBuzz field image (`TeamCode/src/main/assets/images/field-biobuzz.png`)
-- [ ] Mechanism hardware: Intake, Feeder and Launcher are planned; their motors, servos and directions. Storage sensing (counting balls, colour) is a future improvement (Q5)
-- [ ] Robot configuration names from the Control Hub, for `HardwareNames`
+- [x] Mechanism hardware: the goBILDA StarterBot with mecanum wheels (`3200-2627-0004`): intake roller + 2 continuous side-wheel servos, a windmill feeder on a continuous servo, a 1:1 flywheel launcher (`docs/DESIGN-REVIEW.md`, section 14). Storage sensing (counting balls, colour) is a future improvement (Q5)
+- [x] Robot configuration names: goBILDA's (section 14, H4); `pinpoint` and `hiveCamera` are ours
+- [ ] From the built robot: the hub and port of each device; servo and motor directions; launch direction (`LauncherConfig.AIM_OFFSET_DEG`, 0 front or 180 back); robot length and width (start poses)
+- [ ] Does a NECTAR (3.6 in) pass the intake, hopper and windmill? goBILDA names only POLLEN. If not, GR5, GR7, GR11 and the B-button assist change
+- [ ] Does launching work without the intake running (section 14, H2)?
 - [x] Field frame, rotational symmetry and driver headings agreed (Q7, Q8)
 - [ ] Field poses (RED side): start positions, our launch spot, LOADING ZONE approach and park, GARDEN line, our reset corner (a field corner on our side)
-- [ ] Odometry: Pinpoint pod type and offsets (DecodeBot uses Pinpoint with goBILDA 4-bar pods)
-- [ ] Camera (Q9): HuskyLens mounting and learned CELL tag IDs
+- [ ] Odometry: Pinpoint + 2 goBILDA 4-bar pods are being added (section 14, H3); mount, pod offsets and directions at drive tuning
+- [ ] Camera (Q9): HuskyLens mounting (looking up past the StarterBot's top plate) and learned CELL tag IDs
 - [x] Which CELL is up: operator button first, camera may confirm later (Q2)
 - [ ] Gamepad 2 map confirmed, once the mechanisms are built
 - [x] Autonomous for the first competition: `LAUNCH_PARK` only (Q10, then v2.12; no launch zones)
@@ -829,6 +832,7 @@ The team MUST give the AI the facts below before it writes BioBuzz-specific code
 
 | Version | Date | Changes |
 | --- | --- | --- |
+| 2.15 | 2026-11-16 | The real robot: the goBILDA StarterBot with mecanum wheels, mapped to the design (`docs/DESIGN-REVIEW.md`, section 14). **Feeder:** a windmill on a continuous servo that runs while the flywheel is at speed (`LauncherConfig.MIN_FEED_RPM`) for `FEED_TOTAL_MS` in total; `robot.shooter.launch(4)` becomes `robot.shooter.launch()` (GR7, gamepad 2 right trigger, Auto). **The shooter never runs the intake.** **Intake:** the roller plus 2 continuous side-wheel servos. **Odometry:** Pinpoint + 2 pods being added; the design is unchanged. **Device names:** goBILDA's. Launcher starting numbers from goBILDA (2680 RPM, PIDF 40 / 0 / 0 / 12.5). GR12: 6 motors and 3 servos. Open items updated (ports, launch direction, NECTAR fit, intake during launch). The code follows in the next commits (section 14, implementation order). |
 | 2.14 | 2026-10-26 | The CELL AprilTag numbers from Competition Manual TU06, section 9.9 (GR13): red CELL opposite the audience 30–33, red audience side 34–37, blue audience side 38–41, blue opposite the audience 42–45. Our CELL A / B names map onto them through the half-turn BLUE rule (BLUE CELL A is opposite the audience). `CameraConfig` holds them (`final`) and says which tag to train as each learned ID; Test: Camera names the CELL of the tag in view; `CAMERA_GUIDE.md` training uses the numbers. |
 | 2.13 | 2026-10-26 | Easier to start, docs and comments only. A "Start here" reading order at the top of the student guide (README sections 1–4, `GETTING_STARTED`, `FIRST_CHANGES`, `CONTROLS`); "Start here: the first numbers" in `TUNING.md` (8 rows, in order); HLD, LLD, Requirements, Design Review and Updating Pedro marked **For mentors**; `HealthConfig` and `LogConfig` moved to the mentor zone. `FieldCheckConfig` stays in the student zone (the drive team sets `FIELD_NAME` at each event). `MATCH_DAY.md` and the Field Check table updated for the v2.12 Field Check 12. |
 | 2.12 | 2026-10-26 | Simpler, for the rookie team. **One camera (GR13):** BIOBUZZ has AprilTags only under the CELLS, so the HuskyLens looking up is the only camera; the Logitech webcam (`FrontCamera`, its AprilTag and colour processors, its `CameraConfig` values, `WEBCAM_FRONT`) is removed. Field Check 12 now checks that the HuskyLens sees the upward CELL's tag from the launch spot; Test: Camera shows the HuskyLens only. **One Auto plan:** leave, launch 4, park; `LAUNCH_COLLECT_PARK`, `enum Routine`, the GARDEN path and places and `COLLECT_TIMEOUT_MS` are removed (a future improvement). **Fewer telemetry lines at first:** `INTAKE`, `FEEDER`, `CAMERAS` and `HISTORY` off; drive, launcher and launch on. |
