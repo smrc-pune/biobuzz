@@ -185,7 +185,7 @@ Follow `AUTO_GUIDE.md`, "Measuring a pose". Measure against **tile seams** (ever
 `TUNING.md`, "Then record the home baseline", and `MATCH_DAY.md` for what each check does.
 
 - [ ] In `FieldCheckConfig`: `FIELD_NAME` = `home`.
-- [ ] A check in `FieldCheck11_Mechanisms` for every mechanism the robot has.
+- [ ] A check in `FieldCheck11_Mechanisms` for every mechanism the robot has (today: intake, launcher, launch with the windmill).
 - [ ] Run **Field Check 01 … 12**, then **13 Summary**. Copy its numbers into the `BASELINE_`
       values in `FieldCheckConfig`, with `BASELINE_DATE`. Commit.
 

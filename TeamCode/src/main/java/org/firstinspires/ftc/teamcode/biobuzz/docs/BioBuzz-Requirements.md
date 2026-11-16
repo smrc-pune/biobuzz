@@ -500,7 +500,7 @@ A new field is a new robot: tile grip, tile wear and walls differ from our pract
 | 08 | `FieldCheck08_Line` | Pedro straight line, 48 in, stop on a seam | End error within the baseline + 0.75 in; overshoot and settle time shown | **Yes** |
 | 09 | `FieldCheck09_Square` | Pedro 48 in square, back to start | End error under 1.5 in and 3° | **Yes** |
 | 10 | `FieldCheck10_Wall` | Robot squared against a wall | Heading within 3° of the nearest 90° (snap-to-90° is a future improvement) | Partly |
-| 11 | `FieldCheck11_Mechanisms` | One bench check per mechanism, through the subsystem menus (for example a flywheel reaches its target velocity within its spin-up time) | Per mechanism. TODO(BioBuzz): define one check per mechanism | No |
+| 11 | `FieldCheck11_Mechanisms` | One bench check per mechanism, through the subsystem menus, no balls: the intake (roller and side wheels) runs 1 s; the flywheel reaches `LAUNCH_RPM` within `SPIN_UP_TIMEOUT_MS`; `robot.shooter.launch()` turns the windmill for `FEED_TOTAL_MS` and ends. The crew watches that the servos turn the right way (they have no sensors) | None FAULTED; up to speed in time; the launch feeds for `FEED_TOTAL_MS` and ends | No |
 | 12 | `FieldCheck12_Camera` | Robot on our launch spot, facing the upward CELL | The HuskyLens sees that CELL's tag on at least 80% of its reads. Event lighting is a common cause of failure | **Yes** |
 | 13 | `FieldCheck13_Summary` | Nothing | Shows every result, plus battery sag (resting from 02, lowest during 07 to 09) | – |
 
