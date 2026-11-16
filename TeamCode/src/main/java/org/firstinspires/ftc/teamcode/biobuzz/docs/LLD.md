@@ -94,7 +94,7 @@ teamcode/biobuzz/
 **Who calls what**
 
 - OpModes call `robot.drive.*` for driving and `robot.driveToSpot.*` for the S2 buttons (Drive is never shared with a state machine).
-- OpModes call **only subsystem menu methods** for mechanisms (`robot.shooter.launch(4)`), never a mechanism. A mechanism belongs to exactly ONE subsystem, and every state machine that uses it lives in that same subsystem, so the subsystem can cancel its state machine before a manual command (Mediator).
+- OpModes call **only subsystem menu methods** for mechanisms (`robot.shooter.launch()`), never a mechanism. A mechanism belongs to exactly ONE subsystem, and every state machine that uses it lives in that same subsystem, so the subsystem can cancel its state machine before a manual command (Mediator).
 - The game facts are static helpers: OpModes call `MatchInfo.markHiveTipped()` directly (as they call `MatchInfo.switchAlliance()`).
 
 ```java
@@ -295,7 +295,7 @@ public class Mechanism {
 **Rules for every mechanism**
 
 - The constructor gets its devices with `hardwareMap.get(...)` and `HardwareNames`, sets directions and modes, and **never moves an actuator** (G304.H, G403).
-- Public methods are verbs (`collect()`, `feedOne()`) and questions (`isUpToSpeed()`, `isOn()`). No states, no timers, no knowledge of other mechanisms.
+- Public methods are verbs (`collect()`, `feed()`) and questions (`isUpToSpeed()`, `isOn()`). No states, no timers, no knowledge of other mechanisms.
 - Every number comes from its `*Config`.
 - A faulted mechanism ignores its verbs (each verb starts with `if (isFaulted()) return;`).
 
@@ -362,12 +362,12 @@ public class Intake extends Mechanism {
 
 | | |
 | --- | --- |
-| Devices | `SERVO_FEEDER` (TODO(BioBuzz): a servo is the first guess; if it becomes a motor, keep the verbs) |
-| Verbs | `feedOne()` (push the next ball from the hopper into the launcher), `hold()` (keep the next ball back); `stop()` = hold |
-| Questions | `isFeeding()` |
-| `update()` | Nothing (the timing of a feed is the state machine's job). A position is sent only when it changes |
-| Config | `FeederConfig.FEED_POSITION`, `HOLD_POSITION` |
-| Log | `feeder_feeding` |
+| Devices | `SERVO_FEEDER` (`windmillServo`): a continuous servo turning the StarterBot's 4-paddle windmill (DESIGN-REVIEW section 14, H1) |
+| Verbs | `feed()` (turn: balls go into the flywheel one after another), `hold()` (power 0: the paddles keep the balls back), `unjam()` (backwards); `stop()` = power 0 |
+| Questions | `isFeeding()`, `getPower()` |
+| `update()` | Nothing (when and how long to feed is the state machine's job). A power is sent only when it changes |
+| Config | `FeederConfig.FEED_POWER` (1.0), `UNJAM_POWER` (−0.5) |
+| Log | `feeder_power`; EVENT `FEEDER:power <p>` / `FEEDER:off` on each change |
 
 There is no Storage mechanism: the hopper has no sensors, so the robot does not know how many balls it holds or their colours. Storage sensing is a future improvement (section 14).
 
@@ -375,11 +375,11 @@ There is no Storage mechanism: the hopper has no sensors, so the robot does not 
 
 | | |
 | --- | --- |
-| Devices | `MOTOR_LAUNCHER` (flywheel with encoder; TODO(BioBuzz): a second motor?) |
+| Devices | `MOTOR_LAUNCHER` (flywheel with encoder: a 1:1 bare motor, 28 ticks per turn, 96 mm wheel) |
 | Verbs | `spinUp()` (`LAUNCH_RPM`), `idle()` (`IDLE_RPM`), `stop()` |
-| Questions | `isUpToSpeed()` (within `SPEED_TOLERANCE_RPM`), `getRpm()`, `getTargetRpm()` |
+| Questions | `isUpToSpeed()` (within `SPEED_TOLERANCE_RPM`), `isFastEnoughToFeed()` (at least `MIN_FEED_RPM`), `getRpm()`, `getTargetRpm()` |
 | `update()` | Reads the speed once per loop (`getVelocity()`, ticks/s → RPM with `TICKS_PER_REV`). Velocity control is in the motor (`RUN_USING_ENCODER`, `setVelocity`, PIDF from `LauncherConfig.SPEED_P/I/D/F`); `update()` re-sends the PIDF only when a Dashboard edit changed it. Zero power = FLOAT (coast) |
-| Launch speed | `LauncherConfig.LAUNCH_RPM` (3100, a guess): ONE speed, tuned from `FieldConfig.LAUNCH_SPOT`, for both POLLEN and NECTAR (the robot does not know which ball is next). The launch spot is about the same distance from both CELLS (31 in to A, 33 in to B, from the guessed poses), so one speed serves before and after a TIP. A speed that follows the distance is a future improvement (section 14) |
+| Launch speed | `LauncherConfig.LAUNCH_RPM` (2680, goBILDA's starting value; PIDF 40 / 0 / 0 / 12.5): ONE speed, tuned from `FieldConfig.LAUNCH_SPOT`, for both POLLEN and NECTAR (the robot does not know which ball is next). The launch spot is about the same distance from both CELLS (31 in to A, 33 in to B, from the guessed poses), so one speed serves before and after a TIP. A speed that follows the distance is a future improvement (section 14) |
 | Log | `launcher_rpm`, `launcher_target_rpm` (also on the Dashboard graph) |
 
 ### 5.4 HiveCamera (HuskyLens, looks up)
@@ -423,29 +423,28 @@ There is no Storage mechanism: the hopper has no sensors, so the robot does not 
 
 Every state machine has the same four sections (R3): **1. States** (the `enum`, one comment per value), **2. Commands** (`start(...)`, `cancel()`: they only call `goTo`), **3. `update()`** (one `case` per state, marked DO / CHECK / GO), **4. Bookkeeping** (`goTo(state, reason)`, `isBusy()`, `getState()`, `addTelemetry(t)`, `addLogData()`). Every waiting state has a timeout that goes to `IDLE` with a logged reason. They `implement StateMachine` (section 3.2), get their mechanisms in the constructor (dependency injection), live in the subsystem that owns those mechanisms, and never call each other, a subsystem or Robot.
 
-### 7.1 LaunchStateMachine (Feeder + Launcher + Drive; in ShooterSubsystem)
+### 7.1 LaunchStateMachine (Feeder + Launcher; in ShooterSubsystem)
 
 ```
-          start(count)          up to speed            FEED_MS passed
-   IDLE ------------> SPINNING_UP ----------> FEEDING ---------------> RECOVERING
-    ^                    |   ^                                            |
-    |  timeout/cancel    |   +----- more to launch, RECOVER_MS passed ----+
-    +--------------------+                                                |
-    +--------------------------- count reached ---------------------------+
+          start()               up to speed
+   IDLE ------------> SPINNING_UP ----------------> FEEDING
+    ^                  |      ^                      |    |
+    |  timeout/cancel  |      +-- flywheel too slow -+    |
+    +------------------+          (or a HIVE TIP)         |
+    +--------------- fed FEED_TOTAL_MS in total ----------+
 ```
 
 | State | DO | CHECK → GO | Timeout |
 | --- | --- | --- | --- |
 | `IDLE` | `feeder.hold()`, `launcher.idle()` (once, on entry) | – | – |
-| `SPINNING_UP` | `launcher.spinUp()` (every loop, so a Dashboard edit of `LAUNCH_RPM` counts at once) | up to speed and no TIP pause → `FEEDING` | `LauncherConfig.SPIN_UP_TIMEOUT_MS` → `IDLE` "spin-up timeout" (warn, and an urgent ALERT `LAUNCHER TIMEOUT`: the gamepads rumble) |
-| `FEEDING` | `feeder.feedOne()`, keep the speed | timer ≥ `FEED_MS` → `RECOVERING` | (the timer itself) |
-| `RECOVERING` | `feeder.hold()`, keep the speed | timer ≥ `RECOVER_MS`: launched + 1 (EVENT `LAUNCH:<n> of <count>`); launched < count → `SPINNING_UP`; else → `IDLE` "all launched" | (the timer itself) |
+| `SPINNING_UP` | `feeder.hold()`, `launcher.spinUp()` (every loop, so a Dashboard edit of `LAUNCH_RPM` counts at once) | up to speed and no TIP pause → `FEEDING` | `LauncherConfig.SPIN_UP_TIMEOUT_MS` → `IDLE` "spin-up timeout" (warn, and an urgent ALERT `LAUNCHER TIMEOUT`: the gamepads rumble) |
+| `FEEDING` | `feeder.feed()`, keep the speed | fed in total (earlier FEEDINGs + this one) ≥ `FEED_TOTAL_MS` → `IDLE` "hopper empty"; else `!launcher.isFastEnoughToFeed()` → `SPINNING_UP` "flywheel too slow"; else a TIP pause → `SPINNING_UP` "HIVE tipped". Leaving FEEDING adds its time to the total (EVENT `LAUNCH:fed <ms> of <total> ms`) | `FEED_TOTAL_MS` itself |
 
-`start(count)` is refused with a warning when the feeder or launcher is FAULTED, or while already launching.
+`start()` is refused with a warning when the feeder or launcher is FAULTED, or while already launching.
 
-The robot cannot see how many balls it holds, so `start(count)` feeds `count` times (4 for "launch everything"); feeding an empty slot does no harm.
+The feeder is a windmill on a continuous servo (goBILDA StarterBot), run the way goBILDA's example runs it: nonstop while the flywheel is fast enough. Each ball slows the flywheel; below `MIN_FEED_RPM` the windmill stops until the flywheel is back up to speed (the old RECOVERING state is the same as SPINNING_UP, so it was merged). The robot cannot count balls, so it does not try: it feeds for `FEED_TOTAL_MS` in total, enough to empty a full hopper. It never runs the intake (DESIGN-REVIEW section 14, H2). Telemetry shows "Fed x of y s".
 
-The flywheel always spins at `LAUNCH_RPM`, so the state machine does not need to know where the robot is (it does not use Drive). After the operator presses "TIPPED", `MatchInfo.secondsSinceTip()` holds the next feed for `LauncherConfig.TIP_PAUSE_MS` (manual 10.5.1).
+The flywheel always spins at `LAUNCH_RPM`, so the state machine does not need to know where the robot is (it does not use Drive). After the operator presses "TIPPED", `MatchInfo.secondsSinceTip()` stops the windmill for `LauncherConfig.TIP_PAUSE_MS` (manual 10.5.1).
 
 ---
 
@@ -559,7 +558,7 @@ private void handleOperator() {
         robot.intake.stop();
     }
     if (launchAll) {
-        robot.shooter.launch(4);   // lands best from our launch spot (driver's A)
+        robot.shooter.launch();   // lands best from our launch spot (driver's A)
     }
     if (tipped) {
         MatchInfo.markHiveTipped();
@@ -596,7 +595,7 @@ INIT: gamepad 1 D-pad left/right switches the alliance; the screen also shows `A
 | --- | --- | --- | --- |
 | `WAIT_DELAY` | – | `AutoConfig.START_DELAY_S` passed | – |
 | `LEAVE` | `drive.followPath(FieldPaths.leaveWall(...))` | `drive.isPathDone()` | `DRIVE_TIMEOUT_MS` → `holdHere()`, go on |
-| `LAUNCH_PRELOADS` | `robot.shooter.launch(4)` (from where the robot is: no launch zones) | `!robot.shooter.isLaunching()` | `LAUNCH_TIMEOUT_MS` → cancel, go on |
+| `LAUNCH_PRELOADS` | `robot.shooter.launch()` (from where the robot is: no launch zones) | `!robot.shooter.isLaunching()` | `LAUNCH_TIMEOUT_MS` → cancel, go on |
 | `PARK` | `robot.stopMechanisms()`, `followPath(toLoadingZone)` | path done | `PARK_TIMEOUT_MS` |
 | `DONE` | – | – | – |
 
@@ -669,8 +668,8 @@ All are mentor zone and share `helpers/FieldCheckHelper` (grades, results, `FIEL
 | `FieldConfig` | `FIELD_CENTRE_IN`; `START_NEAR_GARDEN_*`, `START_MIDDLE_*`; `OWN_SIDE_MARGIN_IN`; `LAUNCH_SPOT_*`; `LOADING_APPROACH_*`, `LOADING_PARK_*`; `RESET_CORNER_*`; `CELL_A_*`, `CELL_B_*` (from the field picture), `START_CELL_A_UP`; `HIVE_KEEP_OUT_*` (all RED, inches/degrees; guesses) |
 | `AutoConfig` | `enum Start`; `START` (`WALL_NEAR_GARDEN`), `START_DELAY_S` (0) – decided before the match; `DRIVE_TIMEOUT_MS` 4000, `LAUNCH_TIMEOUT_MS` 6000, `PARK_TIMEOUT_MS` 4000, `PARK_BY_S` 26 |
 | `IntakeConfig` | `COLLECT_POWER` (1.0), `REVERSE_POWER` (−0.6), `SIDE_COLLECT_POWER` (1.0), `SIDE_REVERSE_POWER` (−0.6) |
-| `FeederConfig` | `HOLD_POSITION` (0.2), `FEED_POSITION` (0.6) |
-| `LauncherConfig` | `TICKS_PER_REV` (28), `SPEED_P/I/D/F`, `IDLE_RPM` (0), `SPEED_TOLERANCE_RPM` (100), `LAUNCH_RPM` (3100), `SPIN_UP_TIMEOUT_MS` (2500), `FEED_MS` (250), `RECOVER_MS` (300), `TIP_PAUSE_MS` (1500), `AIM_OFFSET_DEG` (0) |
+| `FeederConfig` | `FEED_POWER` (1.0), `UNJAM_POWER` (−0.5) |
+| `LauncherConfig` | `TICKS_PER_REV` (28), `SPEED_P/I/D/F` (40 / 0 / 0 / 12.5), `IDLE_RPM` (0), `SPEED_TOLERANCE_RPM` (100), `LAUNCH_RPM` (2680), `MIN_FEED_RPM` (2570), `SPIN_UP_TIMEOUT_MS` (2500), `FEED_TOTAL_MS` (2000), `TIP_PAUSE_MS` (1500), `AIM_OFFSET_DEG` (0) |
 | `CameraConfig` | `HIVE_SAMPLE_MS`, `HIVE_IMAGE_WIDTH_PX`, HuskyLens learned tag IDs |
 | `ControlsConfig` | `TRIGGER_THRESHOLD`, `SET_POSE_HOLD_MS`, rumble lengths, match-time warnings, `PARTS_TEST_*`, `ROBOT_CHECK_MOTOR_*`, the button list as comments |
 | `HealthConfig` | battery, loop-time and heading-jump limits; Robot Check limits `CHECK_*` |
@@ -718,7 +717,7 @@ All are mentor zone and share `helpers/FieldCheckHelper` (grades, results, `FIEL
 
 **Header line 2:** `Game: intake ON | launcher READY | up CELL A | tips 2 | NECTAR +2` ("NECTAR open" with 1:00 left in TeleOp).
 
-**New DATA columns (as built):** `intake_power`, `intake_side_power`, `feeder_feeding`, `launcher_rpm`, `launcher_target_rpm`, `hive_cam_tag_id`, `hive_cam_offset_px`, `hive_cam_age_ms`, `<mechanism>_faulted`, `launch_state` (0 IDLE, 1 SPINNING_UP, 2 FEEDING, 3 RECOVERING), `up_cell_a`, `tip_count`.
+**New DATA columns (as built):** `intake_power`, `intake_side_power`, `feeder_power`, `launcher_rpm`, `launcher_target_rpm`, `hive_cam_tag_id`, `hive_cam_offset_px`, `hive_cam_age_ms`, `<mechanism>_faulted`, `launch_state` (0 IDLE, 1 SPINNING_UP, 2 FEEDING), `up_cell_a`, `tip_count`.
 
 **EVENTS:** `PLAY`, `STOP`, `CHANGE:<part>: <from> -> <to> (<reason>)` (parts: Drive, Launch, Auto, ...), `WARN:<part>: <message>` (refused assists and launches among them), `ALERT:<text>`, `PINPOINT:<status>`, `ASSIST:<name>`, `ASSIST_CANCELLED:stick` / `:aim`, `MARK:driver`, `MARK:operator`, `HIVE_TIP:<n> (up CELL A)`, `INTAKE:power <p>` / `INTAKE:off`, `LAUNCH:<n> of <count>`, `TIMEOUT:<step>`, `PARK_BY:<step>`, `AUTO_PATH_OFFSIDE:<text>`, `FIELDCHECK_<nn>:<grade> <text>`, `SUMMARY_<nn>`, `ROBOTCHECK:<text>`, `PARTS:selected <name>`.
 

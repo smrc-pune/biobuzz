@@ -8,7 +8,7 @@
 | Loop | One pass of read → command → update → show; about 50 a second. Nothing waits |
 | Robot | `Robot.java`: the one object that holds the drive and the subsystems (`robot.intake`, `robot.shooter`, `robot.vision`, `robot.driveToSpot`) and updates them every loop |
 | Subsystem | One job of the robot (intake, shooter, vision). Owns its mechanisms and the state machines that use them; its methods are the menu OpModes call. No states |
-| Menu method | A subsystem's public method that an OpMode calls, for example `robot.shooter.launch(4)` |
+| Menu method | A subsystem's public method that an OpMode calls, for example `robot.shooter.launch()` |
 | Mechanism | One group of devices (intake, launcher) with action words (verbs) and questions. No states |
 | Hook | A method a mechanism fills in for `Mechanism`: `update()`, `stop()`, `addDetails()`, `addLogValues()`, `isTelemetryOn()` |
 | FAULTED | A mechanism that hit an error (often a cable) and stopped; the rest of the robot keeps going |

@@ -9,7 +9,7 @@ the same by hand.
  GAMEPAD 1 - DRIVER                             GAMEPAD 2 - OPERATOR
  +------------------------------------------+   +------------------------------------------+
  | LB  -                RB  AIM (hold)      |   | LB  HIVE TIPPED      RB  -               |
- | LT  -                RT  -               |   | LT  -                RT  LAUNCH 4        |
+ | LT  -                RT  -               |   | LT  -                RT  LAUNCH ALL      |
  |                                          |   |                                          |
  | D-pad <  SET POSE (hold 1 s)             |   | D-pad v  STOP ALL                        |
  |   (INIT: < > = alliance)                 |   |                                          |
@@ -47,7 +47,7 @@ Moving **any** stick while the robot drives itself takes it back at once.
 | --- | --- |
 | A | Intake on / off |
 | B (hold) | Spit out (reverse the intake); also how opponent NECTAR goes back out |
-| Right trigger | Launch 4 balls (they land best from our launch spot: driver's A) |
+| Right trigger | Launch: empty the hopper (they land best from our launch spot: driver's A) |
 | Y | Spin the launcher up early |
 | Left bumper | "Our HIVE just TIPPED": press it EVERY time, so the robot aims at the right CELL |
 | D-pad down | **STOP ALL mechanisms** |

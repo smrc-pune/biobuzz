@@ -47,13 +47,13 @@ import org.firstinspires.ftc.teamcode.biobuzz.helpers.PoseMemory;
  *                         Back/Share = mark a moment in the match log
  *                         INIT: D-pad left/right = switch alliance RED / BLUE
  *   GAMEPAD 2 (operator)  A = intake on/off                   B (hold) = spit out (reverse intake)
- *                         right trigger = launch 4            Y = spin the launcher up early
+ *                         right trigger = launch all          Y = spin the launcher up early
  *                         left bumper = "our HIVE just TIPPED"
  *                         D-pad down = STOP ALL mechanisms    Back/Share = mark a moment in the match log
  *
  * TO CHANGE A BUTTON: edit its line in handleDriver() or handleOperator() below, then the
  * list in ControlsConfig and the cheat sheet in TelemetryConfig.GAMEPAD*_HELP.
- * TO CHANGE WHAT A BUTTON DOES: open the subsystem it calls (robot.shooter.launch(4) is in
+ * TO CHANGE WHAT A BUTTON DOES: open the subsystem it calls (robot.shooter.launch() is in
  * subsystems/ShooterSubsystem.java), then the mechanism or state machine it uses.
  *
  * TRACING A BUG: start in loop(). Was the button read in handleDriver()/handleOperator()?
@@ -255,7 +255,7 @@ public class BioBuzzTeleOp extends OpMode {
             robot.intake.stop();
         }
         if (launchAll) {
-            robot.shooter.launch(4);   // lands best from our launch spot (driver's A)
+            robot.shooter.launch();   // lands best from our launch spot (driver's A)
         }
         if (spinUp) {
             robot.shooter.spinUp();

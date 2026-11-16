@@ -59,7 +59,7 @@ The robot is the goBILDA StarterBot with mecanum wheels (`3200-2627-0004`), plus
 | --- | --- | --- |
 | **Drive** | Mecanum drivetrain; field-centric driving; Pedro Pathing paths | 4 drive motors, 19.2:1 (Control Hub), goBILDA Pinpoint with 2 odometry pods |
 | **Intake** | Picks up POLLEN from the tiles and the FLOWER Retrieval Opening, and NECTAR from the LOADING ZONE | One roller motor, 50.9:1 (Expansion Hub), and 2 continuous servos turning the side wheels at the front corners (Expansion Hub) |
-| **Feeder** | Pushes one ball at a time from the hopper into the launcher | A 4-paddle windmill on one continuous servo (Expansion Hub) |
+| **Feeder** | Pushes the balls from the hopper into the launcher, one after another, while the flywheel is fast enough | A 4-paddle windmill on one continuous servo (Expansion Hub) |
 | **Launcher** | Flywheel that launches POLLEN or NECTAR into the upward CELL | One flywheel motor with encoder, 1:1 (bare motor, 28 ticks per turn), 96 mm wheel and a curved hood (Expansion Hub) |
 | **HIVE camera** | Looks up at the AprilTags under the CELLS: which CELL is up, and where to aim | DFRobot HuskyLens, I2C |
 
@@ -78,7 +78,7 @@ Limits (R503, R701): at most 8 motors and 8 servos, a Control Hub and at most on
   |  gamepad 2 -> mechanisms         |   |  each step: start, check, timeout|
   +----------------+-----------------+   +----------------+-----------------+
                    |  robot.intake.toggle()               |
-                   |  robot.shooter.launch(4)             |
+                   |  robot.shooter.launch()             |
                    v  robot.driveToSpot.launchSpot()      v
   +--------------------------------------------------------------------------+
   | Robot   builds everything; update() once per loop:                       |
@@ -121,10 +121,10 @@ Limits (R503, R701): at most 8 motors and 8 servos, a Control Hub and at most on
 
 | Part | Does | Must never |
 | --- | --- | --- |
-| OpMode (`teleop/`, `auto/`, `testing/`) | Reads the gamepads (only OpModes do). Calls subsystem menus (`robot.shooter.launch(4)`) and `robot.drive` / `robot.driveToSpot`. Calls `robot.update()` and telemetry once per loop. Auto keeps its list of steps | Touch a mechanism, motor or servo |
+| OpMode (`teleop/`, `auto/`, `testing/`) | Reads the gamepads (only OpModes do). Calls subsystem menus (`robot.shooter.launch()`) and `robot.drive` / `robot.driveToSpot`. Calls `robot.update()` and telemetry once per loop. Auto keeps its list of steps | Touch a mechanism, motor or servo |
 | `Robot` | Builds Drive, DriveToSpot and the subsystems. Runs `update()` in a fixed order. Health checks, match log, telemetry header | Read gamepads. Know what is inside a subsystem |
 | Subsystem (`subsystems/`) | One job of the robot. OWNS its mechanisms and the state machines that use them; updates, stops, shows and logs them. Its public methods are the menu. Stops a menu command and a state machine from fighting over one mechanism | Have states of its own. Use another subsystem's mechanism |
-| State machine (`statemachines/`) | One job that takes time, maybe using several mechanisms (for example "launch 4 balls": spin up, feed, wait, repeat). It gives mechanisms commands | Call another state machine, or a mechanism's `update()`. Read gamepads |
+| State machine (`statemachines/`) | One job that takes time, maybe using several mechanisms (for example "launch": spin up, then feed while the flywheel is fast enough). It gives mechanisms commands | Call another state machine, or a mechanism's `update()`. Read gamepads |
 | `Drive`, `DriveToSpot` and `FieldPaths` (`drive/`) | Driving: sticks, paths, where the robot is; the S2 buttons. Drive is the only code that talks to Pedro | Decide when to drive a path (the OpMode decides) |
 | Mechanism (`mechanisms/`) | One group of devices, with action words (`collect()`, `stop()`) and questions (`isUpToSpeed()`) | Remember states or wait. Know about other mechanisms |
 | Libraries (Pedro, FTC SDK, Dashboard) | Do the hard work: path following, talking to hardware, the Dashboard | Get edited by us (Pedro only gets tuned numbers in `pedro/Constants.java`) |
@@ -181,7 +181,7 @@ public void launch(int count) {
 | Subsystem | Owns | Menu (examples) |
 | --- | --- | --- |
 | `robot.intake` | Intake | `toggle()`, `collect()`, `reverse()`, `stop()`, `isOn()` |
-| `robot.shooter` | Feeder, Launcher, LaunchStateMachine | `launch(4)`, `cancelLaunch()`, `spinUp()`, `holdPreloads()`, `isLaunching()`, `getAimHeadingDeg()` |
+| `robot.shooter` | Feeder, Launcher, LaunchStateMachine | `launch()`, `cancelLaunch()`, `spinUp()`, `holdPreloads()`, `isLaunching()`, `getAimHeadingDeg()` |
 | `robot.vision` | HiveCamera | questions only, added when needed |
 
 Inside a subsystem, a mechanism is used by its name: `intake.collect()`.
@@ -203,7 +203,7 @@ If something goes wrong inside a mechanism (for example a cable comes out), that
 
 | State machine | Uses | Job |
 | --- | --- | --- |
-| `LaunchStateMachine` | Feeder, Launcher | Spin up to the launch speed, feed one ball, wait, repeat; wait a moment after a TIP |
+| `LaunchStateMachine` | Feeder, Launcher | Spin up to the launch speed, then turn the windmill while the flywheel is fast enough, until the hopper is empty; wait a moment after a TIP |
 
 The intake needs no state machine: the operator turns it on and off.
 
@@ -249,7 +249,7 @@ All three stages are built. S2's assists and S3's Auto use the same `FieldPaths`
 | --- | --- |
 | A | Intake on / off |
 | B (hold) | Reverse the intake (spit out, also for opponent NECTAR) |
-| Right trigger | Launch 4 balls |
+| Right trigger | Launch: empty the hopper |
 | Left bumper | "Our HIVE just TIPPED" |
 | Y | Spin the launcher up early |
 | D-pad down | **Stop all mechanisms** |

@@ -22,7 +22,7 @@ import com.acmerobotics.dashboard.config.Config;
  *                        D-pad left/right (INIT only) = switch alliance RED / BLUE
  *                        right bumper (hold) = aim at the upward CELL while driving
  *   GAMEPAD 2 (operator) A = intake on/off                B (hold) = spit out (reverse intake)
- *                        right trigger = launch 4         Y = spin the launcher up early
+ *                        right trigger = launch all       Y = spin the launcher up early
  *                        left bumper = "our HIVE just TIPPED"
  *                        D-pad down = STOP ALL mechanisms
  *                        Back/Share = mark a moment in the match log

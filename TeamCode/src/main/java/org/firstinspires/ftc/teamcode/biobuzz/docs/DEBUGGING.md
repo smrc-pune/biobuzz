@@ -7,7 +7,7 @@
 2. **What state is it in, and why?** Each state machine shows its state and seconds in it.
    Turn on `TelemetryConfig.HISTORY` (off at first) to see its "last change (reason)" and the 4 before it.
 3. **Was the command given?** Follow the loop: the button is read once in `handleDriver()` /
-   `handleOperator()` → the subsystem method (`robot.shooter.launch(4)`) → the state machine or mechanism.
+   `handleOperator()` → the subsystem method (`robot.shooter.launch()`) → the state machine or mechanism.
 4. **Was it refused?** A WARNING says why (position unknown, already launching, FAULTED).
 5. **Does the hardware do what it is told?** Test the one part alone: `Test: Parts`, then
    `Test: Intake` / `Feeder` / `Launcher` / `Camera` / `Launch` / `Drive`.

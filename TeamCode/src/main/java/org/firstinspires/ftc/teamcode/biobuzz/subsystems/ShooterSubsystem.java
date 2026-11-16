@@ -14,7 +14,7 @@ import org.firstinspires.ftc.teamcode.biobuzz.statemachines.LaunchStateMachine;
  *
  * ShooterSubsystem.java  -  launching balls into the upward CELL.             ROLE: subsystem
  *
- *   OpMode:  robot.shooter.launch(4)     robot.shooter.cancelLaunch()    robot.shooter.spinUp()
+ *   OpMode:  robot.shooter.launch()      robot.shooter.cancelLaunch()    robot.shooter.spinUp()
  *            robot.shooter.isLaunching() robot.shooter.isUpToSpeed()     robot.shooter.getAimHeadingDeg()
  *            robot.shooter.holdPreloads() (Auto INIT only)               robot.shooter.stop()
  *
@@ -44,9 +44,9 @@ public class ShooterSubsystem extends Subsystem {
 
     // ==================== THE MENU ====================
 
-    /** Launch this many balls (best from our launch spot). Feeding an empty slot does no harm. */
-    public void launch(int count) {
-        launchStateMachine.start(count);
+    /** Launch everything in the hopper (best from our launch spot). */
+    public void launch() {
+        launchStateMachine.start();
     }
 
     /** Stop launching at once: balls held back, flywheel at idle (Auto's launch timeout). */
@@ -62,7 +62,7 @@ public class ShooterSubsystem extends Subsystem {
         launcher.spinUp();
     }
 
-    /** Auto INIT only: hold the 4 preloaded balls (the only move allowed before PLAY, G304). */
+    /** Auto INIT only: keep the 4 preloaded balls in (windmill stopped; it does not move, G304). */
     public void holdPreloads() {
         feeder.hold();
     }

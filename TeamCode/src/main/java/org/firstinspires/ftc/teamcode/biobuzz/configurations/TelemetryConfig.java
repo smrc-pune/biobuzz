@@ -22,7 +22,7 @@ public class TelemetryConfig {
     // ---- One switch per part ----
     public static boolean DRIVE = true;                // drive mode, who is driving, pose, warnings
     public static boolean INTAKE = false;              // intake power
-    public static boolean FEEDER = false;              // feeder position
+    public static boolean FEEDER = false;              // windmill power
     public static boolean LAUNCHER = true;             // flywheel speed and target
     public static boolean CAMERAS = false;             // what the HIVE camera sees
     public static boolean LAUNCH = true;               // LaunchStateMachine: state, launched count, history
@@ -34,7 +34,7 @@ public class TelemetryConfig {
 
     // The controls cheat sheet. Keep it the same as BioBuzzTeleOp's header and docs/CONTROLS.md.
     public static String GAMEPAD1_HELP = "GP1: sticks=drive  Y=face-away  X=field/robot  A=launch spot  B=loading zone  RB(hold)=aim  Dpad-left(hold)=set pose  Back=mark";
-    public static String GAMEPAD2_HELP = "GP2: A=intake on/off  B(hold)=spit out  RT=launch 4  Y=spin up  LB=HIVE tipped  Dpad-down=STOP ALL  Back=mark";
+    public static String GAMEPAD2_HELP = "GP2: A=intake on/off  B(hold)=spit out  RT=launch all  Y=spin up  LB=HIVE tipped  Dpad-down=STOP ALL  Back=mark";
 
     // ---- Timing ----
     public static double WARNING_SHOW_S = 4;           // seconds a log.warn(...) message stays on screen

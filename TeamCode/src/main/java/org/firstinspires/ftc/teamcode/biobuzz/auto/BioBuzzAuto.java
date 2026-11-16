@@ -157,7 +157,7 @@ public class BioBuzzAuto extends OpMode {
 
             case LAUNCH_PRELOADS:
                 if (firstLoop) {
-                    robot.shooter.launch(4);
+                    robot.shooter.launch();
                 }
                 if (!robot.shooter.isLaunching()) {
                     goToStep(Step.PARK, "launched");

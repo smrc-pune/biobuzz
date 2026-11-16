@@ -27,7 +27,7 @@ import org.firstinspires.ftc.teamcode.biobuzz.subsystems.VisionSubsystem;
  * PATTERN: Composition (a Robot HAS a drive and some subsystems).
  *
  *   OpMode (buttons or Auto steps)
- *        |  robot.intake.toggle()   robot.shooter.launch(4)   robot.driveToSpot.launchSpot()
+ *        |  robot.intake.toggle()   robot.shooter.launch()   robot.driveToSpot.launchSpot()
  *        v
  *      Robot ---> drive         Drive (sticks, paths, pose)  ---> Pedro Pathing (off the shelf)
  *            ---> driveToSpot   DriveToSpot (S2: the robot drives itself to a spot)
@@ -38,7 +38,7 @@ import org.firstinspires.ftc.teamcode.biobuzz.subsystems.VisionSubsystem;
  * WHAT ROBOT DOES: builds everything; runs update() once per loop in a fixed order; watches
  * the robot's health; writes the match log; shows the telemetry header.
  * WHAT ROBOT NEVER DOES: read gamepads (the OpMode does), or know what is inside a subsystem.
- * To find what a button does, open the subsystem: robot.shooter.launch(4) is in
+ * To find what a button does, open the subsystem: robot.shooter.launch() is in
  * subsystems/ShooterSubsystem.java.
  *
  * TRACING A BUG: start at the OpMode's loop(), then update() below, then the subsystem.

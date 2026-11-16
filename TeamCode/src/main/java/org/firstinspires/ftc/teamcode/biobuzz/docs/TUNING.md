@@ -13,9 +13,9 @@ into its file and commit it (see "Mechanism tuning" below).
 | --- | --- | --- | --- | --- |
 | 1 | Every device name, and each motor's and continuous servo's `..._REVERSED` | `HardwareNames` | Names exactly as in the Robot Controller configuration. Then **Test: Parts**, one device at a time (`NEW_ROBOT_CHECKLIST.md`, steps 1–4). These are `final`: change the file and deploy, not the Dashboard | No device MISSING; stick up moves each mechanism "forward" |
 | 2 | `COLLECT_POWER`, `REVERSE_POWER`, `SIDE_COLLECT_POWER`, `SIDE_REVERSE_POWER` | `IntakeConfig` | **Test: Intake** | Pulls a ball in every time without jamming, also from the front corners; spits it out |
-| 3 | `HOLD_POSITION`, `FEED_POSITION` | `FeederConfig` | **Test: Feeder** | Hold keeps the next ball back; feed pushes it fully into the flywheel |
+| 3 | `FEED_POWER` | `FeederConfig` | **Test: Feeder** (hold A) | The windmill turns the right way and pushes each ball fully toward the flywheel |
 | 4 | `LAUNCH_SPOT_X_IN`, `LAUNCH_SPOT_Y_IN` | `FieldConfig` | Pick a spot with a clear view of the HIVE and measure it (`AUTO_GUIDE.md`, "Measuring a pose") | You can put the robot back on it every time (mark it with tape) |
-| 5 | `LAUNCH_RPM` | `LauncherConfig` | **Test: Launch**, robot on the launch spot facing the CELL. Short: +100; long: −100. First a mentor makes the flywheel reach its speed (`SPEED_F`, `SPEED_P` in **Test: Launcher**) | All 4 balls land in the CELL |
+| 5 | `LAUNCH_RPM`, then `FEED_TOTAL_MS` | `LauncherConfig` | **Test: Launch**, robot on the launch spot facing the CELL. Short: +100; long: −100 (move `MIN_FEED_RPM` with it). Then `FEED_TOTAL_MS`: just long enough to empty a full hopper. First a mentor makes the flywheel reach its speed (`SPEED_F`, `SPEED_P` in **Test: Launcher**) | All 4 balls land in the CELL |
 | 6 | `RED_CELL_A_TAG_ID` … `BLUE_CELL_B_TAG_ID` | `CameraConfig` | Train the HuskyLens on AprilTags 34, 30, 42, 38 in that order (`CAMERA_GUIDE.md`), then **Test: Camera** | "Which CELL" names the right CELL for each tag |
 | 7 | `START_NEAR_GARDEN_*`, `START_MIDDLE_*` | `FieldConfig` | Measure where the robot is placed for Auto | The robot is placed exactly there before every Auto |
 | 8 | `START`, `START_DELAY_S` | `AutoConfig` | **Every match**, agreed with our alliance partner | The INIT screen shows the plan you agreed |
@@ -83,9 +83,9 @@ git with the date and the field type** (for example "launch speed, home field, 2
 | What | Test OpMode | Numbers | Good |
 | --- | --- | --- | --- |
 | Intake power | Test: Intake | `IntakeConfig.COLLECT_POWER`, `REVERSE_POWER`, `SIDE_COLLECT_POWER`, `SIDE_REVERSE_POWER` | Pulls a ball in reliably, without jamming |
-| Feeder positions | Test: Feeder | `FeederConfig.HOLD_POSITION`, `FEED_POSITION` | Hold keeps a ball back; feed pushes it fully into the flywheel |
+| Feeder power | Test: Feeder | `FeederConfig.FEED_POWER`, `UNJAM_POWER` | Feed pushes each ball fully toward the flywheel; unjam frees a stuck ball |
 | Flywheel speed control | Test: Launcher (Graph view: `launcher_rpm`, `launcher_target_rpm`) | `LauncherConfig.SPEED_F` first (about right with P = 0), then `SPEED_P`; check `TICKS_PER_REV` | Reaches the target within 1 s, little overshoot, recovers quickly after a ball |
 | Launch speed | Test: Launch, robot on our launch spot (`FieldConfig.LAUNCH_SPOT`) facing the CELL. Short: raise it 100 at a time; long: lower it | `LauncherConfig.LAUNCH_RPM` | All 4 balls land in the CELL from the launch spot |
-| Launch timing | Test: Launch | `FEED_MS`, `RECOVER_MS`, `SPIN_UP_TIMEOUT_MS` | 4 balls in the least time, none short |
+| Launch timing | Test: Launch | `FEED_TOTAL_MS`, `MIN_FEED_RPM`, `SPIN_UP_TIMEOUT_MS` | A full hopper (4 balls) empties, none short, the windmill stops soon after the last ball |
 | Aim | BioBuzz TeleOp, hold RB | `DriveConfig.AIM_P`, `AIM_D`; `LauncherConfig.AIM_OFFSET_DEG` | Turns to face the CELL quickly, without wobbling |
 | HIVE camera (HuskyLens) | Test: Camera, then Field Check 12 | `CameraConfig` (learned tag ids) | See `CAMERA_GUIDE.md` |

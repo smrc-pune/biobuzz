@@ -129,11 +129,11 @@ For each one: run its test, change numbers live in the **Dashboard**
 file and commit them** (`TUNING.md`, "Mechanism tuning").
 
 - [ ] **Test: Intake**: `IntakeConfig.COLLECT_POWER`, `REVERSE_POWER`, and the side wheels' `SIDE_COLLECT_POWER`, `SIDE_REVERSE_POWER`.
-- [ ] **Test: Feeder**: `FeederConfig.HOLD_POSITION`, `FEED_POSITION` (use the safe
-      positions from step 4).
+- [ ] **Test: Feeder**: `FeederConfig.FEED_POWER` (hold A: the windmill pushes balls toward
+      the flywheel), `UNJAM_POWER` (hold B).
 - [ ] **Test: Launcher**: `LauncherConfig.SPEED_F`, then `SPEED_P`; check `TICKS_PER_REV`.
 - [ ] **Test: Launch** (needs step 6), robot on our launch spot facing the CELL:
-      `LauncherConfig.LAUNCH_RPM`, then `FEED_MS`, `RECOVER_MS`.
+      `LauncherConfig.LAUNCH_RPM` (and `MIN_FEED_RPM`, about 100 below it), then `FEED_TOTAL_MS`.
 - [ ] A new mechanism that is not in the code yet? Follow `HOW_TO_ADD_A_MECHANISM.md`.
 
 **Done when:** 4 balls go into the CELL from the launch spot.
@@ -211,7 +211,7 @@ is done, delete the TODO line it answers.
 | File | The TODO | Step |
 | --- | --- | --- |
 | `configurations/HardwareNames.java` | names, ports, directions, the localizer | 1, 4, 6 (kit Stage 1) |
-| `configurations/FeederConfig.java`, `mechanisms/Feeder.java` | feeder positions; servo or motor | 4, 8 |
+| `configurations/FeederConfig.java`, `mechanisms/Feeder.java` | windmill powers (`FEED_POWER`, `UNJAM_POWER`) | 4, 8 |
 | `configurations/LauncherConfig.java` | the launch speed (`LAUNCH_RPM`) | 8 |
 | `configurations/CameraConfig.java` | the HuskyLens's learned tag IDs | 9 |
 | `configurations/ControlsConfig.java`, `teleop/BioBuzzTeleOp.java` | the gamepad 2 map | 10 |

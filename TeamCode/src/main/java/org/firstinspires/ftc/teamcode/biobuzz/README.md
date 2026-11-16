@@ -54,7 +54,7 @@ Every pass of the loop does three things, always in this order:
        |                                   |
        v                                   v
   subsystems       intake, shooter, vision         drive/  Drive, DriveToSpot, FieldPaths
-  (the menus)      robot.shooter.launch(4)                  |
+  (the menus)      robot.shooter.launch()                   |
        |                |                                   v
        v                v                          ..............................
   state machines --> mechanisms                    : Pedro Pathing (off the     :
@@ -73,13 +73,13 @@ Every pass of the loop does three things, always in this order:
 | OpMode | Reads the gamepads, calls subsystem menus (`robot.intake.toggle()`), then `robot.update()` and telemetry | Touch mechanisms or motors |
 | Robot | Builds the drive and the subsystems. Updates them once per loop; health, match log, telemetry header | Read gamepads. Know what is inside a subsystem |
 | Subsystem | One job of the robot (intake, shooter, vision). OWNS its mechanisms and the state machines that use them. Its methods are the menu OpModes call | Have states of its own. Use another subsystem's mechanism |
-| State machine | A job that takes time ("launch 4 balls": spin up, feed, wait, repeat). Gives mechanisms commands | Call another state machine |
+| State machine | A job that takes time ("launch": spin up, then feed while the flywheel is fast enough). Gives mechanisms commands | Call another state machine |
 | Mechanism | One group of devices, with action words (`collect()`) and questions (`isUpToSpeed()`) | Remember states or wait |
 | Drive + FieldPaths | Driving: sticks, paths, where the robot is. The only code that uses Pedro | Decide when to drive a path |
 | DriveToSpot | The S2 buttons: the robot drives itself to a spot (`robot.driveToSpot.launchSpot()`). Checks the pose and the HIVE, then starts a path | Drive with the sticks |
 
 **Why subsystems?** Each one is a short file you can read by itself. To find what a
-button does, follow the dots: `robot.shooter.launch(4)` is the `launch` method in
+button does, follow the dots: `robot.shooter.launch()` is the `launch` method in
 `subsystems/ShooterSubsystem.java`. And because a mechanism belongs to ONE subsystem,
 two commands can only fight over a motor inside that one file.
 
@@ -110,7 +110,7 @@ teamcode/
       ControlsConfig.java     trigger threshold, hold times, rumble lengths, button list
       HealthConfig.java       limits for ALERTs (low battery, slow loop, heading jump) and Robot Check
       IntakeConfig.java       intake powers
-      FeederConfig.java       the feeder servo's two positions
+      FeederConfig.java       the windmill's powers (feed, unjam)
       LauncherConfig.java     flywheel speed control, the launch speed, launch timing, aim offset
       CameraConfig.java       the HIVE camera (HuskyLens): the CELL AprilTag numbers, its learned tag ids
       LogConfig.java          match log on/off, rows per second, how many files to keep
@@ -124,17 +124,17 @@ teamcode/
     subsystems/             the menus OpModes call: robot.intake..., robot.shooter..., robot.vision
       Subsystem.java          what every subsystem has in common (updates, stops, shows, logs its parts)
       IntakeSubsystem.java    owns Intake: toggle(), collect(), reverse(), stop()
-      ShooterSubsystem.java   owns Feeder + Launcher + LaunchStateMachine: launch(4), spinUp(), aim
+      ShooterSubsystem.java   owns Feeder + Launcher + LaunchStateMachine: launch(), spinUp(), aim
       VisionSubsystem.java    owns HiveCamera, our one camera (answers questions only)
     mechanisms/
       Mechanism.java          what every mechanism has in common (FAULTED safety)
       Intake.java             the roller + 2 side wheels that pick up balls
-      Feeder.java             the servo that pushes one ball into the flywheel
+      Feeder.java             the windmill that pushes balls into the flywheel
       Launcher.java           the flywheel: spins up to the one launch speed
       HiveCamera.java         HuskyLens looking up at the CELL tags (answers questions only)
     statemachines/
       StateMachine.java       what every state machine has in common (base class, like Mechanism)
-      LaunchStateMachine.java "launch 4": spin up, feed, recover, repeat
+      LaunchStateMachine.java "launch": spin up, feed while fast enough, until empty
     teleop/
       BioBuzzTeleOp.java      the match TeleOp: both gamepad maps (S1 and S2)
     auto/
@@ -209,19 +209,20 @@ BioBuzzTeleOp.loop()
 5. ...until the driver moves **any** stick: then `driveWithSticks(...)` runs again and
    the driver has the robot back, in the same loop.
 
-### "The operator pulls the right trigger" (launch 4)
+### "The operator pulls the right trigger" (launch)
 
 ```
 BioBuzzTeleOp.handleOperator()
  |     operator.isRightTriggerPressed()                 READ (once per pull)
- |     robot.shooter.launch(4)                          COMMAND (subsystems/ShooterSubsystem.java)
- |        launchStateMachine.start(4)                   the state machine: IDLE -> SPINNING_UP
+ |     robot.shooter.launch()                           COMMAND (subsystems/ShooterSubsystem.java)
+ |        launchStateMachine.start()                    the state machine: IDLE -> SPINNING_UP
  |-- robot.update()
- |     1. intake.update()       the roller
+ |     1. intake.update()       the roller and side wheels
  |     2. shooter.update()      first its state machine, then its mechanisms:
  |          launchStateMachine.update()   SPINNING_UP: launcher.spinUp()  (to LAUNCH_RPM)
- |                                        ... up to speed -> FEEDING: feeder.feedOne()
- |                                        ... FEED_MS -> RECOVERING: feeder.hold() ... 4 times, then IDLE
+ |                                        ... up to speed -> FEEDING: feeder.feed() (windmill turns)
+ |                                        ... too slow -> SPINNING_UP: feeder.hold(), then FEEDING again
+ |                                        ... fed FEED_TOTAL_MS in total -> IDLE "hopper empty"
  |          feeder, launcher runUpdate()  the launcher reads its speed
  |     3. vision.update()       the cameras read
  |     4. drive.update()
@@ -290,7 +291,7 @@ for 1 second. The gamepad buzzes and the header says "S2 ready".
 | --- | --- |
 | A | Intake on / off |
 | B (hold) | Spit out (reverse the intake); also how opponent NECTAR goes back out |
-| Right trigger | Launch 4 balls (they land best from our launch spot: driver's A) |
+| Right trigger | Launch: empty the hopper (they land best from our launch spot: driver's A) |
 | Y | Spin the launcher up early |
 | Left bumper | "Our HIVE just TIPPED": the other CELL faces up now |
 | D-pad down | Stop all mechanisms |
@@ -335,14 +336,14 @@ At the end, Auto saves its pose, so TeleOp starts in S2.
 **A subsystem** is one file in `subsystems/` that `extends Subsystem`: one job of the
 robot. In its constructor it says what it OWNS, with `addMechanism(...)` and
 `addStateMachine(...)`. Its public methods are the **menu** OpModes call
-(`robot.shooter.launch(4)`). `Subsystem` does the rest: every loop it updates its state
+(`robot.shooter.launch()`). `Subsystem` does the rest: every loop it updates its state
 machines, then its mechanisms; `stop()` cancels and stops them all; it shows and logs
 them. A subsystem has no states of its own, and never touches another subsystem's
 mechanisms. If a menu command and a state machine use the same mechanism, the command
 cancels the state machine first (only that one file has to know).
 
 ```
-  ShooterSubsystem  (the menu: launch(4), cancelLaunch(), spinUp(), isLaunching() ...)
+  ShooterSubsystem  (the menu: launch(), cancelLaunch(), spinUp(), isLaunching() ...)
      owns  Feeder, Launcher                     mechanisms: action words + questions
      owns  LaunchStateMachine                   a job that takes time; uses Feeder + Launcher
 ```
@@ -446,7 +447,7 @@ true only on the one loop when the button goes from up to down. Read each button
 | 13 | Simpler (Requirements v2.12): ONE camera, the HuskyLens looking up at the CELL tags (the webcam is gone: BIOBUZZ has tags only under the CELLS); Auto has one plan (leave, launch 4, park); fewer telemetry lines at first (intake, feeder, camera and history off) | Done |
 | 14 | Easier to start (Requirements v2.13): a "Start here" reading order at the top of this guide; "Start here: the first numbers" in `docs/TUNING.md`; the design documents marked **For mentors**; `HealthConfig` and `LogConfig` moved to the mentor zone | Done |
 | 15 | CELL AprilTags (Requirements v2.14): the manual's numbers in `CameraConfig` (red 30–33 / 34–37, blue 38–41 / 42–45), which tag to train as each HuskyLens ID, and Test: Camera names the CELL it sees | Done |
-| 16 | The real robot (Requirements v2.15): the goBILDA StarterBot with mecanum wheels. goBILDA's device names; intake side wheels; the windmill feeder on a continuous servo, so `robot.shooter.launch(4)` becomes `robot.shooter.launch()`; Pinpoint + pods being added (`docs/DESIGN-REVIEW.md`, section 14) | In progress: design decided; `HardwareNames` has goBILDA's names and the 3 continuous servos; Test: Parts spins continuous servos (left stick); the intake runs its two side wheels with the roller (`IntakeConfig.SIDE_*`). Next: Feeder |
+| 16 | The real robot (Requirements v2.15): the goBILDA StarterBot with mecanum wheels. goBILDA's device names; intake side wheels; the windmill feeder on a continuous servo, so `robot.shooter.launch(4)` becomes `robot.shooter.launch()`; Pinpoint + pods being added (`docs/DESIGN-REVIEW.md`, section 14) | In progress: design decided; `HardwareNames` has goBILDA's names and the 3 continuous servos; Test: Parts spins continuous servos (left stick); the intake runs its two side wheels with the roller (`IntakeConfig.SIDE_*`); the feeder is the windmill on a continuous servo, `robot.shooter.launch()` feeds while the flywheel is fast enough for `FEED_TOTAL_MS`, launcher numbers from goBILDA. Next: Robot Check, Field Check 11 |
 
 **Releases** (tags on `master`; how they are made: Requirements, "Branches and releases")
 

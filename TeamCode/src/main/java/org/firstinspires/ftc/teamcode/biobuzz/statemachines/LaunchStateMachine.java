@@ -14,36 +14,40 @@ import org.firstinspires.ftc.teamcode.biobuzz.mechanisms.Launcher;
 /**
  * STUDENTS: you will change this file.
  *
- * LaunchStateMachine.java  -  "launch N balls": spin up, feed one, recover, repeat.  ROLE: state machine
+ * LaunchStateMachine.java  -  "launch": spin up, then feed while the flywheel is fast enough.  ROLE: state machine
  * PATTERN: State pattern (enum + switch).
  *
- *           start(count)          up to speed             FEED_MS passed
- *   IDLE ------------> SPINNING_UP ----------> FEEDING ---------------> RECOVERING
- *    ^                    |   ^                                            |
- *    |  timeout / cancel  |   +----- more to launch, RECOVER_MS passed ----+
- *    +--------------------+                                                |
- *    +--------------------------- all launched ----------------------------+
+ *           start()               up to speed
+ *   IDLE ------------> SPINNING_UP ----------------> FEEDING
+ *    ^                  |      ^                      |    |
+ *    |  timeout/cancel  |      +-- flywheel too slow -+    |
+ *    +------------------+          (or a HIVE TIP)         |
+ *    +--------------- fed FEED_TOTAL_MS in total ----------+
+ *
+ * The feeder is a windmill (goBILDA StarterBot). It turns nonstop while the flywheel is at
+ * least LauncherConfig.MIN_FEED_RPM. Each ball slows the flywheel a little; if it drops
+ * below MIN_FEED_RPM, the windmill stops (SPINNING_UP) until the flywheel is back up to
+ * speed. When the windmill has turned for FEED_TOTAL_MS in total, the hopper is empty.
+ * The robot cannot count balls, so it does not try: it feeds long enough for 4.
  *
  * The flywheel always spins at ONE speed, LauncherConfig.LAUNCH_RPM, tuned from our launch
  * spot. So launches land best from that spot (where Auto and the driver's A button go).
- * After a HIVE TIP it waits TIP_PAUSE_MS before the next feed (game manual 10.5.1).
- * The robot cannot see how many balls it holds, so start(4) feeds 4 times; feeding an empty
- * slot does no harm.
- * Uses: Feeder and Launcher (commands only).
+ * After a HIVE TIP it does not feed for TIP_PAUSE_MS (game manual 10.5.1).
+ * Uses: Feeder and Launcher (commands only). It never runs the intake (DESIGN-REVIEW 14, H2).
  * Lives in: ShooterSubsystem, which builds it and calls update() every loop.
  *
  * TRACING A BUG: turn on TelemetryConfig.HISTORY and read the "Launch last change" line
  * (it is also in the match log). "spin-up timeout" = the flywheel never
- * reached its speed: see Launcher's RPM vs target, and the battery.
+ * reached its speed: see Launcher's RPM vs target, and the battery. Balls left in the
+ * hopper: raise FEED_TOTAL_MS.
  */
 public class LaunchStateMachine extends StateMachine {
 
     // ==================== 1. STATES ====================
     public enum State {
-        IDLE,          // feeder holds the balls back; flywheel at idle speed
-        SPINNING_UP,   // flywheel speeding up to LAUNCH_RPM; waits for "up to speed"
-        FEEDING,       // feeder pushes one ball into the flywheel
-        RECOVERING     // feeder pulls back; flywheel gets its speed back
+        IDLE,          // windmill stopped (balls held back); flywheel at idle speed
+        SPINNING_UP,   // windmill stopped; flywheel speeding up to LAUNCH_RPM
+        FEEDING        // windmill turning: balls go into the flywheel
     }
 
     private final Feeder feeder;
@@ -51,8 +55,7 @@ public class LaunchStateMachine extends StateMachine {
     private final StateTimer timer = new StateTimer();
     private final StateLog log = new StateLog("Launch");
     private State state = State.IDLE;
-    private int toLaunch = 0;
-    private int launched = 0;
+    private double fedMs = 0;   // how long the windmill has turned in this launch, before this FEEDING
 
     public LaunchStateMachine(Feeder feeder, Launcher launcher) {
         this.feeder = feeder;
@@ -61,8 +64,8 @@ public class LaunchStateMachine extends StateMachine {
 
     // ==================== 2. COMMANDS ====================
 
-    /** Launch this many balls. Ignored if already launching. */
-    public void start(int count) {
+    /** Launch everything in the hopper. Ignored if already launching. */
+    public void start() {
         if (feeder.isFaulted() || launcher.isFaulted()) {
             log.warn("launch ignored: feeder or launcher is FAULTED");
             return;
@@ -71,9 +74,8 @@ public class LaunchStateMachine extends StateMachine {
             log.warn("launch ignored: already launching");
             return;
         }
-        toLaunch = count;
-        launched = 0;
-        goTo(State.SPINNING_UP, "launch " + count);
+        fedMs = 0;
+        goTo(State.SPINNING_UP, "launch");
     }
 
     /** Stop launching at once. */
@@ -86,16 +88,18 @@ public class LaunchStateMachine extends StateMachine {
 
     @Override
     public void update() {
+        boolean tipPauseOver = MatchInfo.secondsSinceTip() * 1000 >= LauncherConfig.TIP_PAUSE_MS;
+
         switch (state) {
             case IDLE:
-                // DO: nothing. (goTo() set the feeder to hold and the flywheel to idle.)
+                // DO: nothing. (goTo() stopped the windmill and set the flywheel to idle.)
                 break;
 
             case SPINNING_UP:
                 // DO: asked every loop, so a new LAUNCH_RPM typed in the Dashboard counts at once.
+                feeder.hold();
                 launcher.spinUp();
                 // CHECK + GO
-                boolean tipPauseOver = MatchInfo.secondsSinceTip() * 1000 >= LauncherConfig.TIP_PAUSE_MS;
                 if (launcher.isUpToSpeed() && tipPauseOver) {
                     goTo(State.FEEDING, "up to speed");
                 }
@@ -110,27 +114,15 @@ public class LaunchStateMachine extends StateMachine {
 
             case FEEDING:
                 // DO
-                feeder.feedOne();
+                feeder.feed();
                 launcher.spinUp();
-                // CHECK + GO (this wait IS the timeout: it always ends)
-                if (timer.isTimeUp(LauncherConfig.FEED_MS)) {
-                    goTo(State.RECOVERING, "fed one");
-                }
-                break;
-
-            case RECOVERING:
-                // DO
-                feeder.hold();
-                launcher.spinUp();
-                // CHECK + GO (this wait IS the timeout: it always ends)
-                if (timer.isTimeUp(LauncherConfig.RECOVER_MS)) {
-                    launched++;
-                    MatchLogger.event("LAUNCH", launched + " of " + toLaunch);
-                    if (launched < toLaunch) {
-                        goTo(State.SPINNING_UP, "next ball");
-                    } else {
-                        goTo(State.IDLE, "all launched");
-                    }
+                // CHECK + GO (FEED_TOTAL_MS IS the timeout: feeding always ends)
+                if (fedMs + timer.milliseconds() >= LauncherConfig.FEED_TOTAL_MS) {
+                    goTo(State.IDLE, "hopper empty");
+                } else if (!launcher.isFastEnoughToFeed()) {
+                    goTo(State.SPINNING_UP, "flywheel too slow");
+                } else if (!tipPauseOver) {
+                    goTo(State.SPINNING_UP, "HIVE tipped");
                 }
                 break;
         }
@@ -143,10 +135,14 @@ public class LaunchStateMachine extends StateMachine {
         if (newState == state) {
             return;
         }
+        if (state == State.FEEDING) {   // leaving FEEDING: add up how long the windmill turned
+            fedMs += timer.milliseconds();
+            MatchLogger.event("LAUNCH", String.format("fed %.0f of %.0f ms", fedMs, LauncherConfig.FEED_TOTAL_MS));
+        }
         log.record(state, newState, reason);
         state = newState;
         timer.reset();
-        if (state == State.IDLE) {   // entering IDLE: balls held back, flywheel at idle
+        if (state == State.IDLE) {   // entering IDLE: windmill stopped, flywheel at idle
             feeder.hold();
             launcher.idle();
         }
@@ -161,6 +157,14 @@ public class LaunchStateMachine extends StateMachine {
         return state;
     }
 
+    /** How long the windmill has turned in this launch, in milliseconds. */
+    public double getFedMs() {
+        if (state == State.FEEDING) {
+            return fedMs + timer.milliseconds();
+        }
+        return fedMs;
+    }
+
     @Override
     public void addTelemetry(Telemetry t) {
         if (!TelemetryConfig.LAUNCH) {
@@ -168,7 +172,7 @@ public class LaunchStateMachine extends StateMachine {
         }
         log.addTo(t, state, timer, isBusy());
         if (isBusy()) {
-            t.addData("Launched", launched + " of " + toLaunch);
+            t.addData("Fed", String.format("%.1f of %.1f s", getFedMs() / 1000, LauncherConfig.FEED_TOTAL_MS / 1000));
         }
     }
 

@@ -20,6 +20,7 @@ import org.firstinspires.ftc.teamcode.biobuzz.helpers.MatchLogger;
  *   spinUp()                spin at LAUNCH_RPM, the one launch speed in LauncherConfig
  *   idle()                  spin at IDLE_RPM between launches
  *   isUpToSpeed()           true when the flywheel is within SPEED_TOLERANCE_RPM of its target
+ *   isFastEnoughToFeed()    true while it is at least MIN_FEED_RPM (the windmill may turn)
  *
  * The speed is held by the motor controller itself (RUN_USING_ENCODER + setVelocity), with
  * the PIDF numbers in LauncherConfig. update() only reads the speed once per loop, and sends
@@ -65,6 +66,11 @@ public class Launcher extends Mechanism {
     // ---- What you can ask it ----
     public boolean isUpToSpeed() {
         return targetRpm > 0 && Math.abs(rpm - targetRpm) <= LauncherConfig.SPEED_TOLERANCE_RPM;
+    }
+
+    /** True while the flywheel is fast enough to keep feeding (LauncherConfig.MIN_FEED_RPM). */
+    public boolean isFastEnoughToFeed() {
+        return targetRpm > 0 && rpm >= LauncherConfig.MIN_FEED_RPM;
     }
 
     public double getRpm() {
