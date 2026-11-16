@@ -53,17 +53,19 @@ Words in CAPITALS (POLLEN, CELL, …) are game words from the BIOBUZZ Competitio
 
 ## 2. The robot
 
+The robot is the goBILDA StarterBot with mecanum wheels (`3200-2627-0004`), plus a Pinpoint with 2 odometry pods and a HuskyLens added by the team (`DESIGN-REVIEW.md`, section 14). Device names are goBILDA's (`HardwareNames`).
+
 | Part of the robot | Job in the game | Hardware |
 | --- | --- | --- |
-| **Drive** | Mecanum drivetrain; field-centric driving; Pedro Pathing paths | 4 drive motors (Control Hub), goBILDA Pinpoint odometry |
-| **Intake** | Picks up POLLEN from the tiles and the FLOWER Retrieval Opening, and NECTAR from the LOADING ZONE | One roller motor (Expansion Hub). TODO(BioBuzz): confirm |
-| **Feeder** | Pushes one ball at a time from the hopper into the launcher | One servo (Expansion Hub). TODO(BioBuzz): servo or motor |
-| **Launcher** | Flywheel that launches POLLEN or NECTAR into the upward CELL | One flywheel motor with encoder (Expansion Hub). TODO(BioBuzz): a second motor? |
+| **Drive** | Mecanum drivetrain; field-centric driving; Pedro Pathing paths | 4 drive motors, 19.2:1 (Control Hub), goBILDA Pinpoint with 2 odometry pods |
+| **Intake** | Picks up POLLEN from the tiles and the FLOWER Retrieval Opening, and NECTAR from the LOADING ZONE | One roller motor, 50.9:1 (Expansion Hub), and 2 continuous servos turning the side wheels at the front corners (Expansion Hub) |
+| **Feeder** | Pushes one ball at a time from the hopper into the launcher | A 4-paddle windmill on one continuous servo (Expansion Hub) |
+| **Launcher** | Flywheel that launches POLLEN or NECTAR into the upward CELL | One flywheel motor with encoder, 1:1 (bare motor, 28 ticks per turn), 96 mm wheel and a curved hood (Expansion Hub) |
 | **HIVE camera** | Looks up at the AprilTags under the CELLS: which CELL is up, and where to aim | DFRobot HuskyLens, I2C |
 
 The hopper (where up to 4 balls wait) has no sensors, so the robot does not know how many balls it holds or their colours. A Storage mechanism with sensors is a future improvement.
 
-Limits (R503, R701): at most 8 motors and 8 servos, a Control Hub and at most one Expansion Hub. Today: 6 motors (4 drive, intake, launcher) and 1 servo (feeder); `HardwareNames` keeps the count.
+Limits (R503, R701): at most 8 motors and 8 servos, a Control Hub and at most one Expansion Hub. Today: 6 motors (4 drive, intake, launcher), so the Expansion Hub is needed, and 3 servos (windmill, 2 intake side wheels); `HardwareNames` keeps the count.
 
 ---
 

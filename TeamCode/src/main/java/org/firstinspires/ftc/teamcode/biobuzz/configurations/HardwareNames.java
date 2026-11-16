@@ -25,7 +25,16 @@ package org.firstinspires.ftc.teamcode.biobuzz.configurations;
  * Controller configuration, so this file is also the wiring sheet. The code itself
  * does not care which hub a device is on: names work across both hubs.
  *
- * WHEN A MOTOR SPINS THE WRONG WAY:
+ * WHERE THE NAMES COME FROM: our robot is the goBILDA StarterBot with mecanum wheels,
+ * so we use goBILDA's names (docs/DESIGN-REVIEW.md, section 14, H4). Then goBILDA's own
+ * example TeleOp runs on our configuration too: a quick hardware check. Only
+ * "pinpoint" and "hiveCamera" are ours (the kit has no odometry and no camera).
+ *
+ * CONTINUOUS SERVOS: the windmill and the two intake side wheels are goBILDA dual-mode
+ * servos set to CONTINUOUS mode (with the goBILDA servo programmer). In the Robot
+ * Controller app, configure them as "Continuous Rotation Servo", not "Servo".
+ *
+ * WHEN A MOTOR OR SERVO SPINS THE WRONG WAY:
  * Flip the matching "REVERSED" value in this file (true <-> false). Nothing else.
  *
  * WHEN YOU SEE "Unable to find a hardware device with name ...":
@@ -37,7 +46,9 @@ package org.firstinspires.ftc.teamcode.biobuzz.configurations;
  *
  * THE LIMITS (game rules R503, R701): at most 8 motors, 8 servos, one Control Hub and
  * one Expansion Hub. Count after every change:
- *   motors: 4 drive + intake + launcher = 6 of 8        servos: feeder = 1 of 8
+ *   motors: 4 drive + intake + launcher = 6 of 8
+ *   servos: windmill + 2 intake side wheels = 3 of 8
+ * 6 motors need the Expansion Hub: the Control Hub has only 4 motor ports.
  *
  * These are "final" on purpose: names are not tuned live, so this is not a @Config file.
  */
@@ -46,11 +57,12 @@ public class HardwareNames {
     // ==================== DRIVETRAIN (used by Pedro in pedro/Constants.java) ====================
     // The drive motors go on the Control Hub: it answers faster than the Expansion Hub.
     // TODO(BioBuzz): confirm every name and port against the BioBuzz configuration.
-    public static final String MOTOR_DRIVE_LEFT_FRONT = "leftFront";     // Control Hub, motor port 0
-    public static final String MOTOR_DRIVE_RIGHT_FRONT = "rightFront";   // Control Hub, motor port 1
-    public static final String MOTOR_DRIVE_LEFT_BACK = "leftBack";       // Control Hub, motor port 2
-    public static final String MOTOR_DRIVE_RIGHT_BACK = "rightBack";     // Control Hub, motor port 3
+    public static final String MOTOR_DRIVE_LEFT_FRONT = "left_front_drive";     // Control Hub, motor port 0
+    public static final String MOTOR_DRIVE_RIGHT_FRONT = "right_front_drive";   // Control Hub, motor port 1
+    public static final String MOTOR_DRIVE_LEFT_BACK = "left_back_drive";       // Control Hub, motor port 2
+    public static final String MOTOR_DRIVE_RIGHT_BACK = "right_back_drive";     // Control Hub, motor port 3
 
+    // Left side reversed, as in goBILDA's example.
     // TODO(BioBuzz): confirm the directions with Pedro's MecanumTuner at drive tuning.
     public static final boolean MOTOR_DRIVE_LEFT_FRONT_REVERSED = true;
     public static final boolean MOTOR_DRIVE_RIGHT_FRONT_REVERSED = false;
@@ -58,24 +70,34 @@ public class HardwareNames {
     public static final boolean MOTOR_DRIVE_RIGHT_BACK_REVERSED = false;
 
     // ==================== ODOMETRY ====================
-    // The goBILDA Pinpoint computer: tells Pedro where the robot is.
-    // TODO(BioBuzz): confirm the localizer (Open items: Odometry).
+    // The goBILDA Pinpoint computer with 2 odometry pods: tells Pedro where the robot is.
+    // Not in the StarterBot kit: added by the team (DESIGN-REVIEW section 14, H3).
+    // TODO(BioBuzz): mount, pod offsets and directions at drive tuning.
     public static final String PINPOINT = "pinpoint";                    // Control Hub, I2C bus 1
 
     // ==================== MECHANISMS ====================
     // Most mechanism motors go on the Expansion Hub.
-    // TODO(BioBuzz): names, ports and directions are first guesses until the mechanisms are built.
+    // TODO(BioBuzz): ports and directions are first guesses until checked on the built robot.
 
-    // Intake: the roller that picks up POLLEN and NECTAR
+    // Intake: the roller that picks up the balls (7 grip wheels on one shaft)
     public static final String MOTOR_INTAKE = "intake";                // Expansion Hub, motor port 0
     public static final boolean MOTOR_INTAKE_REVERSED = false;
+
+    // Intake side wheels: two continuous servos at the front corners that pull balls to
+    // the middle. They turn opposite ways, so one is reversed (as in goBILDA's example).
+    public static final String SERVO_INTAKE_LEFT = "left_intake_servo";    // Expansion Hub, servo port 1
+    public static final boolean SERVO_INTAKE_LEFT_REVERSED = false;
+    public static final String SERVO_INTAKE_RIGHT = "right_intake_servo";  // Expansion Hub, servo port 2
+    public static final boolean SERVO_INTAKE_RIGHT_REVERSED = true;
 
     // Launcher: the flywheel (a motor with an encoder, so we can control its speed)
     public static final String MOTOR_LAUNCHER = "launcher";            // Expansion Hub, motor port 1
     public static final boolean MOTOR_LAUNCHER_REVERSED = false;
 
-    // Feeder: the servo that pushes one ball from the hopper into the launcher
-    public static final String SERVO_FEEDER = "feeder";                // Expansion Hub, servo port 0
+    // Feeder: the 4-paddle windmill that pushes balls from the hopper into the flywheel.
+    // A continuous servo (goBILDA's example reverses it).
+    public static final String SERVO_FEEDER = "windmillServo";         // Expansion Hub, servo port 0
+    public static final boolean SERVO_FEEDER_REVERSED = true;
 
     // Cameras
     public static final String HUSKYLENS_HIVE = "hiveCamera";          // Control Hub, I2C bus 2 (looks UP at the HIVE)
@@ -93,6 +115,8 @@ public class HardwareNames {
             MOTOR_DRIVE_RIGHT_BACK,
             PINPOINT,
             MOTOR_INTAKE,
+            SERVO_INTAKE_LEFT,
+            SERVO_INTAKE_RIGHT,
             MOTOR_LAUNCHER,
             SERVO_FEEDER,
             HUSKYLENS_HIVE,

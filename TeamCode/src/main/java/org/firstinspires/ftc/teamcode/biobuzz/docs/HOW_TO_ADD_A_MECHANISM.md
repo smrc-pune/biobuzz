@@ -17,7 +17,7 @@ example climbing) gets a new subsystem: see Part 3.
    Change the package line to `...biobuzz.mechanisms`, rename the class and the constructor to
    `Gate`, and `super("template")` to `super("gate")`. Keep `extends Mechanism`.
 2. **The device name.** In `configurations/HardwareNames.java`, add
-   `public static final String SERVO_GATE = "gate";   // Expansion Hub, servo port 1`,
+   `public static final String SERVO_GATE = "gate";   // Expansion Hub, servo port 3`,
    add `SERVO_GATE` to `ALL_DEVICES`, and update the motor/servo count in the header (at most 8 each).
    Add the same name in the robot configuration on the Driver Station.
 3. **The numbers.** Copy `configurations/TemplateConfig.java` to `GateConfig.java`:
