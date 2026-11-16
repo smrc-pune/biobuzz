@@ -610,7 +610,7 @@ Park-by guard: `if (robot.clock.secondsSinceStart() > AutoConfig.PARK_BY_S && st
 | `Test: Intake`, `Test: Feeder`, `Test: Launcher` | that mechanism only | one button per verb; telemetry shows every question's answer |
 | `Test: Camera` | `HiveCamera` only | shows the tags in view: learned id, offset, width |
 | `Test: Launch` | `Robot` | start / cancel, shows state and history |
-| `Test: Parts` | nothing but `hardwareMap` (`tryGet`) | D-pad up/down picks a device from `HardwareNames.ALL_DEVICES` (missing ones listed); left stick Y = motor power (≤ `ControlsConfig.PARTS_TEST_MAX_POWER`), right stick Y = servo nudge, X = servo middle |
+| `Test: Parts` | nothing but `hardwareMap` (`tryGet`) | D-pad up/down picks a device from `HardwareNames.ALL_DEVICES` (missing ones listed); left stick Y = motor or continuous-servo power (≤ `ControlsConfig.PARTS_TEST_MAX_POWER`), right stick Y = servo nudge, X = servo middle. Each device is tried as `DcMotorEx`, `Servo` and `CRServo`; it shows the direction as wired (the `HardwareNames` REVERSED values are not applied) |
 | `Robot Check` | Pinpoint and drive motors from `hardwareMap.tryGet` (no follower) | Steps BATTERY, PINPOINT, GYRO_STILL, DRIVE_MOTORS, LOGGER, DONE; A = next, B = repeat; in DRIVE_MOTORS A = forward, X = wrong way; limits `HealthConfig.CHECK_*`; ends READY FOR MATCH |
 | `Log Viewer` | nothing (`helpers/LogSummary`) | D-pad picks one of the 10 newest logs; A reloads. Works in INIT |
 

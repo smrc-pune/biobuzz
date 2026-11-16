@@ -696,7 +696,7 @@ Each mechanism and each state machine MUST have its own test OpMode, so a studen
 | `Test: Drive` | `new Drive(hardwareMap)` only | Drive field-centric, see the pose, reset the heading, try the assists |
 | `Test: <Mechanism>` (one each) | That mechanism only (`new Intake(hardwareMap)`) | Call each verb from a button, see every question's answer and the FAULTED flag |
 | `Test: <Task>` (one per state machine) | `Robot` | Start and cancel it, see its state and history |
-| `Test: Parts` | Only `hardwareMap` | Move one motor or servo from `HardwareNames.ALL_DEVICES` at a time with the D-pad, to check wiring and direction |
+| `Test: Parts` | Only `hardwareMap` | Move one motor, servo or continuous servo from `HardwareNames.ALL_DEVICES` at a time with the D-pad, to check wiring and direction |
 | `Robot Check` | Full robot | Run the one-minute check before every match (see Troubleshooting B) |
 | `Field Check 01–13` (fieldchecks/, group "Field Checks") | Full robot | Run one new-field test at a time and see all results in the Summary (see Troubleshooting A) |
 | `Match Simulator` (TODO) | Full robot | Run a full-length simulated match for battery and soak tests (see Troubleshooting G) |

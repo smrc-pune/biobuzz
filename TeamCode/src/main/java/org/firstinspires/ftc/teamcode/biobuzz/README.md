@@ -141,7 +141,7 @@ teamcode/
       BioBuzzAuto.java        the match Autonomous (S3): a list of steps
     testing/
       DriveTest.java          "Test: Drive" – drive only, to check the drivetrain
-      PartsTest.java          "Test: Parts" – move one motor or servo at a time (wiring, direction)
+      PartsTest.java          "Test: Parts" – move one motor or servo (also continuous) at a time
       RobotCheck.java         "Robot Check" – the one-minute check before every match
       LogViewer.java          "Log Viewer" – summaries of the last 10 match logs
       IntakeTest.java, FeederTest.java, LauncherTest.java, CameraTest.java   one mechanism each
@@ -446,7 +446,7 @@ true only on the one loop when the button goes from up to down. Read each button
 | 13 | Simpler (Requirements v2.12): ONE camera, the HuskyLens looking up at the CELL tags (the webcam is gone: BIOBUZZ has tags only under the CELLS); Auto has one plan (leave, launch 4, park); fewer telemetry lines at first (intake, feeder, camera and history off) | Done |
 | 14 | Easier to start (Requirements v2.13): a "Start here" reading order at the top of this guide; "Start here: the first numbers" in `docs/TUNING.md`; the design documents marked **For mentors**; `HealthConfig` and `LogConfig` moved to the mentor zone | Done |
 | 15 | CELL AprilTags (Requirements v2.14): the manual's numbers in `CameraConfig` (red 30–33 / 34–37, blue 38–41 / 42–45), which tag to train as each HuskyLens ID, and Test: Camera names the CELL it sees | Done |
-| 16 | The real robot (Requirements v2.15): the goBILDA StarterBot with mecanum wheels. goBILDA's device names; intake side wheels; the windmill feeder on a continuous servo, so `robot.shooter.launch(4)` becomes `robot.shooter.launch()`; Pinpoint + pods being added (`docs/DESIGN-REVIEW.md`, section 14) | In progress: design decided; `HardwareNames` has goBILDA's names and the 3 continuous servos. Next: Test: Parts, Intake, Feeder |
+| 16 | The real robot (Requirements v2.15): the goBILDA StarterBot with mecanum wheels. goBILDA's device names; intake side wheels; the windmill feeder on a continuous servo, so `robot.shooter.launch(4)` becomes `robot.shooter.launch()`; Pinpoint + pods being added (`docs/DESIGN-REVIEW.md`, section 14) | In progress: design decided; `HardwareNames` has goBILDA's names and the 3 continuous servos; Test: Parts spins continuous servos (left stick). Next: Intake, Feeder |
 
 **Releases** (tags on `master`; how they are made: Requirements, "Branches and releases")
 

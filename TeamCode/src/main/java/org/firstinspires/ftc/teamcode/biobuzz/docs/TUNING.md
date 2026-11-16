@@ -11,7 +11,7 @@ into its file and commit it (see "Mechanism tuning" below).
 
 | # | Number | File (`configurations/`) | How | Good when |
 | --- | --- | --- | --- | --- |
-| 1 | Every device name, and each motor's `..._REVERSED` | `HardwareNames` | Names exactly as in the Robot Controller configuration. Then **Test: Parts**, one device at a time (`NEW_ROBOT_CHECKLIST.md`, steps 1–4). These are `final`: change the file and deploy, not the Dashboard | No device MISSING; stick up moves each mechanism "forward" |
+| 1 | Every device name, and each motor's and continuous servo's `..._REVERSED` | `HardwareNames` | Names exactly as in the Robot Controller configuration. Then **Test: Parts**, one device at a time (`NEW_ROBOT_CHECKLIST.md`, steps 1–4). These are `final`: change the file and deploy, not the Dashboard | No device MISSING; stick up moves each mechanism "forward" |
 | 2 | `COLLECT_POWER`, `REVERSE_POWER` | `IntakeConfig` | **Test: Intake** | Pulls a ball in every time without jamming; spits it out |
 | 3 | `HOLD_POSITION`, `FEED_POSITION` | `FeederConfig` | **Test: Feeder** | Hold keeps the next ball back; feed pushes it fully into the flywheel |
 | 4 | `LAUNCH_SPOT_X_IN`, `LAUNCH_SPOT_Y_IN` | `FieldConfig` | Pick a spot with a clear view of the HIVE and measure it (`AUTO_GUIDE.md`, "Measuring a pose") | You can put the robot back on it every time (mark it with tape) |

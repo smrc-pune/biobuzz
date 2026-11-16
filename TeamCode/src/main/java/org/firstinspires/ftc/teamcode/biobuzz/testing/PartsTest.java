@@ -2,7 +2,9 @@ package org.firstinspires.ftc.teamcode.biobuzz.testing;
 
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareDevice;
 import com.qualcomm.robotcore.hardware.Servo;
@@ -27,14 +29,20 @@ import org.firstinspires.ftc.teamcode.biobuzz.helpers.MatchLogger;
  *
  * CONTROLS (gamepad 1):
  *   D-pad up / down   pick the device (the one that was moving stops)
- *   Left stick Y      MOTOR: power, up to ControlsConfig.PARTS_TEST_MAX_POWER
+ *   Left stick Y      MOTOR or CONTINUOUS SERVO: power, up to ControlsConfig.PARTS_TEST_MAX_POWER
  *   Right stick Y     SERVO: move the position slowly (ControlsConfig.PARTS_TEST_SERVO_STEP per loop)
  *   X                 SERVO: go to the middle (0.5)
  *
- * WHAT TO WATCH: push the stick UP. A motor should turn the way that moves the mechanism
- * "forward" (intake in, launcher out). If it turns the other way, flip its REVERSED value
- * in HardwareNames. The encoder count should go UP. "MISSING" means the name in
- * HardwareNames does not match the Robot Controller configuration.
+ * A continuous servo (configured as "Continuous Rotation Servo") spins like a small
+ * motor: our windmill and the two intake side wheels. A plain servo moves to a position.
+ *
+ * WHAT TO WATCH: push the left stick UP. A motor or continuous servo should turn the way
+ * that moves the mechanism "forward": intake roller and side wheels pull balls IN, the
+ * windmill pushes balls TOWARD the flywheel, the launcher throws OUT. If it turns the
+ * other way while its REVERSED value in HardwareNames is false, set it to true (and the
+ * other way round). This test does not use those values: it shows how each device turns
+ * as wired. A motor's encoder count should go UP. "MISSING" means the
+ * name in HardwareNames does not match the Robot Controller configuration.
  */
 @TeleOp(name = "Test: Parts", group = "Tests")
 public class PartsTest extends OpMode {
@@ -47,6 +55,7 @@ public class PartsTest extends OpMode {
     private final String[] names = HardwareNames.ALL_DEVICES;
     private final DcMotorEx[] motors = new DcMotorEx[names.length];
     private final Servo[] servos = new Servo[names.length];
+    private final CRServo[] spinners = new CRServo[names.length];   // continuous servos
     private final boolean[] found = new boolean[names.length];
     private int selected = 0;
 
@@ -58,6 +67,7 @@ public class PartsTest extends OpMode {
         for (int i = 0; i < names.length; i++) {
             motors[i] = hardwareMap.tryGet(DcMotorEx.class, names[i]);
             servos[i] = hardwareMap.tryGet(Servo.class, names[i]);
+            spinners[i] = hardwareMap.tryGet(CRServo.class, names[i]);
             found[i] = hardwareMap.tryGet(HardwareDevice.class, names[i]) != null;
             // Nothing moves here: we only found the devices (rule G304.H).
         }
@@ -92,8 +102,12 @@ public class PartsTest extends OpMode {
 
         DcMotorEx motor = motors[selected];
         Servo servo = servos[selected];
+        CRServo spinner = spinners[selected];
         if (motor != null) {
             motor.setPower(pad.getLeftStickY() * ControlsConfig.PARTS_TEST_MAX_POWER);
+        }
+        if (spinner != null) {
+            spinner.setPower(pad.getLeftStickY() * ControlsConfig.PARTS_TEST_MAX_POWER);
         }
         if (servo != null) {
             double position = servo.getPosition() + pad.getRightStickY() * ControlsConfig.PARTS_TEST_SERVO_STEP;
@@ -114,10 +128,13 @@ public class PartsTest extends OpMode {
         MatchLogger.stop("");
     }
 
-    /** The motor that was moving stops when another device is picked, and at STOP. */
+    /** The motor or continuous servo that was moving stops when another device is picked, and at STOP. */
     private void stopSelected() {
         if (motors[selected] != null) {
             motors[selected].setPower(0);
+        }
+        if (spinners[selected] != null) {
+            spinners[selected].setPower(0);
         }
     }
 
@@ -133,9 +150,18 @@ public class PartsTest extends OpMode {
             t.addData("Encoder", String.format("%d ticks, %.0f ticks/s", motor.getCurrentPosition(), motor.getVelocity()));
             t.addData("Current", String.format("%.2f A", motor.getCurrent(CurrentUnit.AMPS)));
             t.addLine("Left stick Y = power");
+        } else if (spinners[selected] != null) {
+            CRServo spinner = spinners[selected];
+            String direction = "forward";
+            if (spinner.getDirection() == DcMotorSimple.Direction.REVERSE) {
+                direction = "REVERSED";
+            }
+            t.addData("Continuous servo power", String.format("%.2f  (%s)", spinner.getPower(), direction));
+            t.addLine("Left stick Y = power. No encoder: watch which way it turns.");
         } else if (servos[selected] != null) {
             t.addData("Servo position", String.format("%.3f", servos[selected].getPosition()));
             t.addLine("Right stick Y = move slowly, X = middle (0.5)");
+            t.addLine("Spins nonstop? It is a continuous servo: configure it as Continuous Rotation Servo.");
         } else if (found[selected]) {
             t.addLine("Found, but not a motor or servo: nothing to move.");
         } else {
@@ -150,6 +176,8 @@ public class PartsTest extends OpMode {
             String kind = "MISSING";
             if (motors[i] != null) {
                 kind = "motor";
+            } else if (spinners[i] != null) {
+                kind = "continuous servo";
             } else if (servos[i] != null) {
                 kind = "servo";
             } else if (found[i]) {

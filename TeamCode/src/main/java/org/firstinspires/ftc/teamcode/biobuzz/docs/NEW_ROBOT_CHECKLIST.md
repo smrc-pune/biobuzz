@@ -40,7 +40,11 @@ Open `configurations/HardwareNames.java`. It is the wiring sheet.
 - [ ] Driver Station: ⋮ → **Configure Robot** → a new configuration named `BioBuzz`.
 - [ ] Every device on the hub and port from step 1, with **exactly** the same name
       (capital letters count). The Pinpoint (goBILDA Pinpoint) on an I2C bus **other than 0** (Pedro needs this); the HuskyLens
-      as "HuskyLens" (our only camera).
+      as "HuskyLens" (our only camera). The windmill and both intake side-wheel servos as
+      **Continuous Rotation Servo** (they are set to continuous mode with the goBILDA servo
+      programmer before they are mounted).
+- [ ] Optional first check: goBILDA's example TeleOp for the StarterBot uses the same names,
+      so it runs on this configuration (`docs/DESIGN-REVIEW.md`, section 14).
 - [ ] Save, and make it the **active** configuration.
 
 **Done when:** the Driver Station shows `BioBuzz` as the active configuration.
@@ -61,7 +65,11 @@ Run **Test: Parts** (group "Tests"). D-pad up/down picks a device; only that one
 - [ ] Each motor: push the left stick UP gently. It turns the "forward" way (wheels forward,
       intake pulls in, launcher shoots out), and its encoder count goes UP. If not, flip its
       `..._REVERSED` value in `HardwareNames` (true ↔ false), deploy, check again.
-- [ ] Each servo: move it SLOWLY with the right stick. Write down the positions where it is
+- [ ] Each **continuous servo** (listed as "continuous servo"): push the left stick UP gently.
+      The side wheels pull a ball IN, the windmill pushes a ball TOWARD the flywheel. If not,
+      flip its `..._REVERSED` value. A servo listed as plain "servo" that spins nonstop is
+      configured wrong: make it a Continuous Rotation Servo (step 2).
+- [ ] Each plain servo (none on the StarterBot today): move it SLOWLY with the right stick. Write down the positions where it is
       safe; do not push it into a hard stop.
 
 **Done when:** every device moves the right way and none is missing.
