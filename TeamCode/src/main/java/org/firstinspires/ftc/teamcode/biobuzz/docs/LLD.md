@@ -303,7 +303,7 @@ public class Mechanism {
 
 ## 5. Mechanisms
 
-TODO(BioBuzz): device names, ports and numbers are first guesses until the robot is built. Every mechanism logs `<name>_faulted` plus the values below, and overrides `isTelemetryOn()` with its switch (`INTAKE`, `FEEDER`, `LAUNCHER`, `CAMERAS`).
+Device names are goBILDA's (`DESIGN-REVIEW.md`, section 14). TODO(BioBuzz): ports, directions and numbers are first guesses until checked on the built robot. Every mechanism logs `<name>_faulted` plus the values below, and overrides `isTelemetryOn()` with its switch (`INTAKE`, `FEEDER`, `LAUNCHER`, `CAMERAS`).
 
 ### 5.1 Intake
 

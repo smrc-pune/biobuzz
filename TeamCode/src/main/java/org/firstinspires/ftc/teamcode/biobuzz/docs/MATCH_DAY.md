@@ -31,7 +31,7 @@ changing any tuning.
 2. Paper checklist (things code cannot see):
    - [ ] Charged battery in, strapped down; spare charged
    - [ ] Pinpoint light on; Pinpoint mounted firmly
-   - [ ] Every connector seated (drive motors, Expansion Hub RS-485 cable, cameras, servo)
+   - [ ] Every connector seated (drive motors, Expansion Hub RS-485 cable, cameras, the 3 servos: windmill and both intake side wheels)
    - [ ] `AutoConfig.START`, `START_DELAY_S` agreed with our partner and set
    - [ ] Nothing loose; bumpers on with the right alliance colour
 3. At the field, in **INIT** of BioBuzz Auto: pick the alliance (D-pad left/right), read the

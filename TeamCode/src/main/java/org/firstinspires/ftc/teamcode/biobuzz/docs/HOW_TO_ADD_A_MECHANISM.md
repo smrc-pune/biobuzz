@@ -1,7 +1,9 @@
 # How to add a mechanism (and a state machine, and a subsystem)
 
 Example: a **Gate** – one servo that opens and closes. It keeps balls in the hopper, so
-it belongs to the **shooter** job: it goes in `ShooterSubsystem`.
+it belongs to the **shooter** job: it goes in `ShooterSubsystem`. (Our StarterBot has no
+gate: its windmill already keeps the balls back. The Gate is only an example, a plain
+positional servo. For a continuous servo, see `Feeder.java` or the side wheels in `Intake.java`.)
 
 ```
   OpMode  --robot.shooter.openGate()-->  ShooterSubsystem  --gate.open()-->  Gate (mechanism)

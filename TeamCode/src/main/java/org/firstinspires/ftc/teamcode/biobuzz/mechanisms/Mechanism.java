@@ -47,7 +47,7 @@ public class Mechanism {
         // empty here: your mechanism fills it in with @Override
     }
 
-    /** Put the devices in their safe state: motors off, servos where they hold nothing. */
+    /** Put the devices in their safe state: motors off, continuous servos stopped, other servos where they hold nothing. */
     protected void stop() {
         // empty here: your mechanism fills it in with @Override
     }

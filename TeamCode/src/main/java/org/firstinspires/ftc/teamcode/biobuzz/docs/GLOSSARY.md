@@ -47,7 +47,7 @@
 | Template Method | `Mechanism.runUpdate()` calls your `update()` safely |
 | State pattern (enum + switch) | `LaunchStateMachine`, Auto's steps |
 | Mediator | A subsystem's menu methods cancel its state machine when they share a mechanism |
-| Dependency injection | `new LaunchStateMachine(feeder, launcher, drive)` |
+| Dependency injection | `new LaunchStateMachine(feeder, launcher)` |
 | Factory method | `FieldPaths.toLaunchSpot(...)` |
 
 ## Game words (BIOBUZZ)
