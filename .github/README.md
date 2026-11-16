@@ -5,9 +5,10 @@ The code for our *FIRST* Tech Challenge robot in the BIOBUZZ season. It is built
 [Pedro Pathing 3.0.2 Quickstart](https://github.com/Pedro-Pathing/Quickstart), and written so
 that students who are new to Java can read it, change it and own it.
 
-> **Status: `v0.1.7`, not run on the robot yet.** Every part is written, but the drive is not
-> tuned yet: until then, every OpMode that drives stops at INIT with "DRIVE NOT SET UP".
-> Device names, field places and speeds are first guesses, marked `TODO(BioBuzz)` in the code.
+> **Status: `v0.2`, not run on the robot yet.** The code is written for our robot, the goBILDA
+> StarterBot with mecanum wheels, with goBILDA's device names. The drive is not tuned yet:
+> until then, every OpMode that drives stops at INIT with "DRIVE NOT SET UP".
+> Ports, directions, field places and speeds are first guesses, marked `TODO(BioBuzz)` in the code.
 > **Test: Parts** and **Robot Check** work now.
 
 ## Start here
