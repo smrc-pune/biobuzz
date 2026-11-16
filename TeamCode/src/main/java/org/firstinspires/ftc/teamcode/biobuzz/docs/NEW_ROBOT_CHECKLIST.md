@@ -128,7 +128,7 @@ For each one: run its test, change numbers live in the **Dashboard**
 (http://192.168.43.1:8080/dash → Configuration), then **type the good values into the config
 file and commit them** (`TUNING.md`, "Mechanism tuning").
 
-- [ ] **Test: Intake**: `IntakeConfig.COLLECT_POWER`, `REVERSE_POWER`.
+- [ ] **Test: Intake**: `IntakeConfig.COLLECT_POWER`, `REVERSE_POWER`, and the side wheels' `SIDE_COLLECT_POWER`, `SIDE_REVERSE_POWER`.
 - [ ] **Test: Feeder**: `FeederConfig.HOLD_POSITION`, `FEED_POSITION` (use the safe
       positions from step 4).
 - [ ] **Test: Launcher**: `LauncherConfig.SPEED_F`, then `SPEED_P`; check `TICKS_PER_REV`.

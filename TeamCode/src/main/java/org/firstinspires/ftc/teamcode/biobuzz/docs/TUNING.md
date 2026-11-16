@@ -12,7 +12,7 @@ into its file and commit it (see "Mechanism tuning" below).
 | # | Number | File (`configurations/`) | How | Good when |
 | --- | --- | --- | --- | --- |
 | 1 | Every device name, and each motor's and continuous servo's `..._REVERSED` | `HardwareNames` | Names exactly as in the Robot Controller configuration. Then **Test: Parts**, one device at a time (`NEW_ROBOT_CHECKLIST.md`, steps 1–4). These are `final`: change the file and deploy, not the Dashboard | No device MISSING; stick up moves each mechanism "forward" |
-| 2 | `COLLECT_POWER`, `REVERSE_POWER` | `IntakeConfig` | **Test: Intake** | Pulls a ball in every time without jamming; spits it out |
+| 2 | `COLLECT_POWER`, `REVERSE_POWER`, `SIDE_COLLECT_POWER`, `SIDE_REVERSE_POWER` | `IntakeConfig` | **Test: Intake** | Pulls a ball in every time without jamming, also from the front corners; spits it out |
 | 3 | `HOLD_POSITION`, `FEED_POSITION` | `FeederConfig` | **Test: Feeder** | Hold keeps the next ball back; feed pushes it fully into the flywheel |
 | 4 | `LAUNCH_SPOT_X_IN`, `LAUNCH_SPOT_Y_IN` | `FieldConfig` | Pick a spot with a clear view of the HIVE and measure it (`AUTO_GUIDE.md`, "Measuring a pose") | You can put the robot back on it every time (mark it with tape) |
 | 5 | `LAUNCH_RPM` | `LauncherConfig` | **Test: Launch**, robot on the launch spot facing the CELL. Short: +100; long: −100. First a mentor makes the flywheel reach its speed (`SPEED_F`, `SPEED_P` in **Test: Launcher**) | All 4 balls land in the CELL |
@@ -82,7 +82,7 @@ git with the date and the field type** (for example "launch speed, home field, 2
 
 | What | Test OpMode | Numbers | Good |
 | --- | --- | --- | --- |
-| Intake power | Test: Intake | `IntakeConfig.COLLECT_POWER`, `REVERSE_POWER` | Pulls a ball in reliably, without jamming |
+| Intake power | Test: Intake | `IntakeConfig.COLLECT_POWER`, `REVERSE_POWER`, `SIDE_COLLECT_POWER`, `SIDE_REVERSE_POWER` | Pulls a ball in reliably, without jamming |
 | Feeder positions | Test: Feeder | `FeederConfig.HOLD_POSITION`, `FEED_POSITION` | Hold keeps a ball back; feed pushes it fully into the flywheel |
 | Flywheel speed control | Test: Launcher (Graph view: `launcher_rpm`, `launcher_target_rpm`) | `LauncherConfig.SPEED_F` first (about right with P = 0), then `SPEED_P`; check `TICKS_PER_REV` | Reaches the target within 1 s, little overshoot, recovers quickly after a ball |
 | Launch speed | Test: Launch, robot on our launch spot (`FieldConfig.LAUNCH_SPOT`) facing the CELL. Short: raise it 100 at a time; long: lower it | `LauncherConfig.LAUNCH_RPM` | All 4 balls land in the CELL from the launch spot |

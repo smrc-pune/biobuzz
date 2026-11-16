@@ -352,11 +352,11 @@ public class Intake extends Mechanism {
 
 | | |
 | --- | --- |
-| Devices | `MOTOR_INTAKE` (roller) |
-| Verbs | `collect()` (power `IntakeConfig.COLLECT_POWER`), `reverse()` (`REVERSE_POWER`); off = `runStop()` |
+| Devices | `MOTOR_INTAKE` (roller), `SERVO_INTAKE_LEFT` and `SERVO_INTAKE_RIGHT` (continuous servos turning the side wheels at the front corners; DESIGN-REVIEW section 14, H5). The sketch above shows the roller only |
+| Verbs | `collect()` (roller `IntakeConfig.COLLECT_POWER`, side wheels `SIDE_COLLECT_POWER`), `reverse()` (`REVERSE_POWER`, `SIDE_REVERSE_POWER`); off = `runStop()`. All three devices always run together |
 | Questions | `isCollecting()`, `isReversing()`, `getPower()` |
 | `update()` | Nothing yet (stall detection is a future improvement, section 14) |
-| Log | `intake_power`; EVENT `INTAKE:power <p>` / `INTAKE:off` on each change. (Motor current is not logged: reading it is a hub command every loop; it comes with stall detection) |
+| Log | `intake_power`, `intake_side_power`; EVENT `INTAKE:power <p>, side wheels <s>` / `INTAKE:off` on each change. (Motor current is not logged: reading it is a hub command every loop; it comes with stall detection) |
 
 ### 5.2 Feeder
 
@@ -668,7 +668,7 @@ All are mentor zone and share `helpers/FieldCheckHelper` (grades, results, `FIEL
 | `DriveConfig` | `STICK_DEADZONE` (0.05), `RED_DRIVER_HEADING_DEG` (0), `BLUE_DRIVER_HEADING_DEG` (180), `AIM_P` (1.0), `AIM_D` (0.05) |
 | `FieldConfig` | `FIELD_CENTRE_IN`; `START_NEAR_GARDEN_*`, `START_MIDDLE_*`; `OWN_SIDE_MARGIN_IN`; `LAUNCH_SPOT_*`; `LOADING_APPROACH_*`, `LOADING_PARK_*`; `RESET_CORNER_*`; `CELL_A_*`, `CELL_B_*` (from the field picture), `START_CELL_A_UP`; `HIVE_KEEP_OUT_*` (all RED, inches/degrees; guesses) |
 | `AutoConfig` | `enum Start`; `START` (`WALL_NEAR_GARDEN`), `START_DELAY_S` (0) – decided before the match; `DRIVE_TIMEOUT_MS` 4000, `LAUNCH_TIMEOUT_MS` 6000, `PARK_TIMEOUT_MS` 4000, `PARK_BY_S` 26 |
-| `IntakeConfig` | `COLLECT_POWER` (1.0), `REVERSE_POWER` (−0.6) |
+| `IntakeConfig` | `COLLECT_POWER` (1.0), `REVERSE_POWER` (−0.6), `SIDE_COLLECT_POWER` (1.0), `SIDE_REVERSE_POWER` (−0.6) |
 | `FeederConfig` | `HOLD_POSITION` (0.2), `FEED_POSITION` (0.6) |
 | `LauncherConfig` | `TICKS_PER_REV` (28), `SPEED_P/I/D/F`, `IDLE_RPM` (0), `SPEED_TOLERANCE_RPM` (100), `LAUNCH_RPM` (3100), `SPIN_UP_TIMEOUT_MS` (2500), `FEED_MS` (250), `RECOVER_MS` (300), `TIP_PAUSE_MS` (1500), `AIM_OFFSET_DEG` (0) |
 | `CameraConfig` | `HIVE_SAMPLE_MS`, `HIVE_IMAGE_WIDTH_PX`, HuskyLens learned tag IDs |
@@ -718,7 +718,7 @@ All are mentor zone and share `helpers/FieldCheckHelper` (grades, results, `FIEL
 
 **Header line 2:** `Game: intake ON | launcher READY | up CELL A | tips 2 | NECTAR +2` ("NECTAR open" with 1:00 left in TeleOp).
 
-**New DATA columns (as built):** `intake_power`, `feeder_feeding`, `launcher_rpm`, `launcher_target_rpm`, `hive_cam_tag_id`, `hive_cam_offset_px`, `hive_cam_age_ms`, `<mechanism>_faulted`, `launch_state` (0 IDLE, 1 SPINNING_UP, 2 FEEDING, 3 RECOVERING), `up_cell_a`, `tip_count`.
+**New DATA columns (as built):** `intake_power`, `intake_side_power`, `feeder_feeding`, `launcher_rpm`, `launcher_target_rpm`, `hive_cam_tag_id`, `hive_cam_offset_px`, `hive_cam_age_ms`, `<mechanism>_faulted`, `launch_state` (0 IDLE, 1 SPINNING_UP, 2 FEEDING, 3 RECOVERING), `up_cell_a`, `tip_count`.
 
 **EVENTS:** `PLAY`, `STOP`, `CHANGE:<part>: <from> -> <to> (<reason>)` (parts: Drive, Launch, Auto, ...), `WARN:<part>: <message>` (refused assists and launches among them), `ALERT:<text>`, `PINPOINT:<status>`, `ASSIST:<name>`, `ASSIST_CANCELLED:stick` / `:aim`, `MARK:driver`, `MARK:operator`, `HIVE_TIP:<n> (up CELL A)`, `INTAKE:power <p>` / `INTAKE:off`, `LAUNCH:<n> of <count>`, `TIMEOUT:<step>`, `PARK_BY:<step>`, `AUTO_PATH_OFFSIDE:<text>`, `FIELDCHECK_<nn>:<grade> <text>`, `SUMMARY_<nn>`, `ROBOTCHECK:<text>`, `PARTS:selected <name>`.
 

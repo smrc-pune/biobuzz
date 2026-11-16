@@ -16,8 +16,10 @@ import org.firstinspires.ftc.teamcode.biobuzz.mechanisms.Intake;
  * IntakeTest.java  -  test the INTAKE by itself.                               ROLE: OpMode (test)
  *
  * CONTROLS (gamepad 1):   A = collect    B (hold) = reverse    X = stop
- * WHAT TO WATCH: A pulls a ball in. If it pushes it out, flip MOTOR_INTAKE_REVERSED in
- * HardwareNames. Powers are in IntakeConfig (change them live in the Dashboard).
+ * WHAT TO WATCH: A pulls a ball in: the roller AND both side wheels at the front corners.
+ * If the roller pushes it out, flip MOTOR_INTAKE_REVERSED in HardwareNames; if a side
+ * wheel does, flip SERVO_INTAKE_LEFT_REVERSED or SERVO_INTAKE_RIGHT_REVERSED.
+ * Powers are in IntakeConfig (change them live in the Dashboard).
  */
 @TeleOp(name = "Test: Intake", group = "Tests")
 public class IntakeTest extends OpMode {
